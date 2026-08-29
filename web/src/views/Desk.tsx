@@ -99,7 +99,18 @@ export function Desk({
       </div>
     );
   }
-  if (!desk || !sceneId) return <div className="page"><p className="empty">Henter …</p></div>;
+  /**
+   * Vent på, at de hentede data faktisk hører til den valgte scene.
+   *
+   * Uden det her monteres editoren ét gennemløb for tidligt, mens `desk` stadig
+   * er den forrige scenes: overskriften skifter, men prosaen bliver stående —
+   * og næste tastetryk gemmer den gamle tekst ind i den nye scene. Nøglen på
+   * <Prose> redder det ikke, for den er allerede skiftet, når det rigtige
+   * dokument ankommer.
+   */
+  if (!desk || !sceneId || desk.scene.id !== sceneId) {
+    return <div className="page"><p className="empty">Henter …</p></div>;
+  }
 
   const known = new Set(desk.pov?.knows.map((k) => k.factId) ?? []);
 

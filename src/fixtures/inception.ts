@@ -2,13 +2,16 @@ import { inTurn } from '../core/changelog';
 import type { Store } from '../db/client';
 import { SECONDS, parseInstant } from '../core/time/gregorian';
 import { createEntity, recordPresence } from '../core/services/entities';
-import { addParticipation, createEvent } from '../core/services/events';
-import { createFact } from '../core/services/knowledge';
+import { addParticipation, createEvent, linkEventFact } from '../core/services/events';
+import { createFact, recordBelief, recordStatement } from '../core/services/knowledge';
 import { createLaw } from '../core/services/laws';
-import { createChapter, createScene, linkSceneToEvent } from '../core/services/narrative';
+import {
+  createChapter, createReveal, createScene, linkSceneToEvent, saveSceneText,
+} from '../core/services/narrative';
 import { createRealm, createWorld, createWork, defaultTimeSystemOf } from '../core/services/world';
 import { Workbench } from '../core/workbench';
 import { updateRow } from '../core/services/generic';
+import { markdownOf, paragraphs } from './prose';
 
 const MIN = SECONDS.MINUTE;
 
@@ -24,7 +27,13 @@ const MIN = SECONDS.MINUTE;
  * differently: what happens to a body upstairs, and whether you remember the
  * dream when you wake. Neither is something the tool should guess.
  *
- * Loaded: the four layers, their ratios and their entrances and exits.
+ * The narrative side is what makes the ratios visible. Four chapters, one per
+ * layer, each with two or three scenes -- so a single chapter of the book covers
+ * eight weeks at the bottom and ten minutes at the top, and the chapter view has
+ * to show both numbers about the same stretch without either being wrong.
+ *
+ * Loaded: the four layers, their ratios, their entrances and exits, the team,
+ * and what each of them knows about why they are down there.
  */
 export function loadInception(store: Store): { worldId: string; workId: string; realmIds: string[] } {
   const created = createWorld(store, {
@@ -46,7 +55,27 @@ export function loadInception(store: Store): { worldId: string; workId: string; 
     workId = createWork(s, ctx, { title: 'Inception' });
     const timeSystemId = defaultTimeSystemOf(store, ctx);
 
-    const cobb = createEntity(s, ctx, { name: 'Cobb', kind: 'person' });
+    const cobb = createEntity(s, ctx, {
+      name: 'Cobb', kind: 'person', summary: 'Leder holdet. Har sin egen dagsorden med.',
+    });
+    const arthur = createEntity(s, ctx, {
+      name: 'Arthur', kind: 'person', summary: 'Har styr på alting undtagen det, Cobb ikke fortæller.',
+    });
+    const ariadne = createEntity(s, ctx, {
+      name: 'Ariadne', kind: 'person', summary: 'Bygger lagene. Den eneste der spørger.',
+    });
+    const eames = createEntity(s, ctx, { name: 'Eames', kind: 'person' });
+    const yusuf = createEntity(s, ctx, { name: 'Yusuf', kind: 'person' });
+    const saito = createEntity(s, ctx, { name: 'Saito', kind: 'person' });
+    const fischer = createEntity(s, ctx, {
+      name: 'Fischer', kind: 'person', summary: 'Målet. Ved ingenting om noget af det.',
+    });
+    const mal = createEntity(s, ctx, {
+      name: 'Mal', kind: 'person', summary: 'Er her ikke. Er her alligevel.',
+    });
+    const totem = createEntity(s, ctx, {
+      name: 'Toppen', kind: 'object', summary: 'Fortæller ham hvilket lag han er i. Måske.',
+    });
     const van = createEntity(s, ctx, { name: 'Varevognen', kind: 'place' });
     const hotel = createEntity(s, ctx, { name: 'Hotellet', kind: 'place' });
     const fortress = createEntity(s, ctx, { name: 'Snefæstningen', kind: 'place' });
@@ -77,18 +106,39 @@ export function loadInception(store: Store): { worldId: string; workId: string; 
       title: 'Sparket', realmId: reality, placeId: van,
       earliest: epoch + 10 * MIN, latest: epoch + 10 * MIN, precision: 'minute',
     });
-    addParticipation(s, ctx, { eventId: entry, entityId: cobb, role: 'actor' });
-    addParticipation(s, ctx, { eventId: exit, entityId: cobb, role: 'actor' });
+    const team = [cobb, arthur, ariadne, eames, saito, fischer];
+    for (const who of [...team, yusuf]) {
+      addParticipation(s, ctx, { eventId: entry, entityId: who, role: 'actor' });
+    }
+    for (const who of [...team, yusuf]) {
+      addParticipation(s, ctx, { eventId: exit, entityId: who, role: 'actor' });
+    }
 
+    /**
+     * Tre begivenheder i hvert lag, målt på lagets eget ur.
+     *
+     * Det er dét, forholdet er til for. De samme ti minutter i varevognen er en
+     * time i første lag, en uge i andet og over otte uger på kysten -- og hvert
+     * tal er rigtigt i sit eget lag. En model med ét ur kan ikke skrive det ned.
+     */
+    const insideByLevel: string[][] = [];
     realmIds.slice(1).forEach((realmId, index) => {
       const level = index + 1;
       const localSpan = 10 * MIN * 20 ** level;
-      const inside = createEvent(s, ctx, {
-        title: `Arbejdet i lag ${level}`, realmId, placeId: places[level],
-        earliest: epoch, latest: epoch + localSpan,
-        durationMin: localSpan, precision: 'minute',
+      const beats = ['Ankomsten', 'Arbejdet', 'Ventetiden på sparket'];
+      const made = beats.map((beat, beatIndex) => {
+        const id = createEvent(s, ctx, {
+          title: `${beat} i lag ${level}`, realmId, placeId: places[level],
+          earliest: epoch + Math.round((localSpan / 3) * beatIndex),
+          latest: epoch + Math.round((localSpan / 3) * beatIndex) + Math.round(localSpan / 12),
+          durationMin: Math.round(localSpan / 4), precision: 'minute',
+        });
+        for (const who of team) {
+          addParticipation(s, ctx, { eventId: id, entityId: who, role: 'actor' });
+        }
+        return id;
       });
-      addParticipation(s, ctx, { eventId: inside, entityId: cobb, role: 'actor' });
+      insideByLevel.push(made);
       recordPresence(s, ctx, {
         entityId: cobb, placeId: places[level]!, realmId,
         fromTime: epoch, toTime: epoch + localSpan,
@@ -101,11 +151,75 @@ export function loadInception(store: Store): { worldId: string; workId: string; 
 
     // Kroppen sover i laget over, mens personen arbejder i laget under. Det er
     // ikke bilokation, og reglen skal vide det.
-    recordPresence(s, ctx, { entityId: cobb, placeId: van, realmId: reality, fromTime: epoch, toTime: epoch + 10 * MIN });
+    recordPresence(s, ctx, {
+      entityId: cobb, placeId: van, realmId: reality, fromTime: epoch, toTime: epoch + 10 * MIN,
+    });
+    recordPresence(s, ctx, {
+      entityId: ariadne, placeId: van, realmId: reality, fromTime: epoch, toTime: epoch + 10 * MIN,
+    });
 
-    createFact(s, ctx, {
+    // -------------------------------------------------------------------- fakta
+    const dreamDeath = createFact(s, ctx, {
       predicate: 'kan_ikke_doe', summary: 'Man vågner af at dø i en drøm', realmId: realmIds[1]!,
       slots: [{ name: 'lag', valueKind: 'text', value: { text: 'drøm' } }],
+    });
+    // Sandt i drømmen, meningsløst i virkeligheden. Et faktum hører til i et lag,
+    // og det er derfor det står på faktummet og ikke på verdenen.
+    const malFact = createFact(s, ctx, {
+      predicate: 'er_projektion', summary: 'Mal er Cobbs egen projektion', realmId: realmIds[1]!,
+      slots: [{ name: 'person', valueKind: 'entity', value: { entityId: mal } }],
+    });
+    const sedationFact = createFact(s, ctx, {
+      predicate: 'bedoevelsen_er_for_kraftig',
+      summary: 'Bedøvelsen er så kraftig, at døden fører til limbo', realmId: realmIds[1]!,
+      slots: [{ name: 'ansvarlig', valueKind: 'entity', value: { entityId: yusuf } }],
+    });
+
+    linkEventFact(s, ctx, {
+      eventId: insideByLevel[0]![1]!, factId: sedationFact.factId, exposes: 'reveals',
+    });
+    linkEventFact(s, ctx, {
+      eventId: insideByLevel[1]![1]!, factId: malFact.factId, exposes: 'evidences',
+    });
+
+    // -------------------------------------------------------------------- viden
+    // Cobb ved det fra begyndelsen og siger det ikke. Ariadne regner det ud
+    // undervejs. Arthur får det aldrig at vide, og Fischer slet ikke.
+    recordBelief(s, ctx, {
+      entityId: cobb, factId: malFact.factId, strength: 'knows', sincePersonal: epoch,
+      slotIds: malFact.slotIds, binds: { person: { entityId: mal } },
+    });
+    recordBelief(s, ctx, {
+      entityId: ariadne, factId: malFact.factId, strength: 'suspects', sincePersonal: epoch,
+    });
+    recordBelief(s, ctx, {
+      entityId: arthur, factId: malFact.factId, strength: 'unaware', sincePersonal: epoch,
+    });
+    recordBelief(s, ctx, {
+      entityId: fischer, factId: malFact.factId, strength: 'unaware', sincePersonal: epoch,
+    });
+    recordBelief(s, ctx, {
+      entityId: yusuf, factId: sedationFact.factId, strength: 'knows', sincePersonal: epoch,
+      slotIds: sedationFact.slotIds, binds: { ansvarlig: { entityId: yusuf } },
+    });
+    for (const who of [cobb, arthur, eames, saito]) {
+      recordBelief(s, ctx, {
+        entityId: who, factId: dreamDeath.factId, strength: 'knows', sincePersonal: epoch,
+        slotIds: dreamDeath.slotIds, binds: { lag: { text: 'drøm' } },
+      });
+    }
+
+    // Yusuf siger det, han faktisk ved. Cobb fortier det, han ved. Det første er
+    // ikke en fejl; det andet er en løgn, og en løgn er en handling.
+    recordStatement(s, ctx, {
+      speakerEntityId: yusuf, factId: sedationFact.factId, truthful: true,
+      eventId: insideByLevel[0]![1]!, atTime: epoch + 200 * MIN,
+      slotIds: sedationFact.slotIds, binds: { ansvarlig: { entityId: yusuf } },
+    });
+    recordStatement(s, ctx, {
+      speakerEntityId: cobb, factId: malFact.factId, truthful: false,
+      eventId: entry, audienceEntityId: arthur, atTime: epoch,
+      note: 'Han siger, han har styr på det.',
     });
 
     createLaw(s, ctx, {
@@ -120,13 +234,103 @@ export function loadInception(store: Store): { worldId: string; workId: string; 
         + 'I de fleste andre historier gør man ikke, og så skal denne lov skiftes ud.',
     });
 
-    const chapterId = createChapter(s, ctx, store, { workId, title: 'Nedstigningen' });
-    realmIds.forEach((realmId, level) => {
-      const sceneId = createScene(s, ctx, store, {
-        chapterId, title: level === 0 ? 'Varevognen' : `Lag ${level}`,
-        povEntityId: cobb, narrationPerson: 'third_limited', narrationTense: 'past', realmId,
+    // -------------------------------------------------------------- fortællingen
+    interface SceneSpec {
+      title: string;
+      event: string;
+      pov: string;
+      realm: string;
+      reveals?: { factId: string; slotId?: string; strength: 'hinted' | 'implied' | 'stated' | 'confirmed' }[];
+      prose?: string[];
+    }
+
+    const book: { title: string; summary: string; scenes: SceneSpec[] }[] = [
+      {
+        title: 'Varevognen',
+        summary: 'Ti minutter, oppe hvor uret går langsomst.',
+        scenes: [
+          {
+            title: 'De falder i søvn', event: entry, pov: cobb, realm: reality,
+            prose: [
+              'Regnen rammer taget i en takt, han ikke kan holde styr på, og så holder han op med at prøve.',
+              'Han tæller dem: seks stole, seks slanger, seks mennesker der ikke ved, hvad de har sagt ja til.',
+            ],
+          },
+          { title: 'Yusuf ved rattet', event: exit, pov: cobb, realm: reality },
+        ],
+      },
+      {
+        title: 'Hotellet',
+        summary: 'Første lag. En time hernede for hvert tredje minut deroppe.',
+        scenes: [
+          { title: 'De kommer ind', event: insideByLevel[0]![0]!, pov: arthur, realm: realmIds[1]! },
+          {
+            title: 'Yusuf indrømmer det', event: insideByLevel[0]![1]!, pov: arthur,
+            realm: realmIds[1]!,
+            reveals: [{
+              factId: sedationFact.factId,
+              slotId: sedationFact.slotIds.get('ansvarlig'), strength: 'stated',
+            }],
+          },
+          { title: 'De venter', event: insideByLevel[0]![2]!, pov: ariadne, realm: realmIds[1]! },
+        ],
+      },
+      {
+        title: 'Snefæstningen',
+        summary: 'Andet lag. En uge hernede for de samme ti minutter.',
+        scenes: [
+          { title: 'Op ad bjerget', event: insideByLevel[1]![0]!, pov: eames, realm: realmIds[2]! },
+          {
+            title: 'Ariadne ser hende', event: insideByLevel[1]![1]!, pov: ariadne,
+            realm: realmIds[2]!,
+            reveals: [{ factId: malFact.factId, strength: 'implied' }],
+            prose: [
+              'Hun står i den anden ende af gangen, og ingen andre kigger op.',
+              'Ariadne forstår det, før hun har ord til det: hun er ikke kommet ind udefra. Hun har været her hele tiden, fordi han har taget hende med.',
+            ],
+          },
+        ],
+      },
+      {
+        title: 'Kysten',
+        summary: 'Tredje lag. Otte uger, mens sparket falder.',
+        scenes: [
+          { title: 'Han går i land', event: insideByLevel[2]![0]!, pov: cobb, realm: realmIds[3]! },
+          {
+            title: 'Han lader hende blive', event: insideByLevel[2]![1]!, pov: cobb,
+            realm: realmIds[3]!,
+            reveals: [{
+              factId: malFact.factId,
+              slotId: malFact.slotIds.get('person'), strength: 'confirmed',
+            }],
+          },
+          { title: 'Sparket når ned', event: insideByLevel[2]![2]!, pov: ariadne, realm: realmIds[3]! },
+        ],
+      },
+    ];
+
+    book.forEach((chapter, chapterIndex) => {
+      const chapterId = createChapter(s, ctx, store, {
+        workId, title: chapter.title, position: chapterIndex + 1, summary: chapter.summary,
       });
-      if (level === 0) linkSceneToEvent(s, ctx, { sceneId, eventId: entry, mode: 'dramatised' });
+      chapter.scenes.forEach((spec, sceneIndex) => {
+        const sceneId = createScene(s, ctx, store, {
+          chapterId, title: spec.title, position: sceneIndex + 1,
+          povEntityId: spec.pov, narrationPerson: 'third_limited',
+          narrationTense: 'past', realmId: spec.realm,
+        });
+        linkSceneToEvent(s, ctx, { sceneId, eventId: spec.event, mode: 'dramatised' });
+        for (const shown of spec.reveals ?? []) {
+          createReveal(s, ctx, {
+            factId: shown.factId, sceneId, slotId: shown.slotId, strength: shown.strength,
+          });
+        }
+        if (spec.prose) {
+          saveSceneText(s, ctx, store, {
+            sceneId, doc: paragraphs(...spec.prose), markdown: markdownOf(...spec.prose),
+          });
+        }
+      });
     });
   });
 

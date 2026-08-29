@@ -27,59 +27,68 @@ describe('Skrivebordet — hvad synsvinklen ved her', () => {
 
   const chapters = store.db.select().from(chapter).where(eq(chapter.workId, workId)).all()
     .sort((a, b) => a.position - b.position);
+  // Scener slås op på deres egen titel frem for på kapitlets, fordi et kapitel
+  // nu rummer flere af dem. At bruge den første scene i kapitlet ville være at
+  // prøve noget andet end det, prøven hedder.
   const sceneOf = (title: string) => {
-    const ch = chapters.find((c) => c.title === title)!;
-    return store.db.select().from(scene).where(eq(scene.chapterId, ch.id)).get()!;
+    const all = chapters.flatMap((c) =>
+      store.db.select().from(scene).where(eq(scene.chapterId, c.id)).all());
+    const found = all.find((sc) => sc.title === title);
+    assert.ok(found, `scenen «${title}» findes ikke i prøvecasen`);
+    return found;
   };
 
   it('placerer scenen i tiden ud fra det, den dramatiserer', () => {
-    const desk = sceneDesk(store, ctx, { sceneId: sceneOf('Farve 1').id });
+    const desk = sceneDesk(store, ctx, { sceneId: sceneOf('Teddy siger det hele').id });
     assert.equal(desk.moment.from, 'dramatised');
     assert.ok(desk.moment.at != null, 'scenen skal kunne dateres');
   });
 
   it('svarer for synsvinklen, ikke for fortælleren', () => {
-    const desk = sceneDesk(store, ctx, { sceneId: sceneOf('Farve 1').id });
+    const desk = sceneDesk(store, ctx, { sceneId: sceneOf('Teddy siger det hele').id });
     assert.equal(desk.pov?.name, 'Leonard');
     assert.ok(desk.pov!.at != null, 'øjeblikket skal læses på hans eget ur');
   });
 
   it('læserens viden holdes adskilt fra personens', () => {
     // Twistet ligger i sidste kapitel. Før det har læseren intet fået.
-    const early = sceneDesk(store, ctx, { sceneId: sceneOf('S/H 1').id });
-    assert.equal(early.readerKnows.length, 0);
+    const early = sceneDesk(store, ctx, { sceneId: sceneOf('Nogen har ringet').id });
+    assert.equal(early.readerKnows.length, 0, 'første scene giver læseren ingenting');
 
-    const last = sceneDesk(store, ctx, { sceneId: sceneOf('Farve 1').id });
-    assert.ok(last.readerKnows.length > 0, 'sidste kapitel giver læseren twistet');
+    const later = sceneDesk(store, ctx, { sceneId: sceneOf('Teddy siger det hele').id });
+    assert.ok(later.readerKnows.length > 0, 'andet kapitel giver læseren twistet');
   });
 
   /**
    * Mementos inversion, læst af skrivebordet.
    *
-   * «Farve 1» står sidst i bogen og først i kronologien: der har han lige set
-   * det, og han ved det selv. «Farve 5» står næstforrest i bogen og sidst i
-   * kronologien: der er erindringen for længst løbet ud, og det eneste, der
-   * står tilbage, er skriften på polaroiden. Samme faktum, samme mand, to helt
-   * forskellige måder at vide det på — og det er hele filmen.
+   * Klokken sytten skriver han det på polaroiden, og der ved han det selv. En
+   * time senere er erindringen løbet ud, og det eneste, der står tilbage, er
+   * skriften. Samme faktum, samme mand, to helt forskellige måder at vide det
+   * på — og det er hele filmen.
    */
   it('skelner mellem det, han husker, og det, han bærer på sig', () => {
-    const teddyFact = (sceneId: string) => {
+    const distrust = (sceneId: string) => {
       const desk = sceneDesk(store, ctx, { sceneId });
-      return desk.pov!.knows.find((k) => k.summary.toLowerCase().includes('teddy'));
+      return desk.pov!.knows.find((k) => k.summary.includes('Teddy kan ikke stoles på'));
     };
 
-    const atReveal = teddyFact(sceneOf('Farve 1').id);
-    assert.equal(atReveal?.source, 'stated', 'i afsløringsscenen husker han det selv');
+    const whenWriting = distrust(sceneOf('Han skriver på bagsiden').id);
+    assert.equal(whenWriting?.source, 'stated', 'mens han skriver, husker han det selv');
 
-    const later = teddyFact(sceneOf('Farve 5').id);
-    assert.equal(later?.source, 'carried',
-      'senere i kronologien er erindringen væk, og kun polaroiden holder det');
+    const anHourLater = distrust(sceneOf('Teddy siger det hele').id);
+    assert.equal(anHourLater?.source, 'carried',
+      'en time senere er erindringen væk, og kun polaroiden holder det');
   });
 
   it('går gennem bogen i læserækkefølge', () => {
-    const first = sceneDesk(store, ctx, { sceneId: sceneOf('S/H 1').id });
+    const first = sceneDesk(store, ctx, { sceneId: sceneOf('Nogen har ringet').id });
     assert.equal(first.previousSceneId, null, 'første scene har ingen forgænger');
-    assert.equal(first.nextSceneId, sceneOf('Farve 5').id, 'næste er kapitel 2, ikke kapitel 1');
+    // Inden for kapitlet først, og så videre til det næste kapitel.
+    assert.equal(first.nextSceneId, sceneOf('Sagen om Sammy').id);
+    const second = sceneDesk(store, ctx, { sceneId: sceneOf('Sagen om Sammy').id });
+    assert.equal(second.nextSceneId, sceneOf('Teddy siger det hele').id,
+      'sidste scene i et kapitel fortsætter ind i det næste');
   });
 });
 
@@ -115,6 +124,23 @@ describe('Skrivebordet — samme aften, to ben', () => {
       desk.pov!.knows.some((k) => k.summary.includes('den samme'));
     assert.equal(secret(john()), false, 'John aner det ikke endnu');
     assert.equal(secret(barkeep()), true, 'bartenderen har levet det');
+  });
+
+  /**
+   * Benet afgør, om synsvinklen var i rummet.
+   *
+   * Den rejsende deltager i afleveringen som bartenderen. En scene set gennem
+   * John må derfor ikke tælle ham som til stede — det er den samme krop og et
+   * helt andet menneske, og hele modellen står og falder med den forskel.
+   */
+  it('spørger om benet var til stede, ikke om personen', () => {
+    const asJohn = sceneDesk(store, ctx, { sceneId: sceneNamed('Barnet, som det bliver fortalt').id });
+    const dropOff = asJohn.tells.find((t) => t.title.includes('efterlades'))!;
+    assert.equal(dropOff.povPresent, false, 'John har ikke levet den aften endnu');
+    assert.deepEqual(asJohn.leaks, [], 'og så er der heller ikke noget at melde');
+
+    const asBarkeep = sceneDesk(store, ctx, { sceneId: sceneNamed('Han lægger barnet fra sig').id });
+    assert.equal(asBarkeep.tells[0]!.povPresent, true, 'bartenderen står selv på trappen');
   });
 
   it('lader et vink stå, og fanger kun den udtalte afsløring', () => {
@@ -253,7 +279,7 @@ describe('Videnskurven — flere ben', () => {
 
   it('svarer for ét ben ad gangen', () => {
     const track = knowledgeTrack(store, ctx, { entityId: traveller().id });
-    assert.equal(track.legs.length, 3, 'tre ben af det samme liv');
+    assert.equal(track.legs.length, 4, 'fire ben af det samme liv');
     assert.ok(track.legId != null, 'et svar skal sige, hvilket ben det gælder');
   });
 

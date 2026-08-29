@@ -141,10 +141,17 @@ export function Band({ nonce }: { nonce: number }) {
                 className={s.floating ? 'dot untold' : 'dot disc'} />
               <text x={rightAxis + 12} y={y(s.y) + 4}
                 className={s.floating ? 'node-label untold' : 'node-label'}>
-                <tspan className="rank">{s.chapterPosition}</tspan>{'  '}{s.title}
+                {/* Læserækkefølge, ikke kapitelnummer: to scener i samme kapitel
+                    ville ellers få det samme tal, og så kan man ikke se, hvilken
+                    tråd der hører til hvilken. Talholdet skal kunne læses mod
+                    kronologiens til venstre. */}
+                <tspan className="rank">{s.order}</tspan>{'  '}{s.title}
                 {s.povName && <tspan className="pov">  · {s.povName}</tspan>}
               </text>
-              <title>{`${s.chapterTitle}\n${s.title}${s.povName ? `\nSynsvinkel: ${s.povName}` : ''}`}</title>
+              <title>
+                {`${s.chapterPosition}. ${s.chapterTitle}\n${s.title}`
+                  + (s.povName ? `\nSynsvinkel: ${s.povName}` : '')}
+              </title>
             </g>
           ))}
         </svg>

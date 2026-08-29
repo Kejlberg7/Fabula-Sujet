@@ -159,12 +159,32 @@ export function sceneDesk(store: Store, ctx: Context, query: { sceneId: string }
       ? { at: Math.min(...mentioned), from: 'mentioned' }
       : { at: null, from: null };
 
-  const present = new Set<string>();
-  for (const l of links) {
-    for (const p of db.select().from(participation)
+  /**
+   * Who was in the room -- and, for someone with more than one leg, which self.
+   *
+   * Keying this on the person alone was wrong, and wrong in exactly the place
+   * the model exists to get right: the traveller takes part in the drop-off as
+   * the barkeep, so a scene seen through his younger self counted him as
+   * present at something he has not lived yet. A leg is a different person for
+   * every purpose but the name.
+   */
+  const participants = links.flatMap((l) =>
+    db.select().from(participation)
       .where(and(eq(participation.eventId, l.eventId), eq(participation.branchId, ctx.branchId)))
-      .all()) present.add(`${l.eventId}:${p.entityId}`);
-  }
+      .all());
+
+  const legCountOf = (entityId: string) => db.select().from(entityLeg)
+    .where(and(eq(entityLeg.entityId, entityId), eq(entityLeg.branchId, ctx.branchId)))
+    .all().length;
+
+  const wasPresent = (eventId: string, entityId: string, legId: string | null): boolean =>
+    participants.some((p) => {
+      if (p.eventId !== eventId || p.entityId !== entityId) return false;
+      if (p.legId && legId) return p.legId === legId;
+      // With a leg missing on one side we can only be sure when there is
+      // nothing to confuse it with. Anything else, we do not guess.
+      return legCountOf(entityId) <= 1;
+    });
 
   let pov: DeskResult['pov'] = null;
   if (sc.povEntityId) {
@@ -220,7 +240,7 @@ export function sceneDesk(store: Store, ctx: Context, query: { sceneId: string }
 
     for (const l of links) {
       if (l.mode !== 'dramatised') continue;
-      if (present.has(`${l.eventId}:${pov.entityId}`)) continue;
+      if (wasPresent(l.eventId, pov.entityId, pov.legId)) continue;
       leaks.push({
         kind: 'absent',
         eventId: l.eventId,
@@ -259,7 +279,7 @@ export function sceneDesk(store: Store, ctx: Context, query: { sceneId: string }
       for (const item of exposed) {
         if (knownFacts.has(item.factId)) continue;
         if (revealRows.some((r) => r.factId === item.factId)) continue;
-        if (!present.has(`${l.eventId}:${pov.entityId}`)) continue;
+        if (!wasPresent(l.eventId, pov.entityId, pov.legId)) continue;
         leaks.push({
           kind: 'unaware_of_own_scene',
           factId: item.factId,
@@ -326,7 +346,7 @@ export function sceneDesk(store: Store, ctx: Context, query: { sceneId: string }
       id: l.id, eventId: l.eventId,
       title: events.get(l.eventId)?.title ?? '(ukendt)',
       mode: l.mode, from: startOf(l.eventId),
-      povPresent: pov ? present.has(`${l.eventId}:${pov.entityId}`) : false,
+      povPresent: pov ? wasPresent(l.eventId, pov.entityId, pov.legId) : false,
     })).sort((a, b) => (a.from ?? Infinity) - (b.from ?? Infinity)),
     reveals: revealRows.map((r) => ({
       id: r.id, factId: r.factId, summary: factSummary(r.factId),

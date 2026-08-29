@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { eq } from 'drizzle-orm';
 import { openStore } from '../db/client';
-import { chapter, entityLeg, event, sceneEvent, scene } from '../db/schema';
+import { chapter, entityLeg, event, sceneEvent, scene, sceneText } from '../db/schema';
 import { whoKnewWhat } from '../core/queries/knowledge';
 import { whoWasWhere, worldline } from '../core/queries/presence';
 import { solveTime } from '../core/solve';
@@ -27,10 +27,13 @@ describe('Memento — fortællerorden mod kronologi', () => {
     const chapters = store.db.select().from(chapter).where(eq(chapter.workId, workId)).all()
       .sort((a, b) => a.position - b.position);
     const colourChapters = chapters.filter((c) => c.title.startsWith('Farve'));
-    assert.equal(colourChapters.length, 5);
+    assert.ok(colourChapters.length >= 4, 'der skal være et farvespor at måle på');
 
+    // Første scene i hvert farvekapitel. Jo senere i bogen, jo tidligere på
+    // dagen — det er hele grebet, og det er det, de to akser findes for.
     const chronology = colourChapters.map((c) => {
-      const sc = store.db.select().from(scene).where(eq(scene.chapterId, c.id)).get()!;
+      const sc = store.db.select().from(scene).where(eq(scene.chapterId, c.id)).all()
+        .sort((a, b) => a.position - b.position)[0]!;
       const link = store.db.select().from(sceneEvent).where(eq(sceneEvent.sceneId, sc.id)).get()!;
       return store.db.select().from(event).where(eq(event.id, link.eventId)).get()!.earliest!;
     });
@@ -43,8 +46,9 @@ describe('Memento — fortællerorden mod kronologi', () => {
 
   it('lader erindringen udløbe, mens polaroiden bliver ved', () => {
     const leonard = store.sqlite.prepare('select id from entity where name = ?').get('Leonard') as { id: string };
+    // Øjeblikket han skriver det ned. Det er dér erindringen stadig er hans.
     const colourStart = store.db.select().from(event)
-      .where(eq(event.title, 'Farve 1')).get()!.earliest!;
+      .where(eq(event.title, 'Han skriver på polaroiden af Teddy')).get()!.earliest!;
 
     const fresh = whoKnewWhat(store, ctx, { entityId: leonard.id, at: colourStart + 5 * SECONDS.MINUTE });
     const teddyFresh = fresh.items.find((i) => i.summary.includes('Teddy'))!;
@@ -81,10 +85,11 @@ describe('Predestination — personlig tid', () => {
   const traveller = store.sqlite.prepare('select id from entity where name = ?')
     .get('Den rejsende') as { id: string };
 
-  it('har én person med tre ben og tre navne', () => {
+  it('har én person med fire ben og fire navne', () => {
     const legs = worldline(store, ctx, traveller.id);
-    assert.equal(legs.length, 3);
-    assert.deepEqual(legs.map((l) => l.label), ['som Jane', 'som John', 'som bartenderen']);
+    assert.equal(legs.length, 4);
+    assert.deepEqual(legs.map((l) => l.label),
+      ['som Jane', 'som John', 'som bartenderen', 'som bomberen']);
 
     const personal = legs.map((l) => l.personalStart!);
     assert.deepEqual(personal, [...personal].sort((a, b) => a - b), 'egen tid stiger altid');
@@ -168,4 +173,74 @@ describe('Inception — lag inden i lag', () => {
     assert.ok(laws.some((l) => l.hardness === 'soft' && /husker drømmen/.test(l.statement)),
       'det er en lov, du sætter — ikke noget værktøjet gætter');
   });
+});
+
+/**
+ * Prøvecasene skal have vægt.
+ *
+ * Et kapitel med én scene og én synsvinkel beviser næsten ingenting: en model
+ * kan holde til det uden at kunne holde til en bog. Det, der her måles, er
+ * ikke plottet, men de steder hvor tyndhed ville skjule en fejl — flere scener
+ * i det samme kapitel, mere end ét hoved at fortælle fra, prosa på siden, og
+ * en kronologi der ikke bare følger læserækkefølgen.
+ */
+describe('Prøvecasene har vægt nok til at bevise noget', () => {
+  const worlds = [
+    { name: 'Memento', load: loadMemento, minScenes: 20, minChapters: 8 },
+    { name: 'Predestination', load: loadPredestination, minScenes: 9, minChapters: 5 },
+    { name: 'Inception', load: loadInception, minScenes: 9, minChapters: 4 },
+  ];
+
+  for (const world of worlds) {
+    describe(world.name, () => {
+      const store = openStore(':memory:');
+      const { worldId, workId } = world.load(store);
+      const ctx = new Workbench(store).setActive({ worldId, workId });
+      const chapters = store.db.select().from(chapter)
+        .where(eq(chapter.workId, workId)).all().sort((a, b) => a.position - b.position);
+      const scenes = chapters.flatMap((c) =>
+        store.db.select().from(scene).where(eq(scene.chapterId, c.id)).all());
+
+      it('har kapitler med mere end én scene i', () => {
+        assert.ok(chapters.length >= world.minChapters,
+          `${chapters.length} kapitler, forventede mindst ${world.minChapters}`);
+        assert.ok(scenes.length >= world.minScenes,
+          `${scenes.length} scener, forventede mindst ${world.minScenes}`);
+        const withSeveral = chapters.filter((c) =>
+          scenes.filter((sc) => sc.chapterId === c.id).length > 1);
+        assert.ok(withSeveral.length >= 2,
+          'mindst to kapitler skal rumme flere scener — ellers prøves nummereringen aldrig');
+      });
+
+      it('fortælles fra mere end ét sted', () => {
+        // Enten flere personer, eller flere ben af den samme. Begge dele er en
+        // synsvinkel, og begge dele skal give forskellige svar.
+        const heads = new Set(scenes.map((sc) => `${sc.povEntityId}:${sc.povLegId ?? ''}`));
+        assert.ok(heads.size >= 2, `kun ${heads.size} synsvinkel — så prøves den anden aldrig`);
+      });
+
+      it('hænger sammen med kronologien uden at følge den', () => {
+        const links = store.db.select().from(sceneEvent)
+          .where(eq(sceneEvent.branchId, ctx.branchId)).all()
+          .filter((l) => scenes.some((sc) => sc.id === l.sceneId));
+        assert.equal(
+          scenes.filter((sc) => !links.some((l) => l.sceneId === sc.id)).length, 0,
+          'hver scene skal hænge på et event, ellers kan den ikke placeres i tiden',
+        );
+        const ranks = scenes
+          .map((sc) => links.find((l) => l.sceneId === sc.id))
+          .map((l) => store.db.select().from(event).where(eq(event.id, l!.eventId)).get()!)
+          .map((e) => e.solvedEarliest ?? e.earliest);
+        assert.notDeepEqual(ranks, [...ranks].sort((a, b) => (a ?? 0) - (b ?? 0)),
+          'bogen må ikke fortælles i den rækkefølge, tingene skete — så prøves de to akser ikke');
+      });
+
+      it('har prosa på mindst én side', () => {
+        const written = store.db.select().from(sceneText)
+          .where(eq(sceneText.branchId, ctx.branchId)).all();
+        assert.ok(written.length > 0, 'skrivebordet skal have noget at vise');
+        assert.ok(written.every((t) => (t.wordCount ?? 0) > 0));
+      });
+    });
+  }
 });

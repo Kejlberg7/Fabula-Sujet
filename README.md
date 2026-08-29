@@ -13,7 +13,7 @@ og en motor, der siger fra, når noget ikke kan lade sig gøre.
 
 ```bash
 npm install
-npm test                              # 96 prøver
+npm test                              # 109 prøver
 npm run fixtures -- ./fabula.db       # læg Memento, Predestination og Inception ind
 npm run build && npm run dev          # interfacet på http://localhost:4173
 npm run ask -- ./fabula.db hent_kontekst
@@ -140,9 +140,19 @@ Tre film, hver med sin akse. Kan modellen holde dem, kan den holde det meste.
 
 | | Presser på | Lagt ind |
 |---|---|---|
-| **Memento** | Fortællerorden mod kronologi; viden der udløber | Farvesporet baglæns, Sammy Jankis-sporet, polaroiden |
-| **Predestination** | Personlig tid, selvmøder, flere identiteter | Hovedpersonens verdenslinje: tre ben, tre navne |
-| **Inception** | Lag inden i lag med hvert sit ur | Fire lag, deres forhold og ind- og udgange |
+| **Memento** | Fortællerorden mod kronologi; viden der udløber | 10 kapitler, 22 scener, 20 events over to år. Otte personer, seks fakta, en løgn og en polaroid |
+| **Predestination** | Personlig tid, selvmøder, flere identiteter | 5 kapitler, 10 scener. Fire ben af det samme liv, fortalt fra tre af dem |
+| **Inception** | Lag inden i lag med hvert sit ur | 4 kapitler, 10 scener, et per lag. Syv på holdet, med hver sin del af sandheden |
+
+De er skrevet til at have vægt, ikke til at være korte. Et kapitel med én scene
+og én synsvinkel beviser næsten ingenting — det er først ved den her tæthed, at
+tallene i kapitelvisningen løber baglæns, at båndet bliver et gitter, og at det
+kan ses, om et svar afhænger af *hvilket* hoved man spørger. Prøverne holder
+tætheden fast, så de ikke stille bliver tynde igen.
+
+Alle tre loader rent: `koer_gennemgang` melder ingenting på nogen af dem. Det er
+den egentlige prøve på reglerne — de skal kunne tie om tre indviklede historier,
+der alle går op.
 
 ## Sprog
 
