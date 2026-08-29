@@ -6,13 +6,14 @@ og hvornår de **fortælles**.
 
 ## Status
 
-**Fase 0 og fase 1 er færdige.** Datamodellen, tidsløseren, ændringsloggen og
-MCP-serveren står; oven på dem er der nu et interface med værkvælger, lister,
-kronologi-tidslinje, kapiteloversigt og historik med tilbagerulning.
+**Fase 0, 1 og 2 er færdige.** Datamodellen, tidsløseren, ændringsloggen og
+MCP-serveren står; oven på dem et interface med værkvælger, tidslinje, lister og
+historik — og nu et skrivebord, hvor prosaen bliver til med bibelen åben ved
+siden af.
 
 ```bash
 npm install
-npm test                              # 55 prøver
+npm test                              # 75 prøver
 npm run fixtures -- ./fabula.db       # læg Memento, Predestination og Inception ind
 npm run build && npm run dev          # interfacet på http://localhost:4173
 npm run ask -- ./fabula.db hent_kontekst
@@ -34,10 +35,41 @@ lander i den samme log, som Claude skriver til.
 | **Events** | Hvad der skete, og hvor fast tiden på det er |
 | **Fakta · Love** | Påstande med pladser, og hvad der kan lade sig gøre i verdenen |
 | **Kapitler** | Bogen i læserækkefølge, med hvert events kronologiske plads ved siden af |
+| **Båndet** | De to akser mod hinanden, en tråd for hver gang bogen fortæller noget |
+| **Skrivebordet** | Manuskriptet, og ved siden af det hvad synsvinklen ved her og hvad læseren ved |
 | **Historik** | Hvem ændrede hvad, og rul tilbage til et hvilket som helst punkt |
 
 Redigering sker i panelerne: ret et felt, klik væk, og det er gemt — og ét
 fortryd væk. Der er ingen gem-knap, fordi der ikke er noget at fortryde ved.
+
+### Skrivebordet
+
+Manuskriptet står i midten og gemmer sig selv et sekund efter, du holder op med
+at skrive. Til højre svarer panelet på de to spørgsmål, der faktisk standser et
+udkast: **hvad ved synsvinklen lige her**, og **hvad ved læseren nu**. Afstanden
+mellem dem er den dramatiske ironi. Får læseren noget udtalt, som synsvinklen
+ikke har, bliver det meldt — men et *vink* bliver stående, for det er
+foregribelse og ikke en fejl.
+
+Svaret er læst på personens egen tid, ikke verdens. To scener af den samme aften
+i Predestination, fortalt fra hver sit ben af det samme liv, får derfor to
+forskellige svar: som John ved han ingenting, som bartenderen ved han det hele.
+
+Markér en passage og knyt den til et event, et faktum eller en person. Ankret
+hænger på et mærke-id i dokumentet, aldrig på en tegnposition — positioner
+overlever ikke den næste rettelse.
+
+**Prosaen er din.** Skrivebordet gemmer det, du selv skriver, og hver gemning
+lader det forrige udkast blive liggende. Ingenting andet i programmet retter i
+teksten uden at spørge.
+
+### Videnskurven
+
+Personkortet har en skyder gennem personens eget liv. Stoppene er ikke jævnt
+fordelt — de ligger præcis dér, hvor modellen ved, at noget sker. Leonards kurve
+stiger, når han ser noget, og et kvarter senere står der: *«en overbevisning
+løber ud — Teddy kan ikke stoles på · nedskrevet → bærer det på sig»*. Det er
+hele filmen på én linje.
 
 ## Sådan kobler du Claude på
 
@@ -103,6 +135,8 @@ docs/ORDBOG.md     dansk ↔ engelsk, regelkoder, MCP-flade
 
 ## Næste skridt
 
-**Fase 2: skriv i det.** Scene-editoren, tekstankre og skrivebordet med
-videnssidepanelet. Personkort med videns-skyder. Båndvisningen mellem de to
-akser.
+**Fase 3: motoren, der siger fra.** De hårde regler — bilokation, rejsetid,
+livslængde, vidensbrud, manglende bærer — kørt som et samlet gennemløb, der
+skriver fund i databasen med et fingeraftryk, så en afvisning bliver hængende.
+Lovlaget spørges allerede først (`src/core/laws/consult.ts`); det er kun
+reglerne, der mangler.

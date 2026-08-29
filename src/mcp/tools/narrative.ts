@@ -4,7 +4,11 @@ import { chapter } from '../../db/schema';
 import {
   createChapter, createReveal, createScene, linkSceneToEvent, saveSceneText,
 } from '../../core/services/narrative';
+import { createTextAnchor } from '../../core/services/narrative';
 import { slotsOf } from '../../core/queries/bindings';
+import { sceneDesk } from '../../core/queries/desk';
+import { bandView } from '../../core/queries/band';
+import { formatInstant } from '../../core/time/gregorian';
 import { defineTool, made, write, type ToolDef } from '../kit';
 import { resolveChapter, resolveEntity, resolveEvent, resolveFact, resolveRealm, resolveScene, resolveWork } from '../resolve';
 
@@ -180,6 +184,131 @@ export const narrativeTools: ToolDef[] = [
           : '    (ingen scener)';
         return `${c.position}. ${c.title}\n${body}`;
       }).join('\n');
+    },
+  }),
+
+  defineTool({
+    name: 'vis_skrivebord',
+    title: 'Vis skrivebordet for en scene',
+    description:
+      'De to svar, der standser et udkast: hvad synsvinklen ved lige her, og hvad læseren ved '
+      + 'på dette sted i bogen. Afstanden mellem dem er den dramatiske ironi; et sammenfald, '
+      + 'hvor læseren får noget udtalt, som synsvinklen ikke har, bliver meldt.',
+    inputSchema: { scene: z.string() },
+    run: (args, tools) => {
+      const ctx = tools.bench.context();
+      const found = resolveScene(tools.store, ctx, args.scene);
+      const desk = sceneDesk(tools.store, ctx, { sceneId: found.id });
+
+      const lines: string[] = [
+        `${desk.scene.chapterPosition}. ${desk.scene.chapterTitle} — ${desk.scene.title ?? '(uden titel)'}`,
+        desk.moment.at == null
+          ? 'Ikke placeret i tiden: scenen er ikke knyttet til et event, der har en dato.'
+          : `Sat ${formatInstant(desk.moment.at, 'day')}.`,
+      ];
+
+      if (desk.pov) {
+        lines.push('', `${desk.pov.name}${desk.pov.legLabel ? ` (${desk.pov.legLabel})` : ''} ved her:`);
+        lines.push(...(desk.pov.knows.length === 0
+          ? ['  ingenting']
+          : desk.pov.knows.map((k) => `  • ${k.summary} — ${k.strength}, ${k.source}`)));
+      } else {
+        lines.push('', 'Scenen har ingen synsvinkel, så der er ingen at svare for.');
+      }
+
+      lines.push('', 'Læseren ved på dette sted:');
+      lines.push(...(desk.readerKnows.length === 0
+        ? ['  ingenting endnu']
+        : desk.readerKnows.map((f) =>
+          `  • ${f.summary} — fra kapitel ${f.firstChapter}, ${f.strength}`
+          + (f.complete ? '' : ' (ikke hele vejen)'))));
+
+      if (desk.tells.length > 0) {
+        lines.push('', 'Scenen fortæller:');
+        lines.push(...desk.tells.map((t) =>
+          `  • ${t.title} (${t.mode})${desk.pov && !t.povPresent ? ' — uden synsvinklen' : ''}`));
+      }
+
+      if (desk.leaks.length > 0) {
+        lines.push('', 'Det klemmer:');
+        lines.push(...desk.leaks.map((l) => `  ✗ ${l.message}`));
+      }
+      if (desk.lifted.length > 0) {
+        lines.push('', `${desk.lifted.length} advarsel(er) er løftet af en lov: «${desk.lifted[0]!.lifted}»`);
+      }
+      if (desk.anchors.length > 0) {
+        lines.push('', `${desk.anchors.length} tekstanker i scenen.`);
+      }
+      if (desk.prose.wordCount) {
+        lines.push('', `Prosaen fylder ${desk.prose.wordCount} ord.`);
+      }
+      return lines.join('\n');
+    },
+  }),
+
+  defineTool({
+    name: 'vis_baand',
+    title: 'Vis båndet mellem de to akser',
+    description:
+      'Kronologien mod læserækkefølgen, og hvor mange gange bogen springer bagud. '
+      + 'Melder også det, der er lagt ind uden at være skrevet, og de scener, der ikke kan '
+      + 'placeres i tiden, fordi de ikke hænger på et event.',
+    inputSchema: { vaerk: z.string().optional() },
+    run: (args, tools) => {
+      const ctx = tools.bench.context();
+      const band = bandView(tools.store, ctx, { workId: activeWork(tools, args.vaerk) });
+      const lines = [
+        band.stats.backwards === 0
+          ? 'Bogen fortælles i den rækkefølge, tingene skete.'
+          : `${band.stats.backwards} scene(r) springer bagud i tiden.`,
+        `${band.stats.told} events bliver fortalt, ${band.stats.untold} er ikke skrevet endnu.`,
+      ];
+      if (band.stats.floating > 0) {
+        lines.push(`${band.stats.floating} scene(r) hænger ikke på et event og kan ikke placeres.`);
+      }
+      if (band.stats.untold > 0) {
+        lines.push('', 'Ikke fortalt endnu:');
+        lines.push(...band.events.filter((e) => e.untold)
+          .map((e) => `  • ${e.title} — ${formatInstant(e.from, 'day')}`));
+      }
+      lines.push('', 'Læserækkefølge mod kronologisk plads:');
+      for (const s of band.scenes) {
+        const ranks = band.ribbons.filter((r) => r.sceneId === s.sceneId)
+          .map((r) => band.events.find((e) => e.eventId === r.eventId)?.rank)
+          .filter((r): r is number => r != null);
+        lines.push(`  ${s.order}. ${s.title} → kronologisk ${ranks.length ? ranks.join(', ') : '—'}`);
+      }
+      return lines.join('\n');
+    },
+  }),
+
+  defineTool({
+    name: 'saet_tekstanker',
+    title: 'Sæt tekstanker',
+    description:
+      'Knytter et stykke prosa til det, det udtrykker. Ankret hænger på et mærke-id i '
+      + 'dokumentet, aldrig på en tegnposition — positioner overlever ikke den næste rettelse, '
+      + 'og et anker, der er skredet, er værre end intet anker.',
+    inputSchema: {
+      scene: z.string(),
+      maerke_id: z.string().describe('Mærke-id fra dokumentet'),
+      slags: z.enum(['event', 'fact', 'reveal', 'belief', 'beat', 'entity']),
+      maal: z.string().describe('Hvad det peger på'),
+      uddrag: z.string().optional(),
+    },
+    run: (args, tools) => {
+      const ctx = tools.bench.context();
+      const found = resolveScene(tools.store, ctx, args.scene);
+      const targetId = args.slags === 'event' ? resolveEvent(tools.store, ctx, args.maal).id
+        : args.slags === 'fact' ? resolveFact(tools.store, ctx, args.maal).id
+        : args.slags === 'entity' ? resolveEntity(tools.store, ctx, args.maal).id
+        : args.maal;
+      const { value } = write(tools, 'Sæt tekstanker', (session, c) =>
+        createTextAnchor(session, c, {
+          sceneId: found.id, markId: args.maerke_id,
+          targetKind: args.slags, targetId, excerpt: args.uddrag,
+        }));
+      return made('Tekstankret', `${args.slags} i «${found.title ?? args.scene}»`, value);
     },
   }),
 ];

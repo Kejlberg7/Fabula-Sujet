@@ -10,11 +10,13 @@ import { Events } from './views/Events';
 import { Facts } from './views/Facts';
 import { Laws } from './views/Laws';
 import { Chapters } from './views/Chapters';
+import { Band } from './views/Band';
+import { Desk } from './views/Desk';
 import { History } from './views/History';
 
 export type View =
   | 'overblik' | 'tidslinje' | 'personer' | 'steder' | 'ting'
-  | 'events' | 'fakta' | 'love' | 'kapitler' | 'historik';
+  | 'events' | 'fakta' | 'love' | 'kapitler' | 'baand' | 'skrivebord' | 'historik';
 
 export interface Notice { text: string; bad?: boolean }
 
@@ -201,6 +203,8 @@ function App() {
           {item('love', 'Love')}
           <h3>Fortælling</h3>
           {item('kapitler', 'Kapitler')}
+          {item('baand', 'Båndet')}
+          {item('skrivebord', 'Skrivebordet')}
           <h3>Arbejdet</h3>
           {item('historik', 'Historik')}
         </nav>
@@ -214,6 +218,10 @@ function App() {
           {view === 'fakta' && <Facts nonce={dataNonce} />}
           {view === 'love' && <Laws nonce={dataNonce} />}
           {view === 'kapitler' && <Chapters nonce={dataNonce} />}
+          {view === 'baand' && <Band nonce={dataNonce} />}
+          {view === 'skrivebord' && (
+            <Desk nonce={dataNonce} notify={notify} onChanged={bump} />
+          )}
           {view === 'historik' && <History nonce={dataNonce} notify={notify} onChanged={bump} />}
         </main>
       </div>

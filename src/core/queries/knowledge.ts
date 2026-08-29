@@ -57,6 +57,31 @@ function toWorld(leg: LegClock | undefined, personalTime: number): number {
   return leg.worldStart + (personalTime - leg.personalStart);
 }
 
+/**
+ * A world moment, read on someone's own clock.
+ *
+ * The scene happens in 1985; whether the traveller standing in it has lived
+ * forty years or four depends on which leg she is on, and that is the number
+ * her knowledge is indexed by. For everyone who never travels the two are the
+ * same, which is why nothing else in the codebase has to think about it.
+ */
+export function personalTimeOf(
+  store: Store,
+  ctx: Context,
+  query: { entityId: string; worldTime: number; legId?: string | null },
+): { at: number; legId: string | null } {
+  const legs = store.db.select().from(entityLeg)
+    .where(and(eq(entityLeg.entityId, query.entityId), eq(entityLeg.branchId, ctx.branchId)))
+    .all().sort((a, b) => a.ordinal - b.ordinal);
+  const leg = (query.legId ? legs.find((l) => l.id === query.legId) : undefined)
+    // With no leg named, the one whose stretch of world time contains the moment.
+    ?? legs.find((l) =>
+      (l.worldStart ?? Number.NEGATIVE_INFINITY) <= query.worldTime &&
+      (l.worldEnd ?? Number.POSITIVE_INFINITY) >= query.worldTime)
+    ?? legs[0];
+  return { at: toPersonal(leg, query.worldTime), legId: leg?.id ?? null };
+}
+
 export interface KnowledgeQuery {
   entityId: string;
   /** A point in the person's own time. Leave out for "everything, ever". */

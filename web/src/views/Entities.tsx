@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '../store';
 import { formatInstant, KIND_DA, ROLE_DA, SOURCE_DA, STRENGTH_DA } from '../format';
 import { Editable } from './Editable';
+import { Scrubber } from './Scrubber';
 import type { Notice } from '../main';
 
 const TITLES: Record<string, { heading: string; lede: string }> = {
@@ -92,6 +93,13 @@ function EntityPanel({
       </h3>
       <Editable table="entity" id={data.id} field="summary" value={data.summary} multiline
         placeholder="Kort beskrivelse …" onSaved={onSaved} onError={onError} />
+
+      {data.kind === 'person' && (
+        <>
+          <h4>Videnskurven</h4>
+          <Scrubber entityId={data.id} nonce={nonce} legCount={data.legs.length} />
+        </>
+      )}
 
       {data.legs.length > 1 && (
         <>

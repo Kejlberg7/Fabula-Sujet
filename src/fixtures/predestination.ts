@@ -4,6 +4,7 @@ import { SECONDS, parseInstant } from '../core/time/gregorian';
 import { createEntity, createIdentity, createLeg, recordPresence } from '../core/services/entities';
 import { addParticipation, addTemporalLink, createEvent, linkEventFact } from '../core/services/events';
 import { createFact, recordBelief } from '../core/services/knowledge';
+import { createChapter, createReveal, createScene, linkSceneToEvent } from '../core/services/narrative';
 import { createWorld, createWork } from '../core/services/world';
 import { Workbench } from '../core/workbench';
 
@@ -120,6 +121,46 @@ export function loadPredestination(store: Store): { worldId: string; workId: str
     recordBelief(s, ctx, {
       entityId: traveller, legId: leg1, factId: identityFact.factId, strength: 'unaware',
       sincePersonal: 0,
+    });
+
+    /**
+     * Den samme aften, fortalt to gange fra hver sin side af baren.
+     *
+     * Det er skrivebordets sværeste tilfælde: samme event, samme menneske, to
+     * synsvinkler — og den ene ved det, den anden gør ikke. Uden ben på
+     * synsvinklen ville de to scener få det samme svar, og det ville være
+     * forkert i begge.
+     */
+    const chapterOne = createChapter(s, ctx, store, {
+      workId, title: 'Manden der kom ind fra gaden',
+      summary: 'Aftenen i baren, set af den der fortæller.',
+    });
+    const johnScene = createScene(s, ctx, store, {
+      chapterId: chapterOne, title: 'Jeg fortæller ham det hele',
+      povEntityId: traveller, povLegId: leg2, realmId,
+      narrationPerson: 'first', narrationTense: 'past',
+    });
+    linkSceneToEvent(s, ctx, { sceneId: johnScene, eventId: meeting, mode: 'dramatised' });
+    // Et vink, ikke en afsløring: læseren aner uråd, John gør ikke. Netop
+    // dét skal skrivebordet lade stå — det er foregribelse, ikke en fejl.
+    createReveal(s, ctx, {
+      factId: identityFact.factId, sceneId: johnScene, strength: 'hinted',
+      note: 'Bartenderen kender pointen i historien, før den er fortalt.',
+    });
+
+    const chapterTwo = createChapter(s, ctx, store, {
+      workId, title: 'Den anden side af baren',
+      summary: 'Den samme aften, set af den der ved besked.',
+    });
+    const barkeepScene = createScene(s, ctx, store, {
+      chapterId: chapterTwo, title: 'Jeg har hørt den historie før',
+      povEntityId: traveller, povLegId: leg3, realmId,
+      narrationPerson: 'first', narrationTense: 'past',
+    });
+    linkSceneToEvent(s, ctx, { sceneId: barkeepScene, eventId: meeting, mode: 'dramatised' });
+    createReveal(s, ctx, {
+      factId: identityFact.factId, sceneId: barkeepScene,
+      slotId: identityFact.slotIds.get('person'), strength: 'confirmed',
     });
   });
 

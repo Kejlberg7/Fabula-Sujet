@@ -1,14 +1,17 @@
-import { desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 import type { Store } from '../db/client';
 import {
   belief, branch, change, chapter, entity, entityLeg, event, eventFact, fact,
-  law, participation, presence, realm, scene, sceneEvent, series, temporalLink,
-  work, world,
+  law, participation, presence, realm, scene, sceneEvent, sceneText, series, temporalLink,
+  textAnchor, work, world,
 } from '../db/schema';
 import {
   history, markCheckpoint, redoLast, rollbackTo, undoLast, type Actor,
 } from '../core/changelog';
+import { bandView } from '../core/queries/band';
 import { readBindings } from '../core/queries/bindings';
+import { sceneDesk } from '../core/queries/desk';
+import { knowledgeTrack } from '../core/queries/track';
 import { whoKnewWhat } from '../core/queries/knowledge';
 import { whoWasWhere, worldline } from '../core/queries/presence';
 import { whatReaderKnows } from '../core/queries/reader';
@@ -16,6 +19,10 @@ import { find } from '../core/queries/search';
 import { deleteRow, updateRow } from '../core/services/generic';
 import { createEntity } from '../core/services/entities';
 import { createEvent } from '../core/services/events';
+import {
+  createChapter, createReveal, createScene, createTextAnchor, linkSceneToEvent,
+  saveSceneText,
+} from '../core/services/narrative';
 import { solveTime } from '../core/solve';
 import { formatInstant, formatSpan } from '../core/time/gregorian';
 import { Workbench } from '../core/workbench';
@@ -440,6 +447,113 @@ export function createApi(store: Store) {
       title: string; realmId: string; summary?: string; earliest?: number; latest?: number;
     }) => bench.run({ actor, summary: `Event: ${input.title}` }, (session, c) =>
       ({ id: createEvent(session, c, input) })),
+
+    /**
+     * The writing desk: one scene, its prose, and the two answers that stop a
+     * draft -- what the viewpoint character knows here, and what the reader
+     * knows by now.
+     */
+    'desk.get': (input: { sceneId: string }) => sceneDesk(store, ctx(), input),
+
+    /** Every scene in reading order, for walking the book from the desk. */
+    'scene.list': (input: { workId?: string }) => {
+      const c = ctx();
+      const workId = input.workId ?? c.workId;
+      if (!workId) return [];
+      return db.select().from(chapter)
+        .where(eq(chapter.workId, workId)).all()
+        .filter((ch) => ch.branchId === c.branchId)
+        .sort((a, b) => a.position - b.position)
+        .flatMap((ch) => db.select().from(scene).where(eq(scene.chapterId, ch.id)).all()
+          .sort((a, b) => a.position - b.position)
+          .map((s) => {
+            const current = db.select().from(sceneText)
+              .where(and(eq(sceneText.sceneId, s.id), eq(sceneText.isCurrent, true))).get();
+            return {
+              id: s.id, title: s.title ?? ch.title, position: s.position,
+              chapterId: ch.id, chapterTitle: ch.title, chapterPosition: ch.position,
+              pov: nameOf(s.povEntityId),
+              wordCount: current?.wordCount ?? 0,
+            };
+          }));
+    },
+
+    /**
+     * The writer's own prose, saved from the writer's own editor.
+     *
+     * The rule that nothing touches the prose without a yes is about the review
+     * and about Claude, not about the person typing. Each save keeps the last
+     * draft readable rather than overwriting it.
+     */
+    'desk.saveProse': (input: {
+      sceneId: string; doc: unknown; markdown?: string; label?: string;
+    }) => bench.run({ actor, summary: 'Gem scenetekst' }, (session, c) =>
+      ({ id: saveSceneText(session, c, store, input) })),
+
+    /**
+     * Ties a stretch of prose to what it expresses.
+     *
+     * By mark id, never by character offset: offsets do not survive the next
+     * edit, and an anchor that has drifted is worse than no anchor at all.
+     */
+    'anchor.create': (input: {
+      sceneId: string;
+      markId: string;
+      targetKind: 'event' | 'fact' | 'reveal' | 'belief' | 'beat' | 'entity';
+      targetId: string;
+      excerpt?: string;
+    }) => bench.run({ actor, summary: 'Sæt tekstanker' }, (session, c) =>
+      ({ id: createTextAnchor(session, c, input) })),
+
+    /** Anchors whose mark is gone from the document, cleared in one turn. */
+    'anchor.prune': (input: { sceneId: string; markIds: string[] }) =>
+      bench.run({ actor, summary: 'Ryd forladte tekstankre' }, (session) => {
+        const rows = db.select().from(textAnchor)
+          .where(eq(textAnchor.sceneId, input.sceneId)).all()
+          .filter((a) => !input.markIds.includes(a.markId));
+        for (const row of rows) session.remove(textAnchor, row.id);
+        return { removed: rows.length };
+      }),
+
+    'chapter.create': (input: { title: string; workId?: string; summary?: string }) =>
+      bench.run({ actor, summary: `Kapitel: ${input.title}` }, (session, c) => {
+        const workId = input.workId ?? c.workId;
+        if (!workId) throw new Error('Der er ikke valgt en bog.');
+        return { id: createChapter(session, c, store, { ...input, workId }) };
+      }),
+
+    'scene.create': (input: {
+      chapterId: string; title?: string; povEntityId?: string; realmId?: string;
+      narrationPerson?: 'first' | 'second' | 'third_limited' | 'third_omniscient';
+      narrationTense?: 'past' | 'present' | 'future';
+    }) => bench.run({ actor, summary: `Scene: ${input.title ?? 'uden titel'}` }, (session, c) =>
+      ({ id: createScene(session, c, store, input) })),
+
+    'scene.linkEvent': (input: {
+      sceneId: string; eventId: string; mode?: 'dramatised' | 'mentioned' | 'implied';
+    }) => bench.run({ actor, summary: 'Knyt scene til event' }, (session, c) =>
+      ({ id: linkSceneToEvent(session, c, input) })),
+
+    'reveal.create': (input: {
+      sceneId: string; factId: string; slotId?: string;
+      strength?: 'hinted' | 'implied' | 'stated' | 'confirmed';
+    }) => bench.run({ actor, summary: 'Afsløring' }, (session, c) =>
+      ({ id: createReveal(session, c, input) })),
+
+    /**
+     * Chronology down one side, reading order down the other, a ribbon per
+     * telling. Every crossing is a flashback or a piece of foreshadowing.
+     */
+    'band.get': (input: { workId?: string }) => {
+      const c = ctx();
+      const workId = input.workId ?? c.workId;
+      if (!workId) return null;
+      return bandView(store, c, { workId });
+    },
+
+    /** Where a person's knowledge changes, on their own clock. */
+    'knows.track': (input: { entityId: string; legId?: string }) =>
+      knowledgeTrack(store, ctx(), input),
 
     'solve': () => {
       const report = solveTime(store, ctx());

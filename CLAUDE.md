@@ -16,6 +16,10 @@ Story bible and manuscript workbench. See `README.md` for what it is and
   freely; scene text is never written or altered without an explicit yes.
 - **Vague time stays vague.** Never invent a date the writer has not decided.
   Events get intervals and links, and the solver narrows them.
+- **Ask the law layer before reporting.** A built-in rule calls `lawsLifting`
+  first; an `ability` naming its rule code switches it off. A warning the writer
+  has already written an exception for is noise, and noise gets the tool
+  switched off within a week.
 
 ## Environment
 
@@ -23,7 +27,7 @@ Node 20 (`.nvmrc`). The shell may default to an older nvm version — check
 `node -v` before running anything.
 
 ```bash
-npm test                            # 54 prøver
+npm test                            # 75 prøver
 npm run fixtures -- ./fabula.db     # Memento, Predestination, Inception
 npm run build && npm run dev        # interface on :4173
 npm run ask -- ./fabula.db hent_kontekst

@@ -224,3 +224,259 @@ main { overflow: auto; min-width: 0; }
 }
 .editable:hover { border-color: var(--line-2); background: var(--surface-2); }
 .editable:focus { outline: none; border-color: var(--story); background: var(--surface); }
+
+/* ---------------------------------------------------------------------------
+ * Fase 2: skrivebordet, båndet og videnskurven.
+ *
+ * The desk is the one screen where the apparatus steps back: the manuscript
+ * column is set in the serif at a reading measure, and everything that is not
+ * the writer's own words is smaller, quieter and off to the side.
+ * ------------------------------------------------------------------------- */
+
+.desk {
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr) 320px;
+  gap: 0;
+  height: 100%;
+  min-height: 0;
+}
+
+.desk-scenes {
+  border-right: 1px solid var(--line);
+  overflow-y: auto;
+  padding: 16px 8px;
+  background: var(--surface);
+}
+
+.desk-scenes h3 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin: 0 8px 8px;
+}
+
+.scene-pick {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  gap: 6px;
+  align-items: baseline;
+  width: 100%;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  color: var(--ink-2);
+}
+
+.scene-pick:hover { background: var(--surface-2); }
+.scene-pick[aria-current='true'] { background: var(--disc-wash); color: var(--ink); }
+.scene-pick .num { color: var(--muted); font-family: var(--mono); font-size: 11px; }
+.scene-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.desk-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 20px 28px 60px;
+}
+
+.desk-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.desk-head h2 { margin: 2px 0 0; }
+.desk-meta { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.desk-nav { display: flex; gap: 8px; margin: 12px 0 4px; }
+
+.desk-panel {
+  border-left: 1px solid var(--line);
+  background: var(--surface);
+  overflow-y: auto;
+  padding: 16px 14px 60px;
+}
+
+.desk-panel .banner { margin-top: 0; }
+
+/* The manuscript itself. A reading measure, and nothing in the way of it. */
+.prose-pane { margin-top: 12px; }
+
+.prose-tools {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: 2;
+}
+
+.tool {
+  min-width: 30px;
+  height: 26px;
+  padding: 0 7px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.tool:hover { background: var(--surface-2); }
+.tool.on { background: var(--story-wash); border-color: var(--story); color: var(--story); }
+
+.savestate { font-size: 12px; color: var(--muted); min-width: 96px; text-align: right; }
+.savestate.saving, .savestate.dirty { color: var(--disc); }
+.savestate.failed { color: var(--alert); }
+
+.anchor-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 4px 0;
+  font-size: 12px;
+  border-bottom: 1px dashed var(--line);
+}
+
+.anchor-bar.live { border-bottom-color: var(--story); }
+.anchor-bar select { max-width: 300px; }
+
+.prose-surface {
+  font-family: var(--serif);
+  font-size: 18px;
+  line-height: 1.68;
+  max-width: 34em;
+  margin: 22px auto 0;
+  outline: none;
+  min-height: 50vh;
+  color: var(--ink);
+}
+
+.prose-surface p { margin: 0 0 1.1em; }
+.prose-surface h1, .prose-surface h2, .prose-surface h3 { font-family: var(--sans); }
+.prose-surface blockquote {
+  margin: 0 0 1.1em;
+  padding-left: 1em;
+  border-left: 2px solid var(--line-2);
+  color: var(--ink-2);
+}
+.prose-surface hr { border: 0; border-top: 1px solid var(--line-2); margin: 2em 0; }
+.prose-surface p:empty::before { content: ''; display: inline-block; }
+
+/*
+ * An anchor is a hint, not a highlight: it must be visible when you look for it
+ * and invisible when you are reading. A dotted underline in the axis colour of
+ * whatever it points at does both.
+ */
+.anchor {
+  border-bottom: 1px dotted var(--story);
+  background: var(--story-wash);
+  border-radius: 2px;
+  cursor: help;
+}
+
+.anchor[data-kind='fact'] { border-bottom-color: var(--disc); background: var(--disc-wash); }
+
+/*
+ * People are named on every page, so an entity anchor gets no wash -- striping
+ * the prose every time someone is mentioned would make the page unreadable.
+ * It keeps the underline, though: an anchor you cannot see is one you cannot
+ * tell you failed to make.
+ */
+.anchor[data-kind='entity'] { border-bottom-color: var(--ink-2); background: transparent; }
+
+.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); margin-bottom: 10px; }
+
+.tabs button {
+  flex: 1;
+  padding: 7px 6px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tabs button[aria-current='true'] { color: var(--ink); border-bottom-color: var(--story); }
+.tabs .count { margin-left: 5px; opacity: 0.65; font-family: var(--mono); }
+
+.panel-body { display: flex; flex-direction: column; gap: 8px; }
+
+.panel-head {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin: 20px 0 6px;
+}
+
+.know {
+  padding: 7px 9px;
+  border-radius: 6px;
+  background: var(--surface-2);
+  font-size: 13px;
+}
+
+/* The reader is ahead of the viewpoint character. Usually that is the point. */
+.know.ahead { background: var(--disc-wash); box-shadow: inset 2px 0 0 var(--disc); }
+.excerpt { font-family: var(--serif); color: var(--ink-2); margin-top: 3px; }
+.small { font-size: 12px; }
+
+/* The band. */
+.page.wide { max-width: none; }
+.band { overflow-x: auto; margin-top: 14px; }
+.band .axis { stroke: var(--line-2); stroke-width: 1; }
+
+.band .axis-label {
+  fill: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.ribbon { fill: none; stroke: var(--story); stroke-width: 1.4; opacity: 0.5; }
+.ribbon.back { stroke: var(--alert); opacity: 0.75; }
+.ribbon.soft { stroke-dasharray: 3 3; opacity: 0.35; }
+.ribbon.dimmed { opacity: 0.08; }
+
+.node { cursor: default; }
+.node.dimmed { opacity: 0.25; }
+.node-label { fill: var(--ink-2); font-size: 12px; }
+.node-label.untold { fill: var(--muted); font-style: italic; }
+.node-label .rank { fill: var(--muted); font-family: var(--mono); font-size: 10px; }
+.node-label .pov { fill: var(--muted); font-size: 11px; }
+.node-label .vague-mark { fill: var(--muted); }
+.dot.story { fill: var(--story); }
+.dot.disc { fill: var(--disc); }
+.dot.untold { fill: none; stroke: var(--line-2); stroke-width: 1.5; }
+
+/* The knowledge curve. */
+.scrubber { margin-top: 6px; }
+.leg-pick { width: 100%; margin-bottom: 8px; }
+.curve { display: block; max-width: 100%; }
+.curve-line { fill: none; stroke: var(--story); stroke-width: 1.5; }
+.curve-fill { fill: var(--story-wash); stroke: none; }
+.curve-dot { fill: var(--story); opacity: 0.5; }
+.curve-dot.on { opacity: 1; }
+.curve-head { stroke: var(--disc); stroke-width: 1; }
+.scrubber input[type='range'] { width: 100%; accent-color: var(--disc); margin: 2px 0 8px; }
+.stop { font-size: 13px; }
+.stop .totals { display: flex; gap: 5px; margin: 5px 0; flex-wrap: wrap; }
+.delta { font-size: 12px; padding: 2px 0; }
+.delta.up { color: var(--ok); }
+.delta.down { color: var(--alert); }
+.delta.shift { color: var(--disc); }

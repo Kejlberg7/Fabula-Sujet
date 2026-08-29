@@ -1,0 +1,270 @@
+import assert from 'node:assert/strict';
+import { describe, it } from 'node:test';
+import { eq } from 'drizzle-orm';
+import { openStore } from '../db/client';
+import { chapter, entity, reveal, scene } from '../db/schema';
+import { bandView } from '../core/queries/band';
+import { sceneDesk } from '../core/queries/desk';
+import { knowledgeTrack } from '../core/queries/track';
+import { lawsLifting } from '../core/laws/consult';
+import { inTurn } from '../core/changelog';
+import { createLaw } from '../core/services/laws';
+import { solveTime } from '../core/solve';
+import { Workbench } from '../core/workbench';
+import { loadMemento, loadPredestination } from '../fixtures';
+
+/**
+ * Phase two is the writing desk and the band, and both are answers about the
+ * gap between the two axes. These tests check the gap, not the layout.
+ */
+
+describe('Skrivebordet — hvad synsvinklen ved her', () => {
+  const store = openStore(':memory:');
+  const { worldId, workId } = loadMemento(store);
+  const bench = new Workbench(store);
+  const ctx = bench.setActive({ worldId, workId });
+  solveTime(store, ctx);
+
+  const chapters = store.db.select().from(chapter).where(eq(chapter.workId, workId)).all()
+    .sort((a, b) => a.position - b.position);
+  const sceneOf = (title: string) => {
+    const ch = chapters.find((c) => c.title === title)!;
+    return store.db.select().from(scene).where(eq(scene.chapterId, ch.id)).get()!;
+  };
+
+  it('placerer scenen i tiden ud fra det, den dramatiserer', () => {
+    const desk = sceneDesk(store, ctx, { sceneId: sceneOf('Farve 1').id });
+    assert.equal(desk.moment.from, 'dramatised');
+    assert.ok(desk.moment.at != null, 'scenen skal kunne dateres');
+  });
+
+  it('svarer for synsvinklen, ikke for fortælleren', () => {
+    const desk = sceneDesk(store, ctx, { sceneId: sceneOf('Farve 1').id });
+    assert.equal(desk.pov?.name, 'Leonard');
+    assert.ok(desk.pov!.at != null, 'øjeblikket skal læses på hans eget ur');
+  });
+
+  it('læserens viden holdes adskilt fra personens', () => {
+    // Twistet ligger i sidste kapitel. Før det har læseren intet fået.
+    const early = sceneDesk(store, ctx, { sceneId: sceneOf('S/H 1').id });
+    assert.equal(early.readerKnows.length, 0);
+
+    const last = sceneDesk(store, ctx, { sceneId: sceneOf('Farve 1').id });
+    assert.ok(last.readerKnows.length > 0, 'sidste kapitel giver læseren twistet');
+  });
+
+  /**
+   * Mementos inversion, læst af skrivebordet.
+   *
+   * «Farve 1» står sidst i bogen og først i kronologien: der har han lige set
+   * det, og han ved det selv. «Farve 5» står næstforrest i bogen og sidst i
+   * kronologien: der er erindringen for længst løbet ud, og det eneste, der
+   * står tilbage, er skriften på polaroiden. Samme faktum, samme mand, to helt
+   * forskellige måder at vide det på — og det er hele filmen.
+   */
+  it('skelner mellem det, han husker, og det, han bærer på sig', () => {
+    const teddyFact = (sceneId: string) => {
+      const desk = sceneDesk(store, ctx, { sceneId });
+      return desk.pov!.knows.find((k) => k.summary.toLowerCase().includes('teddy'));
+    };
+
+    const atReveal = teddyFact(sceneOf('Farve 1').id);
+    assert.equal(atReveal?.source, 'stated', 'i afsløringsscenen husker han det selv');
+
+    const later = teddyFact(sceneOf('Farve 5').id);
+    assert.equal(later?.source, 'carried',
+      'senere i kronologien er erindringen væk, og kun polaroiden holder det');
+  });
+
+  it('går gennem bogen i læserækkefølge', () => {
+    const first = sceneDesk(store, ctx, { sceneId: sceneOf('S/H 1').id });
+    assert.equal(first.previousSceneId, null, 'første scene har ingen forgænger');
+    assert.equal(first.nextSceneId, sceneOf('Farve 5').id, 'næste er kapitel 2, ikke kapitel 1');
+  });
+});
+
+describe('Skrivebordet — samme aften, to ben', () => {
+  const store = openStore(':memory:');
+  const { worldId, workId } = loadPredestination(store);
+  const bench = new Workbench(store);
+  const ctx = bench.setActive({ worldId, workId });
+  solveTime(store, ctx);
+
+  const sceneNamed = (title: string) => store.db.select().from(chapter)
+    .where(eq(chapter.workId, workId)).all()
+    .flatMap((c) => store.db.select().from(scene).where(eq(scene.chapterId, c.id)).all())
+    .find((sc) => sc.title === title)!;
+
+  const john = () => sceneDesk(store, ctx, { sceneId: sceneNamed('Jeg fortæller ham det hele').id });
+  const barkeep = () =>
+    sceneDesk(store, ctx, { sceneId: sceneNamed('Jeg har hørt den historie før').id });
+
+  /**
+   * De to scener fortæller det samme event om den samme person. Uden ben på
+   * synsvinklen ville de få det samme svar — og det ville være forkert i begge.
+   */
+  it('svarer forskelligt for de to ben i samme rum', () => {
+    assert.equal(john().pov?.legLabel, 'som John');
+    assert.equal(barkeep().pov?.legLabel, 'som bartenderen');
+    assert.notEqual(john().pov?.at, barkeep().pov?.at,
+      'to aldre i det samme øjeblik af verdens tid');
+  });
+
+  it('lader kun det ben, der ved besked, vide besked', () => {
+    const secret = (desk: ReturnType<typeof john>) =>
+      desk.pov!.knows.some((k) => k.summary.includes('den samme'));
+    assert.equal(secret(john()), false, 'John aner det ikke endnu');
+    assert.equal(secret(barkeep()), true, 'bartenderen har levet det');
+  });
+
+  it('lader et vink stå, og fanger kun den udtalte afsløring', () => {
+    // Kapitel 1 antyder det for læseren, mens John intet ved. Det er
+    // foregribelse, ikke en fejl, og skrivebordet skal tie om det.
+    assert.deepEqual(john().leaks, [], 'et vink er ikke en lækage');
+    // Kapitel 2 siger det rent ud — og dér ved synsvinklen det godt.
+    assert.deepEqual(barkeep().leaks, []);
+  });
+
+  it('melder det, når læseren får noget udtalt, som synsvinklen ikke har', () => {
+    // Samme afsløring, flyttet fra vink til bekræftelse i Johns scene.
+    const johnScene = sceneNamed('Jeg fortæller ham det hele');
+    const hint = store.db.select().from(reveal)
+      .where(eq(reveal.sceneId, johnScene.id)).get()!;
+    inTurn(store, { branchId: ctx.branchId, actor: { kind: 'user' } }, (s) => {
+      s.update(reveal, hint.id, { strength: 'confirmed' });
+    });
+
+    const leaks = sceneDesk(store, ctx, { sceneId: johnScene.id }).leaks;
+    assert.equal(leaks.length, 1);
+    assert.equal(leaks[0]!.kind, 'unknown_reveal');
+    assert.match(leaks[0]!.message, /Den rejsende ved det ikke/);
+  });
+
+  it('en evne kan løfte reglen, og så rapporteres den ikke', () => {
+    const johnScene = sceneNamed('Jeg fortæller ham det hele');
+    const before = sceneDesk(store, ctx, { sceneId: johnScene.id }).leaks.length;
+    assert.ok(before > 0, 'der skal være noget at løfte');
+
+    inTurn(store, { branchId: ctx.branchId, actor: { kind: 'user' } }, (s) => {
+      createLaw(s, ctx, {
+        kind: 'ability', hardness: 'hard', ruleCode: 'pov_leak',
+        statement: 'Fortælleren i denne bog ved mere end den, der fortæller.',
+      });
+    });
+
+    const after = sceneDesk(store, ctx, { sceneId: johnScene.id });
+    assert.equal(after.leaks.length, 0, 'en evne slår reglen fra');
+    assert.equal(after.lifted.length, before,
+      'det, der ville være meldt, bliver stående som løftet af en lov');
+  });
+
+  it('en forbudslov løfter ingenting', () => {
+    assert.equal(lawsLifting(store, ctx, { ruleCode: 'travel_time' }).length, 0);
+  });
+});
+
+describe('Båndet — de to akser mod hinanden', () => {
+  const store = openStore(':memory:');
+  const { worldId, workId } = loadMemento(store);
+  const bench = new Workbench(store);
+  const ctx = bench.setActive({ worldId, workId });
+  solveTime(store, ctx);
+
+  const band = bandView(store, ctx, { workId });
+
+  it('ser Mementos flettede struktur som spring bagud', () => {
+    assert.ok(band.stats.backwards >= 4,
+      `filmen springer bagud igen og igen, fik ${band.stats.backwards}`);
+  });
+
+  it('holder de to rækkefølger adskilt', () => {
+    const readingOrder = band.scenes.map((s) => s.order);
+    assert.deepEqual(readingOrder, [...readingOrder].sort((a, b) => a - b));
+    const chronological = band.events.map((e) => e.from);
+    assert.deepEqual(chronological, [...chronological].sort((a, b) => a - b));
+  });
+
+  it('tæller det, der er lagt ind men ikke fortalt', () => {
+    assert.equal(band.stats.told + band.stats.untold, band.events.length);
+  });
+
+  it('giver hver tråd en scene og et event, der findes', () => {
+    for (const r of band.ribbons) {
+      assert.ok(band.scenes.some((s) => s.sceneId === r.sceneId));
+      assert.ok(band.events.some((e) => e.eventId === r.eventId));
+    }
+  });
+});
+
+describe('Videnskurven — hvor viden ændrer sig', () => {
+  const store = openStore(':memory:');
+  const { worldId, workId } = loadMemento(store);
+  const bench = new Workbench(store);
+  const ctx = bench.setActive({ worldId, workId });
+  solveTime(store, ctx);
+
+  const leonard = store.db.select().from(entity).all()
+    .find((e) => e.name === 'Leonard')!;
+
+  it('stopper kun der, hvor noget faktisk sker', () => {
+    const track = knowledgeTrack(store, ctx, { entityId: leonard.id });
+    assert.ok(track.stops.length > 0);
+    const times = track.stops.map((s) => s.at);
+    assert.deepEqual(times, [...times].sort((a, b) => a - b), 'stoppene er i rækkefølge');
+  });
+
+  it('viser at erindringen løber ud, og at polaroiden overtager', () => {
+    const track = knowledgeTrack(store, ctx, { entityId: leonard.id });
+    assert.ok(track.stops.some((s) => s.gained.length > 0), 'han lærer noget');
+    // Antallet falder ikke, når hukommelsen svigter: han bærer det stadig på
+    // sig. Det, der ændrer sig, er måden han ved det på — og det skal kurven
+    // kunne se, ellers løber den fladt gennem filmens vigtigste øjeblik.
+    const handover = track.stops.find((s) =>
+      s.changed.some((c) => c.from === 'stated' && c.to === 'carried'));
+    assert.ok(handover, 'erindringen giver slip, og skriften tager over');
+  });
+
+  it('lader polaroiden holde det, hukommelsen taber — indtil den er væk', () => {
+    const track = knowledgeTrack(store, ctx, { entityId: leonard.id });
+    const handover = track.stops.findIndex((s) =>
+      s.changed.some((c) => c.to === 'carried'));
+    assert.ok(handover >= 0);
+
+    // Fra det øjeblik erindringen slipper, er det polaroiden, der holder det.
+    assert.ok(track.stops.slice(handover, -1).every((s) => s.bySource.carried > 0),
+      'skriften bærer det videre, så længe han har den på sig');
+
+    // Og da han mister den, er det først dér, han for alvor ikke ved det.
+    const last = track.stops.at(-1)!;
+    assert.match(last.why, /mister/);
+    assert.ok(last.lost.length > 0, 'uden polaroiden er det endelig væk');
+  });
+});
+
+describe('Videnskurven — flere ben', () => {
+  const store = openStore(':memory:');
+  const { worldId, workId } = loadPredestination(store);
+  const bench = new Workbench(store);
+  const ctx = bench.setActive({ worldId, workId });
+  solveTime(store, ctx);
+
+  const traveller = () => store.db.select().from(entity).all()
+    .find((e) => e.kind === 'person')!;
+
+  it('svarer for ét ben ad gangen', () => {
+    const track = knowledgeTrack(store, ctx, { entityId: traveller().id });
+    assert.equal(track.legs.length, 3, 'tre ben af det samme liv');
+    assert.ok(track.legId != null, 'et svar skal sige, hvilket ben det gælder');
+  });
+
+  it('kender hemmeligheden på det sidste ben og ikke på det første', () => {
+    const knows = (ordinal: number) => {
+      const t = knowledgeTrack(store, ctx, { entityId: traveller().id });
+      const leg = t.legs.find((l) => l.ordinal === ordinal)!;
+      const stops = knowledgeTrack(store, ctx, { entityId: traveller().id, legId: leg.id }).stops;
+      return stops.at(-1)?.total ?? 0;
+    };
+    assert.equal(knows(1), 0, 'som Jane ved hun ingenting — det er hele pointen');
+    assert.ok(knows(3) > 0, 'som bartenderen ved han det hele');
+  });
+});

@@ -53,6 +53,7 @@ navn i en tabel eller et felt er også en fejl.
 | Fund | `finding` | Noget konsistensmotoren mener er galt |
 | Afvisning | `dismissal` | «Det er meningen — han lyver.» Permanent, med begrundelse |
 | Forslag | `suggestion` | Kommentar fra manuskriptgennemgangen. Anvendes aldrig af sig selv |
+| Tekstanker | `text_anchor` | Prosa bundet til det, den udtrykker. Hænger på et mærke-id, aldrig en tegnposition |
 
 ## Regelkoder
 
@@ -70,7 +71,7 @@ den samme kode, når den løfter reglen. Fase-tallet er, hvornår reglen bygges.
 | `law_violation` | Lovbrud — et påbud er overtrådt | 4 |
 | `realm_leak` | Lagbrud — viden krydser en laggrænse i strid med loven | 4 |
 | `self_meeting_leak` | Selvmøde-lækage | 4 |
-| `pov_leak` | POV-lækage | 4 |
+| `pov_leak` | POV-lækage | 2 |
 | `reveal_order` | Afsløringsrækkefølge | 4 |
 | `object_continuity` | Genstandskontinuitet | 5 |
 | `relationship_state` | Relationstilstand | 5 |
@@ -81,7 +82,7 @@ den samme kode, når den løfter reglen. Fase-tallet er, hvornår reglen bygges.
 
 ## MCP-fladen
 
-45 værktøjer. Navnene og argumenterne er danske, fordi du skal tale til dem.
+48 værktøjer. Navnene og argumenterne er danske, fordi du skal tale til dem.
 Alt indenfor er engelsk.
 
 | Gruppe | Værktøj |
@@ -92,7 +93,7 @@ Alt indenfor er engelsk.
 | Events | `opret_event` · `tilfoej_tidsbaand` · `tilfoej_deltager` · `knyt_event_til_faktum` |
 | Viden | `registrer_faktum` · `registrer_overbevisning` · `registrer_udsagn` · `knyt_faktum_til_baerer` |
 | Love og kilder | `opret_lov` · `opret_kilde` · `knyt_kilde` |
-| Fortælling | `opret_kapitel` · `opret_scene` · `knyt_scene_til_event` · `opret_afsloering` · `gem_scenetekst` · `vis_kapitler` |
+| Fortælling | `opret_kapitel` · `opret_scene` · `knyt_scene_til_event` · `opret_afsloering` · `gem_scenetekst` · `vis_kapitler` · `saet_tekstanker` · `vis_skrivebord` · `vis_baand` |
 | Ret og fjern | `opdater` · `slet` · `fortryd` · `gentag` · `saet_nedslag` · `rul_tilbage_til` · `historik` · `vis_aendringer` |
 | Spørg | `hvem_vidste_hvad` · `hvem_var_hvor` · `hvad_ved_laeseren` · `vis_verdenslinje` · `find` · `koer_tidsloesning` |
 
