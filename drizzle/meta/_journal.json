@@ -15,6 +15,13 @@
       "when": 1788013387058,
       "tag": "0001_large_ben_grimm",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1788013619030,
+      "tag": "0002_spotty_sharon_carter",
+      "breakpoints": true
     }
   ]
 }

@@ -51,6 +51,14 @@ export const realm = sqliteTable('realm', {
   /** The events that open and close the realm, seen from the parent. */
   entryEventId: text('entry_event_id'),
   exitEventId: text('exit_event_id'),
+  /**
+   * How the two clocks are pinned to each other: at `parent_epoch` in the
+   * parent's time it was `local_epoch` here. Without this pair the ratio only
+   * says how fast the realm runs, not when it started, and no instant in it can
+   * be compared with anything outside.
+   */
+  parentEpoch: instant('parent_epoch'),
+  localEpoch: instant('local_epoch'),
   summary: text('summary'),
   createdAt: createdAt(),
 }, (t) => ({
