@@ -6,14 +6,16 @@ og hvornår de **fortælles**.
 
 ## Status
 
-**Fase 0 til 3 er færdige.** Datamodellen, tidsløseren, ændringsloggen og
+**Fase 0 til 4 er færdige.** Datamodellen, tidsløseren, ændringsloggen og
 MCP-serveren står; oven på dem et interface med værkvælger, tidslinje, lister og
 historik, et skrivebord hvor prosaen bliver til med bibelen åben ved siden af —
-og en motor, der siger fra, når noget ikke kan lade sig gøre.
+og en motor, der siger fra, når noget ikke kan lade sig gøre. Fortællelaget
+kontrollerer desuden POV, lag, selvmøder og afsløringsrækkefølge, mens en AI kan
+lægge manuskriptforslag i margenen uden at røre prosaen.
 
 ```bash
 npm install
-npm test                              # 111 prøver
+npm test                              # 116 prøver
 npm run fixtures -- ./fabula.db       # læg Memento, Predestination og Inception ind
 npm run build && npm run dev          # interfacet på http://localhost:4173
 npm run ask -- ./fabula.db hent_kontekst
@@ -64,6 +66,11 @@ overlever ikke den næste rettelse.
 lader det forrige udkast blive liggende. Ingenting andet i programmet retter i
 teksten uden at spørge.
 
+Fanen **Margen** samler kommentarer til sammenhæng, fortælling, tempo og
+research. En kommentar kan indeholde en foreslået formulering, men formuleringen
+er kun vist. Selv knappen «Markér som fulgt» registrerer kun beslutningen; den
+gemmer aldrig en ny udgave af sceneteksten.
+
 ### Videnskurven
 
 Personkortet har en skyder gennem personens eget liv. Stoppene er ikke jævnt
@@ -74,8 +81,9 @@ stiger derfor, når han ser noget, og falder igen, når oplevelsen glider ud.
 
 ### Gennemgangen
 
-Seks regler kører: **bilokation**, **rejsetid**, **liv og alder**, **vidensbrud**,
-**bæreren mangler** og **umulig kronologi**. De har alle den samme disciplin:
+Ti regler kører: **bilokation**, **rejsetid**, **liv og alder**, **vidensbrud**,
+**bæreren mangler**, **umulig kronologi**, **POV-lækage**, **lagbrud**,
+**selvmøde-lækage** og **afsløringsrækkefølge**. De har alle den samme disciplin:
 
 > Meld kun det, der ikke kan arrangeres anderledes.
 
@@ -104,6 +112,12 @@ læser.
 Et fund hænger på et fingeraftryk, ikke på en række. Derfor holder en afvisning
 på tværs af kørsler, lukker et rettet problem sig selv, og «den er kommet
 tilbage» er noget, du kan se.
+
+Bløde verdenslove er fritekst og bliver ikke foregivet maskinforstået. Ved en
+manuskriptgennemgang får AI'en scenen sammen med gældende love, POV-viden,
+læservarviden og metadata om kilder. Et muligt lovbrud bliver derfor en synlig
+margennote, som forfatteren kan følge eller afvise — ikke et skråsikkert fund
+fra en motor, der ikke kan læse lovens betydning.
 
 ## Sådan kobler du Claude på
 
@@ -162,7 +176,7 @@ oversættelsen — tilføj dér, før du bruger et nyt ord.
 ## Layout
 
 ```
-src/db/schema/     43 tabeller. Læs index.ts først; den siger i hvilken rækkefølge.
+src/db/schema/     45 tabeller. Læs index.ts først; den siger i hvilken rækkefølge.
 src/core/
   changelog.ts     det eneste, der skriver
   workbench.ts     hvilken verden, bog og gren vi arbejder på
@@ -170,7 +184,7 @@ src/core/
   services/        skrivning, som UI og MCP begge kalder
   queries/         hvem vidste hvad, hvem var hvor, hvad ved læseren
   solve.ts         løseren kørt på databasen
-src/mcp/           45 værktøjer, danske navne
+src/mcp/           58 værktøjer, danske navne
 src/server/        API'et interfacet taler med, og HTTP-serveren
 src/fixtures/      de tre prøvecases
 web/               interfacet: React, egen CSS, ingen komponentbibliotek
@@ -179,7 +193,7 @@ docs/ORDBOG.md     dansk ↔ engelsk, regelkoder, MCP-flade
 
 ## Næste skridt
 
-**Fase 4: fortællelaget.** POV-lækagen står allerede i skrivebordet; resten
-mangler — lovbrud, lagbrud, selvmøde-lækage og afsløringsrækkefølge, kørt som en
-del af den samme gennemgang. Og manuskriptgennemgangen, der kommenterer i
-margenen og aldrig rører prosaen uden et ja.
+**Fase 5: kontinuiteten i dybden.** Genstande og relationer skal have tydelige
+tilstande gennem tiden; setups skal kunne findes uden payoff; identiteter og
+forsvindinger skal kunne følges; og researchkilder skal kunne pege på en mulig
+modstrid uden at programmet læser eller omskriver deres indhold.

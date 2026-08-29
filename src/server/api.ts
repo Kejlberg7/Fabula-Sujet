@@ -10,7 +10,7 @@ import {
 } from '../core/changelog';
 import { bandView } from '../core/queries/band';
 import { readBindings } from '../core/queries/bindings';
-import { sceneDesk } from '../core/queries/desk';
+import { manuscriptPacket } from '../core/queries/manuscript';
 import { knowledgeTrack } from '../core/queries/track';
 import { whoKnewWhat } from '../core/queries/knowledge';
 import { whoWasWhere, worldline } from '../core/queries/presence';
@@ -26,6 +26,7 @@ import {
 import { openFindings, review } from '../core/review';
 import { RULES } from '../core/rules';
 import { dismissFinding, revokeDismissal } from '../core/services/findings';
+import { createSuggestion, decideSuggestion, suggestionsFor } from '../core/services/suggestions';
 import { solveTime } from '../core/solve';
 import { formatInstant, formatSpan } from '../core/time/gregorian';
 import { Workbench } from '../core/workbench';
@@ -462,7 +463,23 @@ export function createApi(store: Store) {
      * draft -- what the viewpoint character knows here, and what the reader
      * knows by now.
      */
-    'desk.get': (input: { sceneId: string }) => sceneDesk(store, ctx(), input),
+    'desk.get': (input: { sceneId: string }) => manuscriptPacket(store, ctx(), input.sceneId),
+
+    'suggestion.list': (input: {
+      sceneId?: string; status?: 'open' | 'accepted' | 'rejected';
+    }) => suggestionsFor(store, ctx(), input),
+
+    'suggestion.create': (input: {
+      sceneId: string; markId?: string;
+      kind: 'continuity' | 'craft' | 'pacing' | 'research';
+      message: string; proposedText?: string; sourceId?: string;
+    }) => bench.run({ actor, summary: 'Tilføj margennote' }, (session, c) =>
+      ({ id: createSuggestion(session, c, input) })),
+
+    'suggestion.decide': (input: {
+      id: string; status: 'open' | 'accepted' | 'rejected';
+    }) => bench.run({ actor, summary: 'Afgør margennote' }, (session, c) =>
+      ({ updated: decideSuggestion(session, c, store, input) })),
 
     /** Every scene in reading order, for walking the book from the desk. */
     'scene.list': (input: { workId?: string }) => {

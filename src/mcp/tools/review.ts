@@ -2,7 +2,10 @@ import { z } from 'zod';
 import { openFindings, review } from '../../core/review';
 import { RULES } from '../../core/rules';
 import { dismissFinding, revokeDismissal } from '../../core/services/findings';
+import { manuscriptPacket } from '../../core/queries/manuscript';
+import { createSuggestion, decideSuggestion, suggestionsFor } from '../../core/services/suggestions';
 import { defineTool, write, type ToolDef } from '../kit';
+import { resolveScene } from '../resolve';
 
 const MARK: Record<string, string> = { error: '✗', warning: '!', note: '·' };
 
@@ -23,7 +26,8 @@ export const reviewTools: ToolDef[] = [
     title: 'Kør gennemgangen',
     description:
       'Løser tiden og kører alle reglerne igennem: bilokation, rejsetid, liv og alder, '
-      + 'vidensbrud og manglende bærer. Melder kun det, der ikke kan arrangeres anderledes — '
+      + 'vidensbrud, manglende bærer, POV, lag, selvmøder og afsløringsrækkefølge. '
+      + 'Melder kun det, der ikke kan arrangeres anderledes — '
       + 'en uskarp dato, der stadig kan lægges, så det går op, er ikke en fejl, men noget '
       + 'du ikke har besluttet endnu. En evne, der nævner regelkoden, slår den pågældende '
       + 'regel fra, og det, den ville have meldt, står for sig som løftet.',
@@ -98,6 +102,103 @@ export const reviewTools: ToolDef[] = [
       const { value } = write(tools, 'Tag afvisning tilbage', (session, ctx) =>
         revokeDismissal(session, ctx, tools.store, { fingerprint: args.fingeraftryk }));
       return value ? 'Afvisningen er taget tilbage.' : 'Der var ingen afvisning at tage tilbage.';
+    },
+  }),
+
+  defineTool({
+    name: 'vis_scene_til_gennemgang',
+    title: 'Vis scene til manuskriptgennemgang',
+    description:
+      'Samler scenens prosa, synsvinkel, tidspunkt, personviden, læservarviden, gældende love, '
+      + 'kildehenvisninger og eksisterende margennoter. Brug den før du vurderer prosaen. '
+      + 'Kilders filer vises kun som metadata og bliver ikke læst maskinelt.',
+    inputSchema: { scene: z.string() },
+    run: (args, tools) => {
+      const ctx = tools.bench.context();
+      const sc = resolveScene(tools.store, ctx, args.scene);
+      const packet = manuscriptPacket(tools.store, ctx, sc.id);
+      const laws = packet.laws.length
+        ? packet.laws.map((l) => `  · [${l.hardness}] ${l.statement}`).join('\n')
+        : '  (ingen)';
+      const sources = packet.sources.length
+        ? packet.sources.map((s) => `  · ${s.title} (${s.kind})${s.url ? ` — ${s.url}` : ''}`).join('\n')
+        : '  (ingen)';
+      const notes = packet.suggestions.length
+        ? packet.suggestions.map((s) => `  · [${s.status}/${s.kind}] ${s.message}`).join('\n')
+        : '  (ingen)';
+      return [
+        `${packet.scene.chapterTitle} · ${packet.scene.title ?? '(uden titel)'}`,
+        `POV: ${packet.pov?.name ?? '(ingen)'}${packet.pov?.legLabel ? ` · ${packet.pov.legLabel}` : ''}`,
+        `Lag: ${packet.scene.realmName ?? '(ikke valgt)'}`,
+        '', 'PROSA', packet.prose.markdown ?? '(ingen prosa)',
+        '', 'GÆLDENDE LOVE', laws,
+        '', 'KILDEHENVISNINGER (kun vist, ikke læst)', sources,
+        '', 'MARGINNOTER', notes,
+        '', 'Skriv kun margennoter. Ret aldrig prosaen som en del af gennemgangen.',
+      ].join('\n');
+    },
+  }),
+
+  defineTool({
+    name: 'tilfoej_margennote',
+    title: 'Tilføj margennote',
+    description:
+      'Læg en kommentar eller et tekstforslag ved en scene. Forslaget er inert: værktøjet ændrer '
+      + 'aldrig prosaen. En foreslået formulering må først skrives ind gennem en særskilt handling, '
+      + 'efter at forfatteren udtrykkeligt har sagt ja.',
+    inputSchema: {
+      scene: z.string(),
+      slags: z.enum(['continuity', 'craft', 'pacing', 'research']),
+      besked: z.string(),
+      maerke_id: z.string().optional(),
+      foreslaaet_tekst: z.string().optional(),
+      kilde_id: z.string().optional(),
+    },
+    run: (args, tools) => {
+      const { value } = write(tools, 'Tilføj margennote', (session, ctx) =>
+        createSuggestion(session, ctx, {
+          sceneId: resolveScene(tools.store, ctx, args.scene).id,
+          kind: args.slags, message: args.besked, markId: args.maerke_id,
+          proposedText: args.foreslaaet_tekst, sourceId: args.kilde_id,
+        }));
+      return `Margennoten er lagt ind uden at ændre prosaen. (id: ${value})`;
+    },
+  }),
+
+  defineTool({
+    name: 'vis_margennoter',
+    title: 'Vis margennoter',
+    description: 'Vis åbne, fulgte og afviste kommentarer fra manuskriptgennemgangen.',
+    inputSchema: {
+      scene: z.string().optional(),
+      status: z.enum(['open', 'accepted', 'rejected']).optional(),
+    },
+    run: (args, tools) => {
+      const ctx = tools.bench.context();
+      const sceneId = args.scene ? resolveScene(tools.store, ctx, args.scene).id : undefined;
+      const rows = suggestionsFor(tools.store, ctx, { sceneId, status: args.status });
+      return rows.length
+        ? rows.map((s) => `[${s.status}/${s.kind}] ${s.message}${s.proposedText ? `\n  forslag: ${s.proposedText}` : ''}\n  ${s.id}`).join('\n\n')
+        : 'Der er ingen margennoter med det filter.';
+    },
+  }),
+
+  defineTool({
+    name: 'afgoer_margennote',
+    title: 'Afgør margennote',
+    description:
+      'Markér en note som åben, fulgt eller afvist. Selv "fulgt" ændrer ikke prosaen; '
+      + 'det registrerer kun forfatterens beslutning og kan fortrydes.',
+    inputSchema: {
+      id: z.string(),
+      status: z.enum(['open', 'accepted', 'rejected']),
+    },
+    run: (args, tools) => {
+      write(tools, 'Afgør margennote', (session, ctx) =>
+        decideSuggestion(session, ctx, tools.store, args));
+      return args.status === 'accepted' ? 'Margennoten er markeret som fulgt; prosaen er urørt.'
+        : args.status === 'rejected' ? 'Margennoten er afvist; prosaen er urørt.'
+          : 'Margennoten er åbnet igen.';
     },
   }),
 

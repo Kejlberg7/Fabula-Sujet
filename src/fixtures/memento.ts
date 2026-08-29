@@ -255,6 +255,7 @@ export function loadMemento(store: Store): { worldId: string; workId: string } {
     linkEventFact(s, ctx, { eventId: colour[7]!, factId: teddyFact.factId, exposes: 'evidences' });
     linkEventFact(s, ctx, { eventId: colour[8]!, factId: teddyIsJohnG.factId, exposes: 'reveals' });
     linkEventFact(s, ctx, { eventId: colour[8]!, factId: teddyFact.factId, exposes: 'evidences' });
+    linkEventFact(s, ctx, { eventId: colour[8]!, factId: jimmyFact.factId, exposes: 'reveals' });
 
     // ------------------------------------------------------------------- viden
     recordMemoryPolicy(s, ctx, {
@@ -318,6 +319,12 @@ export function loadMemento(store: Store): { worldId: string; workId: string } {
       speakerEntityId: teddy, factId: teddyIsJohnG.factId, truthful: false,
       eventId: colour[1], audienceEntityId: leonard,
       note: 'Han siger, han hedder Teddy. Det gør han ikke.',
+    });
+    recordStatement(s, ctx, {
+      speakerEntityId: teddy, factId: jimmyFact.factId, truthful: true,
+      eventId: colour[8], audienceEntityId: leonard,
+      slotIds: jimmyFact.slotIds, binds: { offer: { entityId: jimmy } },
+      note: 'Teddy fortæller ham, at han allerede har dræbt den mand, han leder efter.',
     });
     recordStatement(s, ctx, {
       speakerEntityId: natalie, factId: natalieUses.factId, truthful: false,

@@ -43,6 +43,9 @@ Nogle vaner, der gør modellen brugbar frem for larmende:
 • Kør koer_tidsloesning, når du har sat bånd, og fortæl hvad den fandt.
 • Kør koer_gennemgang, når du har lagt en større bid ind, og fortæl hvad den fandt. Den melder kun
   det, der ikke kan arrangeres anderledes — er noget bare uskarpt, er det ikke en fejl.
+• Før du vurderer en scene, brug vis_scene_til_gennemgang. Den samler POV, viden, love, kildemetadata
+  og prosa. Skriv vurderingen med tilfoej_margennote. En margennote — også en markeret som fulgt —
+  må aldrig ændre sceneteksten. Gem kun ny prosa, når forfatteren udtrykkeligt har sagt ja til den.
 • Er et fund forkert, fordi verdenen er sådan, så skriv en LOV (opret_lov, evne, med regelkoden)
   frem for at afvise fundet. Afvis kun det enkelte tilfælde, der er en undtagelse i sig selv.
 `.trim();

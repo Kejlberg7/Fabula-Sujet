@@ -434,6 +434,19 @@ main { overflow: auto; min-width: 0; }
 /* The reader is ahead of the viewpoint character. Usually that is the point. */
 .know.ahead { background: var(--disc-wash); box-shadow: inset 2px 0 0 var(--disc); }
 .excerpt { font-family: var(--serif); color: var(--ink-2); margin-top: 3px; }
+
+.margin-note {
+  border-left: 2px solid var(--disc); padding: 8px 0 8px 10px;
+  margin-bottom: 10px;
+}
+.margin-note.accepted { border-left-color: var(--story); opacity: 0.72; }
+.margin-note.rejected { border-left-color: var(--line-2); opacity: 0.55; }
+.margin-note-head, .margin-actions { display: flex; align-items: center; gap: 6px; }
+.margin-note p { margin: 7px 0; color: var(--ink-2); }
+.margin-note .proposed {
+  font-family: var(--serif); background: var(--surface-2); padding: 7px 9px; margin: 7px 0;
+}
+.margin-actions { margin-top: 8px; }
 .small { font-size: 12px; }
 
 /* The band. */

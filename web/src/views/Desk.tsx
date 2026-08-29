@@ -20,6 +20,9 @@ const LEAK_DA: Record<string, string> = {
   unknown_reveal: 'Læseren løber forud',
   unaware_of_own_scene: 'Til stede, uvidende',
 };
+const SUGGESTION_DA: Record<string, string> = {
+  continuity: 'sammenhæng', craft: 'fortælling', pacing: 'tempo', research: 'research',
+};
 
 /**
  * The writing desk.
@@ -35,7 +38,7 @@ export function Desk({
 }: { nonce: number; notify: (n: Notice) => void; onChanged: () => void }) {
   const { data: scenes } = useQuery('scene.list', {}, [nonce]);
   const [sceneId, setSceneId] = useState<string | null>(null);
-  const [tab, setTab] = useState<'pov' | 'reader' | 'anchors'>('pov');
+  const [tab, setTab] = useState<'pov' | 'reader' | 'anchors' | 'margin'>('pov');
 
   useEffect(() => {
     if (!scenes?.length) return;
@@ -87,6 +90,23 @@ export function Desk({
       if (r.removed > 0) { reload(); onChanged(); }
     }).catch(() => { /* An anchor left behind is harmless; a crash is not. */ });
   }, [sceneId, reload, onChanged]);
+
+  const decideSuggestion = useCallback(async (
+    id: string, status: 'open' | 'accepted' | 'rejected',
+  ) => {
+    try {
+      await call('suggestion.decide', { id, status });
+      notify({
+        text: status === 'accepted'
+          ? 'Markeret som fulgt. Prosaen er ikke ændret.'
+          : status === 'rejected' ? 'Margennoten er afvist.' : 'Margennoten er åbnet igen.',
+      });
+      reload();
+      onChanged();
+    } catch (error) {
+      notify({ text: error instanceof Error ? error.message : String(error), bad: true });
+    }
+  }, [notify, reload, onChanged]);
 
   if (scenes && scenes.length === 0) {
     return (
@@ -208,6 +228,9 @@ export function Desk({
           <button aria-current={tab === 'anchors'} onClick={() => setTab('anchors')}>
             Ankre<span className="count">{desk.anchors.length}</span>
           </button>
+          <button aria-current={tab === 'margin'} onClick={() => setTab('margin')}>
+            Margen<span className="count">{desk.suggestions.filter((s) => s.status === 'open').length}</span>
+          </button>
         </div>
 
         {tab === 'pov' && (
@@ -271,6 +294,50 @@ export function Desk({
                   : a.targetKind === 'fact' ? 'faktum' : 'person'}: {a.targetLabel}</div>
                 {a.excerpt && <div className="excerpt">«{a.excerpt}»</div>}
               </div>
+            ))}
+          </div>
+        )}
+
+        {tab === 'margin' && (
+          <div className="panel-body">
+            {desk.suggestions.length === 0 && (
+              <p className="empty">
+                Ingen margennoter. Bed Claude gennemgå scenen; kommentarerne lander her uden at
+                ændre manuskriptet.
+              </p>
+            )}
+            {desk.suggestions.map((note) => (
+              <article key={note.id} className={`margin-note ${note.status}`}>
+                <div className="margin-note-head">
+                  <span className="chip quiet">{SUGGESTION_DA[note.kind] ?? note.kind}</span>
+                  {note.status !== 'open' && (
+                    <span className="dim small">{note.status === 'accepted' ? 'fulgt' : 'afvist'}</span>
+                  )}
+                </div>
+                <p>{note.message}</p>
+                {note.proposedText && (
+                  <div className="proposed">
+                    <span className="dim small">Foreslået formulering — ikke anvendt</span>
+                    <div>«{note.proposedText}»</div>
+                  </div>
+                )}
+                <div className="margin-actions">
+                  {note.status === 'open' ? (
+                    <>
+                      <button className="btn" onClick={() => void decideSuggestion(note.id, 'accepted')}>
+                        Markér som fulgt
+                      </button>
+                      <button className="btn" onClick={() => void decideSuggestion(note.id, 'rejected')}>
+                        Afvis
+                      </button>
+                    </>
+                  ) : (
+                    <button className="btn" onClick={() => void decideSuggestion(note.id, 'open')}>
+                      Åbn igen
+                    </button>
+                  )}
+                </div>
+              </article>
             ))}
           </div>
         )}

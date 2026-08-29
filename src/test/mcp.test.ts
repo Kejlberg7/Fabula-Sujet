@@ -42,6 +42,7 @@ describe('MCP-fladen', () => {
       'registrer_hukommelse',
       'opret_event', 'tilfoej_tidsbaand', 'registrer_faktum', 'registrer_overbevisning',
       'opret_afsloering', 'opdater', 'slet', 'fortryd', 'hvem_vidste_hvad', 'koer_tidsloesning',
+      'vis_scene_til_gennemgang', 'tilfoej_margennote', 'vis_margennoter', 'afgoer_margennote',
     ]) {
       assert.ok(names.includes(expected), `mangler værktøjet ${expected}`);
     }
@@ -156,6 +157,33 @@ describe('MCP-fladen', () => {
 
     const reader = await call('hvad_ved_laeseren', { gennem_kapitel: 1 });
     assert.match(reader, /kun: offer/, 'læseren har heller ikke fået gerningsmanden endnu');
+  });
+
+  it('gennemgår manuskriptet i margenen uden at ændre prosaen', async () => {
+    await call('gem_scenetekst', {
+      scene: 'På havnen', tekst: 'Anna så ud over det mørke vand.',
+    });
+    const packet = await call('vis_scene_til_gennemgang', { scene: 'På havnen' });
+    assert.match(packet, /PROSA\nAnna så ud over det mørke vand\./);
+    assert.match(packet, /Ret aldrig prosaen/);
+
+    const note = await call('tilfoej_margennote', {
+      scene: 'På havnen', slags: 'craft', besked: 'Gør sanseindtrykket mere konkret.',
+      foreslaaet_tekst: 'Tjæren og saltet hang i luften.',
+    });
+    const id = /\(id: ([0-9a-z]{16})\)/.exec(note)![1]!;
+    assert.match(await call('vis_margennoter', { scene: 'På havnen' }), /ikke anvendt|Tjæren og saltet|forslag:/);
+
+    const before = store.sqlite.prepare(
+      `select st.id, st.markdown from scene_text st join scene s on s.id = st.scene_id
+        where s.title = ? and st.is_current = 1`,
+    ).get('På havnen') as { id: string; markdown: string };
+    assert.match(await call('afgoer_margennote', { id, status: 'accepted' }), /prosaen er urørt/);
+    const after = store.sqlite.prepare(
+      `select st.id, st.markdown from scene_text st join scene s on s.id = st.scene_id
+        where s.title = ? and st.is_current = 1`,
+    ).get('På havnen') as { id: string; markdown: string };
+    assert.deepEqual(after, before);
   });
 
   it('fortryder en hel handling og kan gentage den', async () => {

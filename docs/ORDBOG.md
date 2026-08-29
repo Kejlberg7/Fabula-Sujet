@@ -54,7 +54,6 @@ navn i en tabel eller et felt er også en fejl.
 | Fund | `finding` | Noget konsistensmotoren mener er galt |
 | Afvisning | `dismissal` | «Det er meningen — han lyver.» Permanent, med begrundelse |
 | Forslag | `suggestion` | Kommentar fra manuskriptgennemgangen. Anvendes aldrig af sig selv |
-| Tekstanker | `text_anchor` | Prosa bundet til det, den udtrykker. Hænger på et mærke-id, aldrig en tegnposition |
 
 ## Regelkoder
 
@@ -74,11 +73,11 @@ der ikke noget galt — så har forfatteren bare ikke besluttet sig endnu.
 | `knowledge_gap` | Vidensbrud — handler på en plads, hun ikke har bundet | 3 ✓ |
 | `missing_carrier` | Bæreren mangler | 3 ✓ |
 | `travel_time` | Rejsetid — hård grænse, kun en evne løfter den | 3 ✓ |
-| `law_violation` | Lovbrud — et påbud er overtrådt | 4 |
-| `realm_leak` | Lagbrud — viden krydser en laggrænse i strid med loven | 4 |
-| `self_meeting_leak` | Selvmøde-lækage | 4 |
-| `pov_leak` | POV-lækage | 2 |
-| `reveal_order` | Afsløringsrækkefølge | 4 |
+| `law_violation` | Lovbrud — bløde fritekstlove vurderes af AI og bliver til margennoter | 4 AI/margen ✓ |
+| `realm_leak` | Lagbrud — en scene dramatiserer et event i et andet lag | 4 ✓ |
+| `self_meeting_leak` | Selvmøde-lækage — manglende POV-ben ved mødet med sig selv | 4 ✓ |
+| `pov_leak` | POV-lækage | 4 ✓ |
+| `reveal_order` | Afsløringsrækkefølge | 4 ✓ |
 | `object_continuity` | Genstandskontinuitet | 5 |
 | `relationship_state` | Relationstilstand | 5 |
 | `dangling_setup` | Hængende setup | 5 |
@@ -88,7 +87,7 @@ der ikke noget galt — så har forfatteren bare ikke besluttet sig endnu.
 
 ## MCP-fladen
 
-54 værktøjer. Navnene og argumenterne er danske, fordi du skal tale til dem.
+58 værktøjer. Navnene og argumenterne er danske, fordi du skal tale til dem.
 Alt indenfor er engelsk.
 
 | Gruppe | Værktøj |
@@ -102,7 +101,7 @@ Alt indenfor er engelsk.
 | Fortælling | `opret_kapitel` · `opret_scene` · `knyt_scene_til_event` · `opret_afsloering` · `gem_scenetekst` · `vis_kapitler` · `saet_tekstanker` · `vis_skrivebord` · `vis_baand` |
 | Ret og fjern | `opdater` · `slet` · `fortryd` · `gentag` · `saet_nedslag` · `rul_tilbage_til` · `historik` · `vis_aendringer` |
 | Spørg | `hvem_vidste_hvad` · `hvem_var_hvor` · `hvad_ved_laeseren` · `vis_verdenslinje` · `find` · `koer_tidsloesning` |
-| Gennemgang | `koer_gennemgang` · `vis_fund` · `afvis_fund` · `genaabn_fund` · `vis_regler` |
+| Gennemgang | `koer_gennemgang` · `vis_fund` · `afvis_fund` · `genaabn_fund` · `vis_regler` · `vis_scene_til_gennemgang` · `tilfoej_margennote` · `vis_margennoter` · `afgoer_margennote` |
 
 `opdater` og `slet` tager et engelsk tabelnavn fra listen ovenfor. Oprettelse er
 typet per slags, fordi felterne er vidt forskellige, når noget skabes — mens en
