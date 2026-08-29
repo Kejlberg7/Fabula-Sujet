@@ -25,6 +25,12 @@ export const turn = sqliteTable('turn', {
   branchId: branchId(),
   actorKind: text('actor_kind', { enum: ['user', 'assistant', 'system'] }).notNull(),
   actorUserId: text('actor_user_id').references(() => appUser.id),
+  /**
+   * An undo is itself a turn, so redo is simply undoing the undo. Nothing in the
+   * log is ever removed -- that is what makes rolling back reversible.
+   */
+  kind: text('kind', { enum: ['edit', 'undo'] }).notNull().default('edit'),
+  undoesTurnId: text('undoes_turn_id'),
   /** What the turn was about, in one line, for the history screen. */
   summary: text('summary'),
   /** The user's own words, when the turn came in through MCP. */

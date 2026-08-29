@@ -15,9 +15,9 @@
  *   narrative  branches, works, chapters, scenes, prose, and the bridge tables
  *   history    the change log everything is written through
  *   findings   what the consistency engine reported, and what was dismissed
+ *   state      which world, work and branch we are looking at right now
  */
 
-export * from './_shared';
 export * from './world';
 export * from './entities';
 export * from './events';
@@ -26,3 +26,4 @@ export * from './laws';
 export * from './narrative';
 export * from './history';
 export * from './findings';
+export * from './state';

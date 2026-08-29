@@ -86,3 +86,31 @@ export const temporalLink = sqliteTable('temporal_link', {
   byFrom: index('temporal_link_from_idx').on(t.fromEventId, t.branchId),
   byTo: index('temporal_link_to_idx').on(t.toEventId, t.branchId),
 }));
+
+/**
+ * Which facts an event puts on the table.
+ *
+ * Without this there is no way to derive knowledge from taking part: the engine
+ * knows Anna was in the room, but not what the room contained. `exposes` says
+ * how strongly -- an event that *establishes* a fact makes it true, one that
+ * *evidences* it only gives the witnesses something to go on.
+ *
+ * Optional `slot_ids` narrows it: the scream tells you someone died, not who
+ * did it.
+ */
+export const eventFact = sqliteTable('event_fact', {
+  id: pk(),
+  branchId: branchId(),
+  originId: originId(),
+  eventId: text('event_id').notNull().references(() => event.id),
+  factId: text('fact_id').notNull(),
+  exposes: text('exposes', {
+    enum: ['establishes', 'reveals', 'evidences'],
+  }).notNull().default('reveals'),
+  /** JSON array of fact_slot ids. Null means every slot. */
+  slotIds: text('slot_ids', { mode: 'json' }),
+  note: text('note'),
+}, (t) => ({
+  byEvent: index('event_fact_event_idx').on(t.eventId, t.branchId),
+  byFact: index('event_fact_fact_idx').on(t.factId, t.branchId),
+}));
