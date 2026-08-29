@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 import type { Store } from '../db/client';
-import { appState, branch, world } from '../db/schema';
+import { appState, branch, work, world } from '../db/schema';
 import { Session, type Actor, type TurnOptions } from './changelog';
 
 /**
@@ -62,10 +62,21 @@ export class Workbench {
     const branchId = next.branchId
       ?? (sameWorld ? current?.branchId : undefined)
       ?? this.defaultBranchOf(next.worldId);
+    // Switching world drops the book, which is right when there is a choice to
+    // make -- but a world holding exactly one book has no ambiguity to protect,
+    // and making someone pick it anyway defeats setting the context at all.
+    let workId = next.workId ?? (sameWorld ? current?.workId ?? null : null);
+    if (!workId) {
+      const inWorld = this.db.select().from(work)
+        .where(eq(work.worldId, next.worldId)).all()
+        .filter((w) => w.branchId === branchId);
+      if (inWorld.length === 1) workId = inWorld[0]!.id;
+    }
+
     const row = {
       id: 'singleton',
       activeWorldId: next.worldId,
-      activeWorkId: next.workId ?? (sameWorld ? current?.workId ?? null : null),
+      activeWorkId: workId,
       activeBranchId: branchId,
       activeUserId: next.userId ?? current?.userId ?? null,
       updatedAt: new Date(),

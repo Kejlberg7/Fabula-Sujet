@@ -68,7 +68,7 @@ export function whoKnewWhat(
   store: Store,
   ctx: Context,
   query: KnowledgeQuery,
-): { entityName: string; legId: string | null; items: KnowledgeItem[] } {
+): { entityName: string; legId: string | null; at: number | null; items: KnowledgeItem[] } {
   const { db } = store;
   const who = db.select().from(entity).where(eq(entity.id, query.entityId)).get();
   if (!who) throw new Error(`Ukendt person: ${query.entityId}`);
@@ -85,7 +85,31 @@ export function whoKnewWhat(
           (l.personalStart ?? Number.NEGATIVE_INFINITY) <= query.at! &&
           (l.personalEnd ?? Number.POSITIVE_INFINITY) >= query.at!) ?? legs[0];
 
-  const at = query.at ?? Number.POSITIVE_INFINITY;
+  /**
+   * With no time given, answer for the last moment we know anything about
+   * rather than the end of time. Infinity is past every expiry and past the
+   * end of every possession, so "what does Leonard know" would come back
+   * without the polaroid he is still holding -- true, and useless.
+   */
+  const lastKnown = (): number => {
+    const times: number[] = [];
+    if (leg?.personalEnd != null) times.push(leg.personalEnd);
+    for (const p of db.select().from(participation)
+      .where(and(eq(participation.entityId, query.entityId), eq(participation.branchId, ctx.branchId)))
+      .all()) {
+      const e = db.select().from(event).where(eq(event.id, p.eventId)).get();
+      const when = e?.solvedLatest ?? e?.latest ?? e?.solvedEarliest ?? e?.earliest;
+      if (when != null) times.push(toPersonal(leg, when));
+    }
+    for (const held of db.select().from(possession)
+      .where(and(eq(possession.holderEntityId, query.entityId), eq(possession.branchId, ctx.branchId)))
+      .all()) {
+      if (held.fromTime != null) times.push(toPersonal(leg, held.fromTime));
+    }
+    return times.length ? Math.max(...times) : Number.POSITIVE_INFINITY;
+  };
+
+  const at = query.at ?? lastKnown();
   const worldAt = Number.isFinite(at) ? toWorld(leg, at) : Number.POSITIVE_INFINITY;
 
   /**
@@ -224,6 +248,7 @@ export function whoKnewWhat(
   return {
     entityName: who.name,
     legId: leg?.id ?? null,
+    at: Number.isFinite(at) ? at : null,
     items: items.sort((a, b) => a.summary.localeCompare(b.summary, 'da')),
   };
 }

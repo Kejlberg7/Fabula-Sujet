@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { openStore, type Store } from '../db/client';
@@ -75,7 +76,11 @@ export function createServer(store: Store): McpServer {
 }
 
 export async function main(): Promise<void> {
-  const store = openStore(process.env['FS_DATABASE_URL'] ?? './fabula.db');
+  // Absolute by default: a client may start this from any directory, and a
+  // database quietly created somewhere else is a very confusing kind of empty.
+  const store = openStore(
+    process.env['FS_DATABASE_URL'] ?? fileURLToPath(new URL('../../fabula.db', import.meta.url)),
+  );
   const server = createServer(store);
   await server.connect(new StdioServerTransport());
 }

@@ -66,14 +66,12 @@ export const worldTools: ToolDef[] = [
       if (args.vaerk) {
         workId = resolveWork(tools.store, ctx, args.vaerk).id;
       } else if (!workId) {
-        // Switching world drops the book, which is right -- but a world with
-        // exactly one book has no ambiguity to protect, and making someone name
-        // it anyway breaks the whole point of setting the context once.
+        // setActive picks the book when there is only one; say so when there
+        // are several, so the next sentence does not land in the wrong place.
         const inWorld = tools.store.db.select().from(work)
           .where(eq(work.worldId, worldId)).all()
           .filter((w) => w.branchId === ctx.branchId);
-        if (inWorld.length === 1) workId = inWorld[0]!.id;
-        else if (inWorld.length > 1) {
+        if (inWorld.length > 1) {
           note = `\nDer er flere bøger her: ${inWorld.map((w) => w.title).join(', ')}. Sig hvilken.`;
         }
       }

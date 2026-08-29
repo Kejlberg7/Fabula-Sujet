@@ -6,16 +6,38 @@ og hvornår de **fortælles**.
 
 ## Status
 
-**Fase 0 er færdig.** Datamodellen, tidsløseren, ændringsloggen og MCP-serveren
-står, og de tre prøvecases er lagt ind. Der er ingen grafisk brugerflade — det
-er fase 1 — men alt kan bruges gennem samtale allerede nu.
+**Fase 0 og fase 1 er færdige.** Datamodellen, tidsløseren, ændringsloggen og
+MCP-serveren står; oven på dem er der nu et interface med værkvælger, lister,
+kronologi-tidslinje, kapiteloversigt og historik med tilbagerulning.
 
 ```bash
 npm install
-npm test                              # 53 prøver
+npm test                              # 55 prøver
 npm run fixtures -- ./fabula.db       # læg Memento, Predestination og Inception ind
+npm run build && npm run dev          # interfacet på http://localhost:4173
 npm run ask -- ./fabula.db hent_kontekst
 ```
+
+Kræver Node 20 (`.nvmrc`).
+
+## Interfacet
+
+Interfacet og MCP-serveren deler kontekst og database. Skifter Claude bog midt
+i en samtale, følger skærmen med af sig selv — og en rettelse fra skærmen
+lander i den samme log, som Claude skriver til.
+
+| Skærm | Viser |
+|---|---|
+| **Forsiden** | Hvor meget der er lagt ind, og hvad der senest skete |
+| **Tidslinjen** | Kronologien i baner, med uskarpe events tegnet som det spænd, de kan ligge i |
+| **Personer · Steder · Ting** | Listerne, med et panel der viser ben, tilstedeværelse og hvad personen ved |
+| **Events** | Hvad der skete, og hvor fast tiden på det er |
+| **Fakta · Love** | Påstande med pladser, og hvad der kan lade sig gøre i verdenen |
+| **Kapitler** | Bogen i læserækkefølge, med hvert events kronologiske plads ved siden af |
+| **Historik** | Hvem ændrede hvad, og rul tilbage til et hvilket som helst punkt |
+
+Redigering sker i panelerne: ret et felt, klik væk, og det er gemt — og ét
+fortryd væk. Der er ingen gem-knap, fordi der ikke er noget at fortryde ved.
 
 ## Sådan kobler du Claude på
 
@@ -73,11 +95,14 @@ src/core/
   queries/         hvem vidste hvad, hvem var hvor, hvad ved læseren
   solve.ts         løseren kørt på databasen
 src/mcp/           45 værktøjer, danske navne
+src/server/        API'et interfacet taler med, og HTTP-serveren
 src/fixtures/      de tre prøvecases
+web/               interfacet: React, egen CSS, ingen komponentbibliotek
 docs/ORDBOG.md     dansk ↔ engelsk, regelkoder, MCP-flade
 ```
 
 ## Næste skridt
 
-**Fase 1: se det.** Værkvælgeren, historikskærmen med rul-tilbage, lister over
-personer, events, steder, fakta og love, og én kronologi-tidslinje med baner.
+**Fase 2: skriv i det.** Scene-editoren, tekstankre og skrivebordet med
+videnssidepanelet. Personkort med videns-skyder. Båndvisningen mellem de to
+akser.

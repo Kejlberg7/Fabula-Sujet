@@ -57,6 +57,15 @@ describe('Memento — fortællerorden mod kronologi', () => {
     assert.equal(teddyLater.viaObject, 'Polaroid af Teddy');
   });
 
+  it('svarer for det sidste øjeblik, vi kender, når man ikke spørger om et', () => {
+    const leonard = store.sqlite.prepare('select id from entity where name = ?').get('Leonard') as { id: string };
+    const now = whoKnewWhat(store, ctx, { entityId: leonard.id });
+
+    assert.ok(now.at != null, 'et svar uden tidspunkt skal stadig gælde et tidspunkt');
+    assert.ok(now.items.some((i) => i.source === 'carried'),
+      'ved tidernes ende bærer han intet — og så er svaret sandt, men ubrugeligt');
+  });
+
   it('efterlader sandheden om Teddy uafgjort med vilje', () => {
     const truth = store.sqlite.prepare('select truth from fact where summary like ?')
       .get('%Teddy%') as { truth: string };
