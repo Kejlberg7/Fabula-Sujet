@@ -29,6 +29,7 @@ navn i en tabel eller et felt er også en fejl.
 | Plads | `fact_slot` | En plads i et faktum: gerningsmand, offer, tid |
 | Binding | `binding` | En udfyldt plads — bruges af sandheden, en overbevisning, et udsagn, en bærer og en afsløring |
 | Overbevisning | `belief` | Hvad nogen mener at vide, indekseret på **personlig** tid |
+| Hukommelsesregel | `memory_policy` | Hvor længe oplevet viden fastholdes fra et tidspunkt i personlig tid |
 | Udsagn | `statement` | Hvad nogen siger, til hvem, sandt eller ej |
 | Vidensbærer | `carrier` | Et faktum skrevet ned i en genstand: polaroid, tatovering, brev |
 | Lov | `law` | Evne (undtagelse) eller påbud (forbud), hård eller blød |
@@ -87,14 +88,14 @@ der ikke noget galt — så har forfatteren bare ikke besluttet sig endnu.
 
 ## MCP-fladen
 
-53 værktøjer. Navnene og argumenterne er danske, fordi du skal tale til dem.
+54 værktøjer. Navnene og argumenterne er danske, fordi du skal tale til dem.
 Alt indenfor er engelsk.
 
 | Gruppe | Værktøj |
 |---|---|
 | Kontekst | `opret_verden` · `saet_aktivt_vaerk` · `hent_kontekst` |
 | Verden | `opret_lag` · `opret_serie` · `opret_vaerk` |
-| Entiteter | `opret_entitet` · `opret_identitet` · `opret_ben` · `registrer_tilstedevaerelse` · `registrer_besiddelse` · `opret_relation` · `opret_rejseforbindelse` · `flet_entiteter` |
+| Entiteter | `opret_entitet` · `opret_identitet` · `opret_ben` · `registrer_hukommelse` · `registrer_tilstedevaerelse` · `registrer_besiddelse` · `opret_relation` · `opret_rejseforbindelse` · `flet_entiteter` |
 | Events | `opret_event` · `tilfoej_tidsbaand` · `tilfoej_deltager` · `knyt_event_til_faktum` |
 | Viden | `registrer_faktum` · `registrer_overbevisning` · `registrer_udsagn` · `knyt_faktum_til_baerer` |
 | Love og kilder | `opret_lov` · `opret_kilde` · `knyt_kilde` |

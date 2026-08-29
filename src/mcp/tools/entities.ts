@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import {
   createEntity, createIdentity, createLeg, createPlaceLink, createRelationship,
-  mergeEntities, recordPossession, recordPresence,
+  mergeEntities, recordMemoryPolicy, recordPossession, recordPresence,
 } from '../../core/services/entities';
 import { rootRealmOf } from '../../core/services/world';
 import { asInstant, asSpan, defineTool, made, timeArg, write, type ToolDef } from '../kit';
@@ -79,6 +79,41 @@ export const entityTools: ToolDef[] = [
           worldEnd: asInstant(args.verdens_slut, 'latest'),
         }));
       return `Ben ${args.nummer}${args.maerkat ? ` (${args.maerkat})` : ''} er oprettet for ${args.person}. (id: ${value})`;
+    },
+  }),
+
+  defineTool({
+    name: 'registrer_hukommelse',
+    title: 'Registrer hukommelse',
+    description:
+      'Hvor længe oplevelser bliver i en persons hukommelse fra et tidspunkt i personens eget liv. '
+      + 'Udelad varigheden for permanent hukommelse. Nedskrevne fakta og udtrykkelige overbevisninger '
+      + 'følger fortsat deres egne regler.',
+    inputSchema: {
+      person: z.string(),
+      fra: timeArg.optional().describe('Fra dette tidspunkt i personens egen tid'),
+      til: timeArg.optional().describe('Til dette tidspunkt i personens egen tid'),
+      varighed: z.union([z.string(), z.number()]).optional().describe('Fx "15 minutter"; udeladt betyder permanent'),
+      ben: z.number().optional().describe('Kun dette ben; udelad for hele personen'),
+      note: z.string().optional(),
+    },
+    run: (args, tools) => {
+      const { value } = write(tools, `Hukommelse for ${args.person}`, (session, ctx) => {
+        const who = resolveEntity(tools.store, ctx, args.person, 'person');
+        const legs = tools.store.sqlite.prepare(
+          'select id, ordinal from entity_leg where entity_id = ? and branch_id = ? order by ordinal',
+        ).all(who.id, ctx.branchId) as { id: string; ordinal: number }[];
+        const leg = args.ben == null ? undefined : legs.find((l) => l.ordinal === args.ben);
+        if (args.ben != null && !leg) throw new Error(`${who.name} har ikke et ben nummer ${args.ben}.`);
+        return recordMemoryPolicy(session, ctx, {
+          entityId: who.id, legId: leg?.id,
+          fromPersonal: asInstant(args.fra, 'earliest'),
+          untilPersonal: asInstant(args.til, 'latest'),
+          retentionSeconds: args.varighed == null ? null : asSpan(args.varighed),
+          note: args.note,
+        });
+      });
+      return `Hukommelsesreglen er registreret for ${args.person}. (id: ${value})`;
     },
   }),
 

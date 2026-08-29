@@ -13,7 +13,7 @@ og en motor, der siger fra, når noget ikke kan lade sig gøre.
 
 ```bash
 npm install
-npm test                              # 109 prøver
+npm test                              # 111 prøver
 npm run fixtures -- ./fabula.db       # læg Memento, Predestination og Inception ind
 npm run build && npm run dev          # interfacet på http://localhost:4173
 npm run ask -- ./fabula.db hent_kontekst
@@ -67,10 +67,10 @@ teksten uden at spørge.
 ### Videnskurven
 
 Personkortet har en skyder gennem personens eget liv. Stoppene er ikke jævnt
-fordelt — de ligger præcis dér, hvor modellen ved, at noget sker. Leonards kurve
-stiger, når han ser noget, og et kvarter senere står der: *«en overbevisning
-løber ud — Teddy kan ikke stoles på · nedskrevet → bærer det på sig»*. Det er
-hele filmen på én linje.
+fordelt — de ligger præcis dér, hvor modellen ved, at noget sker. En
+hukommelsesregel kan sige én gang, at nye oplevelser kun holder et kvarter,
+mens ældre minder og det, der står på en polaroid, består. Leonards kurve
+stiger derfor, når han ser noget, og falder igen, når oplevelsen glider ud.
 
 ### Gennemgangen
 

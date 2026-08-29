@@ -1,7 +1,7 @@
 import { and, eq } from 'drizzle-orm';
 import type { Store } from '../../db/client';
 import {
-  belief, carrier, entity, entityLeg, event, eventFact, fact, participation, possession,
+  belief, carrier, entity, entityLeg, event, eventFact, fact, memoryPolicy, participation, possession,
 } from '../../db/schema';
 import type { Context } from '../workbench';
 import { readBindings, slotsOf, type BoundSlots } from './bindings';
@@ -87,6 +87,26 @@ export interface KnowledgeQuery {
   /** A point in the person's own time. Leave out for "everything, ever". */
   at?: number;
   legId?: string;
+}
+
+/** Retention in force when an experience was learned; absent means permanent. */
+export function retentionAt(
+  store: Store,
+  ctx: Context,
+  query: { entityId: string; legId?: string | null; learnedAt: number },
+): number | null {
+  const policies = store.db.select().from(memoryPolicy)
+    .where(and(eq(memoryPolicy.entityId, query.entityId), eq(memoryPolicy.branchId, ctx.branchId)))
+    .all()
+    .filter((p) => !p.legId || p.legId === query.legId)
+    .filter((p) => (p.fromPersonal ?? Number.NEGATIVE_INFINITY) <= query.learnedAt
+      && (p.untilPersonal ?? Number.POSITIVE_INFINITY) > query.learnedAt)
+    .sort((a, b) => {
+      const scope = Number(Boolean(b.legId)) - Number(Boolean(a.legId));
+      return scope || (b.fromPersonal ?? Number.NEGATIVE_INFINITY)
+        - (a.fromPersonal ?? Number.NEGATIVE_INFINITY);
+    });
+  return policies[0]?.retentionSeconds ?? null;
 }
 
 export function whoKnewWhat(
@@ -198,7 +218,14 @@ export function whoKnewWhat(
     if (!happened) continue;
     const when = happened.solvedEarliest ?? happened.earliest;
     const timeUnknown = when == null;
-    if (!timeUnknown && toPersonal(leg, when) > at) continue;
+    const learnedAt = timeUnknown ? null : toPersonal(leg, when);
+    if (learnedAt != null && learnedAt > at) continue;
+    if (learnedAt != null) {
+      const retention = retentionAt(store, ctx, {
+        entityId: query.entityId, legId: leg?.id, learnedAt,
+      });
+      if (retention != null && learnedAt + retention <= at) continue;
+    }
 
     const exposed = db.select().from(eventFact)
       .where(and(eq(eventFact.eventId, part.eventId), eq(eventFact.branchId, ctx.branchId))).all();

@@ -39,6 +39,7 @@ describe('MCP-fladen', () => {
     const names = tools.map((t) => t.name);
     for (const expected of [
       'opret_verden', 'saet_aktivt_vaerk', 'opret_lag', 'opret_entitet', 'opret_ben',
+      'registrer_hukommelse',
       'opret_event', 'tilfoej_tidsbaand', 'registrer_faktum', 'registrer_overbevisning',
       'opret_afsloering', 'opdater', 'slet', 'fortryd', 'hvem_vidste_hvad', 'koer_tidsloesning',
     ]) {
@@ -70,6 +71,18 @@ describe('MCP-fladen', () => {
       person: 'Anna', sted: 'Havnen', fra: '1985-06-12', til: '1985-06-13',
     });
     assert.match(answer, /Anna var på Havnen/);
+  });
+
+  it('kan sætte personens hukommelse én gang gennem samtalen', async () => {
+    assert.match(await call('registrer_hukommelse', {
+      person: 'Anna', fra: '1985-06-12', varighed: '15 minutter',
+      note: 'Efter ulykken.',
+    }), /registreret for Anna/);
+    const policy = store.sqlite.prepare(
+      'select retention_seconds, note from memory_policy',
+    ).get() as { retention_seconds: number; note: string };
+    assert.equal(policy.retention_seconds, 15 * 60);
+    assert.equal(policy.note, 'Efter ulykken.');
   });
 
   it('lader et præcist navn slå et delvist, men nægter at gætte ellers', async () => {

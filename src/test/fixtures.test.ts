@@ -52,8 +52,8 @@ describe('Memento — fortællerorden mod kronologi', () => {
 
     const fresh = whoKnewWhat(store, ctx, { entityId: leonard.id, at: colourStart + 5 * SECONDS.MINUTE });
     const teddyFresh = fresh.items.find((i) => i.summary.includes('Teddy'))!;
-    assert.equal(teddyFresh.source, 'stated');
-    assert.equal(teddyFresh.strength, 'convinced', 'lige efter husker han det selv');
+    assert.equal(teddyFresh.source, 'derived');
+    assert.equal(teddyFresh.strength, 'suspects', 'lige efter husker han stadig det, han oplevede');
 
     const later = whoKnewWhat(store, ctx, { entityId: leonard.id, at: colourStart + 3 * 3600 });
     const teddyLater = later.items.find((i) => i.summary.includes('Teddy'))!;

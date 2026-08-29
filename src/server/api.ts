@@ -1,7 +1,7 @@
 import { and, desc, eq, sql } from 'drizzle-orm';
 import type { Store } from '../db/client';
 import {
-  belief, branch, change, chapter, entity, entityLeg, event, eventFact, fact,
+  belief, branch, change, chapter, entity, entityLeg, event, eventFact, fact, memoryPolicy,
   law, participation, presence, realm, scene, sceneEvent, sceneText, series, temporalLink,
   textAnchor, work, world,
 } from '../db/schema';
@@ -270,6 +270,12 @@ export function createApi(store: Store) {
         knownLeg: knowledge?.legId
           ? worldline(store, c, row.id).find((l) => l.id === knowledge.legId) ?? null
           : null,
+        memoryPolicies: row.kind === 'person'
+          ? db.select().from(memoryPolicy)
+              .where(and(eq(memoryPolicy.entityId, row.id), eq(memoryPolicy.branchId, c.branchId)))
+              .all()
+              .sort((a, b) => (a.fromPersonal ?? -Infinity) - (b.fromPersonal ?? -Infinity))
+          : [],
       };
     },
 

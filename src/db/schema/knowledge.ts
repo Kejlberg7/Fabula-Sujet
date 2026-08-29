@@ -110,6 +110,28 @@ export const belief = sqliteTable('belief', {
 }));
 
 /**
+ * How long experiences remain available to a person.
+ *
+ * The interval is on personal time, so a time jump does not reset the clock.
+ * No matching row means ordinary permanent memory. Explicit beliefs and
+ * knowledge written on carriers are deliberately outside this policy.
+ */
+export const memoryPolicy = sqliteTable('memory_policy', {
+  id: pk(),
+  branchId: branchId(),
+  originId: originId(),
+  entityId: text('entity_id').notNull().references(() => entity.id),
+  legId: text('leg_id').references(() => entityLeg.id),
+  fromPersonal: instant('from_personal'),
+  untilPersonal: instant('until_personal'),
+  /** Null means permanent; otherwise the number of seconds after learning. */
+  retentionSeconds: integer('retention_seconds'),
+  note: text('note'),
+}, (t) => ({
+  byEntity: index('memory_policy_entity_idx').on(t.entityId, t.branchId),
+}));
+
+/**
  * What someone says, to whom, truthfully or not.
  *
  * Speaker and audience may be the same entity: lying to yourself is the whole

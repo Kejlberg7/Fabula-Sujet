@@ -5,7 +5,7 @@ import { inTurn } from '../core/changelog';
 import { whoKnewWhat } from '../core/queries/knowledge';
 import { whatReaderKnows } from '../core/queries/reader';
 import { whoWasWhere } from '../core/queries/presence';
-import { createEntity, recordPossession, recordPresence } from '../core/services/entities';
+import { createEntity, recordMemoryPolicy, recordPossession, recordPresence } from '../core/services/entities';
 import { addParticipation, createEvent, linkEventFact } from '../core/services/events';
 import { attachFactToCarrier, createFact, recordBelief } from '../core/services/knowledge';
 import { createChapter, createReveal, createScene } from '../core/services/narrative';
@@ -106,6 +106,21 @@ describe('viden i praksis', () => {
   it('lader den, der var til stede uden at opdage det, blive uvidende', () => {
     const known = whoKnewWhat(store, ctx, { entityId: id['anna']!, at: 1 * DAY + 60 });
     assert.equal(known.items.length, 0, 'hun var i huset, men opdagede intet');
+  });
+
+  it('lader en regel på personen udløbe oplevet viden uden at røre det nedskrevne', () => {
+    inTurn(store, { branchId: ctx.branchId, actor, summary: 'Anna glemmer hurtigt' }, (s) => {
+      recordMemoryPolicy(s, ctx, {
+        entityId: id['anna']!, fromPersonal: 2 * DAY, retentionSeconds: 3600,
+      });
+    });
+
+    const fresh = whoKnewWhat(store, ctx, { entityId: id['anna']!, at: 2 * DAY + 1800 });
+    assert.ok(fresh.items.some((i) => i.factId === id['fakta_mord'] && i.source === 'derived'));
+
+    const forgotten = whoKnewWhat(store, ctx, { entityId: id['anna']!, at: 2 * DAY + 3600 });
+    assert.ok(!forgotten.items.some((i) => i.factId === id['fakta_mord']),
+      'oplevelsen falder bort præcis ved fastholdelsesgrænsen');
   });
 
   it('lader en nedskrevet overbevisning slå det udledte', () => {

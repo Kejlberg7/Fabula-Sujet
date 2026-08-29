@@ -35,6 +35,8 @@ Nogle vaner, der gør modellen brugbar frem for larmende:
 • Giv events et SPÆND, ikke et tidspunkt, og bind dem sammen med tidsbånd. Opfind aldrig en dato,
   forfatteren ikke har besluttet — det er hele pointen med modellen.
 • Fakta har pladser. Delvis viden er en ubunden plads, ikke et nyt faktum.
+• Hvis en persons oplevelser glemmes efter en fast tid, så sig det én gang med registrer_hukommelse.
+  Det ændrer ikke ældre minder, udtrykkelige overbevisninger eller noget, personen bærer på skrift.
 • Skeln skarpt mellem hvornår en PERSON får noget at vide (registrer_overbevisning) og hvornår
   LÆSEREN gør (opret_afsloering). Afstanden mellem dem er hele fortællegrebet.
 • Var nogen til stede uden at opdage noget, så brug rollen present_unaware eller opfatter=false.

@@ -2,7 +2,7 @@ import { and, eq } from 'drizzle-orm';
 import { belief, carrier, entity, entityLeg, event, participation, possession } from '../../db/schema';
 import type { Store } from '../../db/client';
 import type { Context } from '../workbench';
-import { personalTimeOf, whoKnewWhat } from './knowledge';
+import { personalTimeOf, retentionAt, whoKnewWhat } from './knowledge';
 
 /**
  * Where someone's knowledge changes, on their own clock.
@@ -91,7 +91,14 @@ export function knowledgeTrack(
     if (leg && p.legId && p.legId !== leg.id) continue;
     const e = db.select().from(event).where(eq(event.id, p.eventId)).get();
     const when = e?.solvedEarliest ?? e?.earliest;
-    if (when != null) mark(personal(when), `«${e!.title}»`);
+    if (when != null) {
+      const learnedAt = personal(when);
+      mark(learnedAt, `«${e!.title}»`);
+      const retention = retentionAt(store, ctx, {
+        entityId: query.entityId, legId: leg?.id, learnedAt,
+      });
+      if (retention != null) mark(learnedAt + retention, 'oplevelsen glider ud af hukommelsen');
+    }
   }
 
   for (const b of db.select().from(belief)

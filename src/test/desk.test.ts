@@ -62,10 +62,10 @@ describe('Skrivebordet — hvad synsvinklen ved her', () => {
   /**
    * Mementos inversion, læst af skrivebordet.
    *
-   * Klokken sytten skriver han det på polaroiden, og der ved han det selv. En
-   * time senere er erindringen løbet ud, og det eneste, der står tilbage, er
-   * skriften. Samme faktum, samme mand, to helt forskellige måder at vide det
-   * på — og det er hele filmen.
+   * Klokken sytten skriver han det på polaroiden, og der ved han det selv. Han
+   * lærer det kort igen, da Teddy taler, men da han senere vælger, er også den
+   * erindring løbet ud. Samme faktum, samme mand, to helt forskellige måder at
+   * vide det på — og det er hele filmen.
    */
   it('skelner mellem det, han husker, og det, han bærer på sig', () => {
     const distrust = (sceneId: string) => {
@@ -74,11 +74,11 @@ describe('Skrivebordet — hvad synsvinklen ved her', () => {
     };
 
     const whenWriting = distrust(sceneOf('Han skriver på bagsiden').id);
-    assert.equal(whenWriting?.source, 'stated', 'mens han skriver, husker han det selv');
+    assert.equal(whenWriting?.source, 'derived', 'mens han skriver, husker han det selv');
 
-    const anHourLater = distrust(sceneOf('Teddy siger det hele').id);
-    assert.equal(anHourLater?.source, 'carried',
-      'en time senere er erindringen væk, og kun polaroiden holder det');
+    const afterTeddy = distrust(sceneOf('Han vælger').id);
+    assert.equal(afterTeddy?.source, 'carried',
+      'efter også den nye erindring er væk, er det polaroiden, der holder det');
   });
 
   it('går gennem bogen i læserækkefølge', () => {
@@ -246,19 +246,16 @@ describe('Videnskurven — hvor viden ændrer sig', () => {
     // sig. Det, der ændrer sig, er måden han ved det på — og det skal kurven
     // kunne se, ellers løber den fladt gennem filmens vigtigste øjeblik.
     const handover = track.stops.find((s) =>
-      s.changed.some((c) => c.from === 'stated' && c.to === 'carried'));
+      s.changed.some((c) => c.from === 'derived' && c.to === 'carried'));
     assert.ok(handover, 'erindringen giver slip, og skriften tager over');
   });
 
   it('lader polaroiden holde det, hukommelsen taber — indtil den er væk', () => {
     const track = knowledgeTrack(store, ctx, { entityId: leonard.id });
-    const handover = track.stops.findIndex((s) =>
-      s.changed.some((c) => c.to === 'carried'));
-    assert.ok(handover >= 0);
-
-    // Fra det øjeblik erindringen slipper, er det polaroiden, der holder det.
-    assert.ok(track.stops.slice(handover, -1).every((s) => s.bySource.carried > 0),
-      'skriften bærer det videre, så længe han har den på sig');
+    const handovers = track.stops.filter((s) =>
+      s.changed.some((c) => c.from === 'derived' && c.to === 'carried'));
+    assert.ok(handovers.length >= 2,
+      'han kan lære samme faktum igen og glemme det igen, mens skriften består');
 
     // Og da han mister den, er det først dér, han for alvor ikke ved det.
     const last = track.stops.at(-1)!;

@@ -1,7 +1,7 @@
 import { and, eq } from 'drizzle-orm';
 import type { Store } from '../../db/client';
 import {
-  belief, binding, carrier, entity, entityLeg, identity, participation,
+  belief, binding, carrier, entity, entityLeg, identity, memoryPolicy, participation,
   placeLink, possession, presence, relationship, statement,
 } from '../../db/schema';
 import type { Session } from '../changelog';
@@ -129,6 +129,25 @@ export function createRelationship(
   })['id'] as string;
 }
 
+/** Set how long experiences learned during a stretch of personal time last. */
+export function recordMemoryPolicy(
+  session: Session, ctx: Context,
+  input: {
+    entityId: string; legId?: string;
+    fromPersonal?: number; untilPersonal?: number;
+    retentionSeconds?: number | null; note?: string;
+  },
+): string {
+  if (input.retentionSeconds != null && input.retentionSeconds < 0) {
+    throw new Error('Hukommelsens varighed kan ikke være negativ.');
+  }
+  return session.insert(memoryPolicy, {
+    branchId: ctx.branchId, entityId: input.entityId, legId: input.legId ?? null,
+    fromPersonal: input.fromPersonal ?? null, untilPersonal: input.untilPersonal ?? null,
+    retentionSeconds: input.retentionSeconds ?? null, note: input.note ?? null,
+  })['id'] as string;
+}
+
 export function createPlaceLink(
   session: Session, ctx: Context,
   input: {
@@ -187,6 +206,8 @@ export function mergeEntities(
     relationship as never, { toEntityId: input.keepId });
   repoint(db.select().from(belief).where(eq(belief.entityId, input.mergeId)).all(),
     belief as never, { entityId: input.keepId });
+  repoint(db.select().from(memoryPolicy).where(eq(memoryPolicy.entityId, input.mergeId)).all(),
+    memoryPolicy as never, { entityId: input.keepId });
   repoint(db.select().from(statement).where(eq(statement.speakerEntityId, input.mergeId)).all(),
     statement as never, { speakerEntityId: input.keepId });
   repoint(db.select().from(carrier).where(eq(carrier.objectEntityId, input.mergeId)).all(),

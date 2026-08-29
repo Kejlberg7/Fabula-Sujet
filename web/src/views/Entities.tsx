@@ -96,6 +96,26 @@ function EntityPanel({
 
       {data.kind === 'person' && (
         <>
+          {data.memoryPolicies.length > 0 && (
+            <>
+              <h4>Hukommelse</h4>
+              <ul>
+                {data.memoryPolicies.map((policy) => (
+                  <li key={policy.id}>
+                    {policy.retentionSeconds == null
+                      ? 'Oplevelser huskes permanent'
+                      : `Oplevelser huskes i ${formatDuration(policy.retentionSeconds)}`}
+                    <div className="mono" style={{ color: 'var(--muted)' }}>
+                      fra {policy.fromPersonal == null ? 'altid' : formatInstant(policy.fromPersonal, 'minute')}
+                      {policy.untilPersonal != null
+                        ? ` til ${formatInstant(policy.untilPersonal, 'minute')}` : ''}
+                    </div>
+                    {policy.note && <div className="dim small">{policy.note}</div>}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
           <h4>Videnskurven</h4>
           <Scrubber entityId={data.id} nonce={nonce} legCount={data.legs.length} />
         </>
@@ -192,4 +212,11 @@ function EntityPanel({
       )}
     </aside>
   );
+}
+
+function formatDuration(seconds: number): string {
+  if (seconds % 86400 === 0) return `${seconds / 86400} dage`;
+  if (seconds % 3600 === 0) return `${seconds / 3600} timer`;
+  if (seconds % 60 === 0) return `${seconds / 60} minutter`;
+  return `${seconds} sekunder`;
 }

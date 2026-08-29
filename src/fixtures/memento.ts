@@ -3,6 +3,7 @@ import type { Store } from '../db/client';
 import { SECONDS, parseInstant } from '../core/time/gregorian';
 import {
   createEntity, createPlaceLink, recordPossession, recordPresence,
+  recordMemoryPolicy,
 } from '../core/services/entities';
 import { addParticipation, createEvent, linkEventFact } from '../core/services/events';
 import { attachFactToCarrier, createFact, recordBelief, recordStatement } from '../core/services/knowledge';
@@ -251,10 +252,16 @@ export function loadMemento(store: Store): { worldId: string; workId: string } {
       slotIds: [murderFact.slotIds.get('offer')!],
     });
     linkEventFact(s, ctx, { eventId: colour[0]!, factId: jimmyFact.factId, exposes: 'establishes' });
+    linkEventFact(s, ctx, { eventId: colour[7]!, factId: teddyFact.factId, exposes: 'evidences' });
     linkEventFact(s, ctx, { eventId: colour[8]!, factId: teddyIsJohnG.factId, exposes: 'reveals' });
     linkEventFact(s, ctx, { eventId: colour[8]!, factId: teddyFact.factId, exposes: 'evidences' });
 
     // ------------------------------------------------------------------- viden
+    recordMemoryPolicy(s, ctx, {
+      entityId: leonard, fromPersonal: assault, retentionSeconds: 15 * MIN,
+      note: 'Efter overfaldet kan Leonard ikke fastholde nye oplevelser længere end et kvarter.',
+    });
+
     // Alt før overfaldet husker han for altid.
     recordBelief(s, ctx, {
       entityId: leonard, factId: murderFact.factId, strength: 'knows',
@@ -269,51 +276,11 @@ export function loadMemento(store: Store): { worldId: string; workId: string } {
       note: 'Fra før skaden, så den holder. Om den er sand, er en anden sag.',
     });
 
-    // Og alt efter holder et kvarter.
-    recordBelief(s, ctx, {
-      entityId: leonard, factId: teddyIsJohnG.factId, strength: 'knows',
-      sincePersonal: colourStart + 18 * HOUR,
-      untilPersonal: colourStart + 18 * HOUR + 15 * MIN,
-      sourceEventId: colour[8], slotIds: teddyIsJohnG.slotIds,
-      binds: { person: { entityId: teddy } },
-      note: 'Erindringen holder et kvarter. Derefter er den væk.',
-    });
-    recordBelief(s, ctx, {
-      entityId: leonard, factId: teddyFact.factId, strength: 'convinced',
-      sincePersonal: colourStart + 17 * HOUR,
-      untilPersonal: colourStart + 17 * HOUR + 15 * MIN,
-      sourceEventId: colour[7], slotIds: teddyFact.slotIds,
-      binds: { person: { entityId: teddy } },
-    });
     // Han lærer aldrig, hvad Natalie er ude på. Det siger vi rent ud, så
     // motoren ikke regner sig frem til noget andet.
     recordBelief(s, ctx, {
       entityId: leonard, factId: natalieUses.factId, strength: 'unaware',
       sincePersonal: assault,
-    });
-
-    /**
-     * Og det, han lærer ved at være til stede, glemmer han også.
-     *
-     * Udledt viden har ingen udløbsdato i modellen — den følger af, at man var
-     * der, og det bliver man ved med at have været. For alle andre er det
-     * rigtigt. For Leonard er det ikke, og det skal siges med en `unaware`, der
-     * begynder et kvarter efter: den slår alt andet fra, også det udledte.
-     *
-     * At det tager to rækker at skrive «hun husker det i et kvarter» er værd at
-     * lægge mærke til. Det er ikke forkert, men en person, der slet ikke danner
-     * erindringer, burde kunne siges én gang.
-     */
-    recordBelief(s, ctx, {
-      entityId: leonard, factId: jimmyFact.factId, strength: 'knows',
-      sincePersonal: colourStart, untilPersonal: colourStart + 15 * MIN,
-      sourceEventId: colour[0], slotIds: jimmyFact.slotIds,
-      binds: { offer: { entityId: jimmy } },
-    });
-    recordBelief(s, ctx, {
-      entityId: leonard, factId: jimmyFact.factId, strength: 'unaware',
-      sincePersonal: colourStart + 15 * MIN,
-      note: 'Et kvarter efter er det væk, også selv om han selv gjorde det.',
     });
 
     // De andre husker som mennesker gør.
