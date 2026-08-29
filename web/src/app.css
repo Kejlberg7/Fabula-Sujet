@@ -480,3 +480,51 @@ main { overflow: auto; min-width: 0; }
 .delta.up { color: var(--ok); }
 .delta.down { color: var(--alert); }
 .delta.shift { color: var(--disc); }
+
+/* ---------------------------------------------------------------------------
+ * Fase 3: gennemgangen.
+ *
+ * A finding is coloured by how sure the engine is, and nothing else on the
+ * screen borrows those colours. An error means "this cannot happen however you
+ * arrange it"; a warning means "look at this"; a note means "you probably meant
+ * to finish this".
+ * ------------------------------------------------------------------------- */
+
+.page-head {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  gap: 20px; flex-wrap: wrap;
+}
+/* The heading and its lede share a column; the action keeps its own. */
+.page-head > div:first-child { flex: 1 1 340px; min-width: 0; }
+.page-head h2 { margin-top: 0; }
+.page-head .lede { margin-bottom: 0; }
+
+.chip.error { color: var(--alert); background: var(--alert-wash); }
+.chip.warning { color: var(--disc); background: var(--disc-wash); }
+.chip.note { color: var(--muted); border-color: var(--line-2); }
+
+.finding {
+  border: 1px solid var(--line); border-left: 3px solid var(--line-2);
+  background: var(--surface); border-radius: 3px;
+  padding: 10px 14px; margin-bottom: 10px;
+}
+.finding.error { border-left-color: var(--alert); }
+.finding.warning { border-left-color: var(--disc); }
+.finding.note { border-left-color: var(--line-2); }
+.finding.aside { opacity: 0.65; border-left-style: dashed; }
+.finding header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.finding p { margin: 0; color: var(--ink-2); }
+.finding .reason { margin-top: 6px; font-family: var(--serif); color: var(--ink); }
+
+.aside-form {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line);
+}
+.aside-form input { flex: 1; min-width: 220px; padding: 5px 8px;
+  background: var(--bg); border: 1px solid var(--line-2); border-radius: 4px; }
+.aside-form p { flex-basis: 100%; margin: 0; }
+
+h3.section {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--muted); margin: 26px 0 10px;
+}

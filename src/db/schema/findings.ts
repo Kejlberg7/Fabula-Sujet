@@ -22,7 +22,14 @@ export const finding = sqliteTable('finding', {
   message: text('message').notNull(),
   /** The rows the finding is about, for the "jump to it" link. */
   subjects: text('subjects', { mode: 'json' }).notNull(),
-  firstSeenAt: createdAt(),
+  /**
+   * Deliberately not `createdAt()`: that helper always names its column
+   * `created_at`, and a finding's first sighting is not its creation -- the row
+   * is rewritten every run. Spelling the column out keeps the field name and
+   * the column name the same, which matters because this table is written with
+   * raw SQL rather than through the query builder.
+   */
+  firstSeenAt: integer('first_seen_at', { mode: 'timestamp_ms' }).notNull(),
   lastSeenAt: integer('last_seen_at', { mode: 'timestamp_ms' }).notNull(),
   resolvedAt: integer('resolved_at', { mode: 'timestamp_ms' }),
 }, (t) => ({

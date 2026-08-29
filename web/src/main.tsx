@@ -12,11 +12,12 @@ import { Laws } from './views/Laws';
 import { Chapters } from './views/Chapters';
 import { Band } from './views/Band';
 import { Desk } from './views/Desk';
+import { Findings } from './views/Findings';
 import { History } from './views/History';
 
 export type View =
   | 'overblik' | 'tidslinje' | 'personer' | 'steder' | 'ting'
-  | 'events' | 'fakta' | 'love' | 'kapitler' | 'baand' | 'skrivebord' | 'historik';
+  | 'events' | 'fakta' | 'love' | 'kapitler' | 'baand' | 'skrivebord' | 'gennemgang' | 'historik';
 
 export interface Notice { text: string; bad?: boolean }
 
@@ -161,6 +162,9 @@ function App() {
   const { data: context } = useQuery('context.get', undefined, [dataNonce]);
   const { data: entities } = useQuery('list.entities', {}, [dataNonce]);
   const { data: events } = useQuery('list.events', undefined, [dataNonce]);
+  // Findings are what the writer most wants to know without going looking, so
+  // the count sits in the sidebar rather than behind a click.
+  const { data: findings } = useQuery('review.list', undefined, [dataNonce]);
 
   const count = (kind: string) => entities?.filter((e) => e.kind === kind).length ?? 0;
   const item = (id: View, label: string, n?: number) => (
@@ -206,6 +210,8 @@ function App() {
           {item('baand', 'Båndet')}
           {item('skrivebord', 'Skrivebordet')}
           <h3>Arbejdet</h3>
+          {item('gennemgang', 'Gennemgangen',
+            findings?.filter((f) => f.dismissedReason == null).length || undefined)}
           {item('historik', 'Historik')}
         </nav>
         <main>
@@ -221,6 +227,9 @@ function App() {
           {view === 'baand' && <Band nonce={dataNonce} />}
           {view === 'skrivebord' && (
             <Desk nonce={dataNonce} notify={notify} onChanged={bump} />
+          )}
+          {view === 'gennemgang' && (
+            <Findings nonce={dataNonce} notify={notify} onChanged={bump} />
           )}
           {view === 'historik' && <History nonce={dataNonce} notify={notify} onChanged={bump} />}
         </main>

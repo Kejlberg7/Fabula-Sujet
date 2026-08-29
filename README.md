@@ -6,14 +6,14 @@ og hvornår de **fortælles**.
 
 ## Status
 
-**Fase 0, 1 og 2 er færdige.** Datamodellen, tidsløseren, ændringsloggen og
+**Fase 0 til 3 er færdige.** Datamodellen, tidsløseren, ændringsloggen og
 MCP-serveren står; oven på dem et interface med værkvælger, tidslinje, lister og
-historik — og nu et skrivebord, hvor prosaen bliver til med bibelen åben ved
-siden af.
+historik, et skrivebord hvor prosaen bliver til med bibelen åben ved siden af —
+og en motor, der siger fra, når noget ikke kan lade sig gøre.
 
 ```bash
 npm install
-npm test                              # 75 prøver
+npm test                              # 96 prøver
 npm run fixtures -- ./fabula.db       # læg Memento, Predestination og Inception ind
 npm run build && npm run dev          # interfacet på http://localhost:4173
 npm run ask -- ./fabula.db hent_kontekst
@@ -37,6 +37,7 @@ lander i den samme log, som Claude skriver til.
 | **Kapitler** | Bogen i læserækkefølge, med hvert events kronologiske plads ved siden af |
 | **Båndet** | De to akser mod hinanden, en tråd for hver gang bogen fortæller noget |
 | **Skrivebordet** | Manuskriptet, og ved siden af det hvad synsvinklen ved her og hvad læseren ved |
+| **Gennemgangen** | Det, der ikke kan lade sig gøre — og det, du har lagt til side, med din grund |
 | **Historik** | Hvem ændrede hvad, og rul tilbage til et hvilket som helst punkt |
 
 Redigering sker i panelerne: ret et felt, klik væk, og det er gemt — og ét
@@ -70,6 +71,39 @@ fordelt — de ligger præcis dér, hvor modellen ved, at noget sker. Leonards k
 stiger, når han ser noget, og et kvarter senere står der: *«en overbevisning
 løber ud — Teddy kan ikke stoles på · nedskrevet → bærer det på sig»*. Det er
 hele filmen på én linje.
+
+### Gennemgangen
+
+Seks regler kører: **bilokation**, **rejsetid**, **liv og alder**, **vidensbrud**,
+**bæreren mangler** og **umulig kronologi**. De har alle den samme disciplin:
+
+> Meld kun det, der ikke kan arrangeres anderledes.
+
+En uskarp dato kan lægges hvor som helst i sit spillerum. Findes der bare én
+placering, hvor det hele går op, er der ikke noget galt — så har du bare ikke
+besluttet dig endnu. To scener «en gang den uge» i hver sin ende af landet er
+ikke en fejl; to scener klokken otte samme aften er.
+
+Tre skel afgør, om motoren er til at holde ud at have kørende:
+
+- **Ben.** Samme person to steder på én gang er kun en fejl, hvis det er det
+  samme ben af livet. To ben er tidsrejse, og det er hele *Predestination*.
+- **Lag.** Samme person i to lag er en krop, der sover ovenpå.
+- **Ophold mod ærinde.** Et event fastholder dig; et ophold siger, hvor du bor.
+  «Leonard, Motellet, 1.–6. marts» betyder ikke, at han aldrig gik ud — så
+  bilokationen tier om ærindet. Om han kan *nå* det, er rejsetidens spørgsmål,
+  og den siger kun noget, når du selv har skrevet afstanden ned.
+
+Er et fund forkert, fordi verdenen er sådan, skal du skrive en **lov** — en
+evne, der nævner regelkoden. Så gælder den for alle tilfældene, og motoren
+spørger loven, *før* den melder noget. Er det enkelte tilfælde en undtagelse i
+sig selv, kan du lægge fundet til side med en grund. Grunden er ikke valgfri: en
+advarsel, der kan slukkes uden at sige hvorfor, bliver til en liste, ingen
+læser.
+
+Et fund hænger på et fingeraftryk, ikke på en række. Derfor holder en afvisning
+på tværs af kørsler, lukker et rettet problem sig selv, og «den er kommet
+tilbage» er noget, du kan se.
 
 ## Sådan kobler du Claude på
 
@@ -135,8 +169,7 @@ docs/ORDBOG.md     dansk ↔ engelsk, regelkoder, MCP-flade
 
 ## Næste skridt
 
-**Fase 3: motoren, der siger fra.** De hårde regler — bilokation, rejsetid,
-livslængde, vidensbrud, manglende bærer — kørt som et samlet gennemløb, der
-skriver fund i databasen med et fingeraftryk, så en afvisning bliver hængende.
-Lovlaget spørges allerede først (`src/core/laws/consult.ts`); det er kun
-reglerne, der mangler.
+**Fase 4: fortællelaget.** POV-lækagen står allerede i skrivebordet; resten
+mangler — lovbrud, lagbrud, selvmøde-lækage og afsløringsrækkefølge, kørt som en
+del af den samme gennemgang. Og manuskriptgennemgangen, der kommenterer i
+margenen og aldrig rører prosaen uden et ja.

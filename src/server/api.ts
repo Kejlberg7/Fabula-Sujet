@@ -23,6 +23,9 @@ import {
   createChapter, createReveal, createScene, createTextAnchor, linkSceneToEvent,
   saveSceneText,
 } from '../core/services/narrative';
+import { openFindings, review } from '../core/review';
+import { RULES } from '../core/rules';
+import { dismissFinding, revokeDismissal } from '../core/services/findings';
 import { solveTime } from '../core/solve';
 import { formatInstant, formatSpan } from '../core/time/gregorian';
 import { Workbench } from '../core/workbench';
@@ -554,6 +557,32 @@ export function createApi(store: Store) {
     /** Where a person's knowledge changes, on their own clock. */
     'knows.track': (input: { entityId: string; legId?: string }) =>
       knowledgeTrack(store, ctx(), input),
+
+    /**
+     * One pass over everything: solve the time, run the rules, write down what
+     * came out. This is the button the whole consistency layer exists behind.
+     */
+    'review.run': (input: { only?: string[] }) => review(store, ctx(), input.only),
+
+    /** What stands right now, without running anything. */
+    'review.list': () => openFindings(store, ctx()),
+
+    /** The rules there are, so the screen can name them rather than show codes. */
+    'review.rules': () => RULES.map((r) => ({ code: r.code, title: r.title })),
+
+    /**
+     * "Yes, he was there -- but he lies about it later, that is the point."
+     *
+     * Unlike the findings, this is a person deciding something, so it goes
+     * through the change log and is one undo away like everything else.
+     */
+    'review.dismiss': (input: { fingerprint: string; reason: string }) =>
+      bench.run({ actor, summary: 'Afvis fund' }, (session, c) =>
+        ({ id: dismissFinding(session, c, store, input) })),
+
+    'review.undismiss': (input: { fingerprint: string }) =>
+      bench.run({ actor, summary: 'Tag afvisning tilbage' }, (session, c) =>
+        ({ revoked: revokeDismissal(session, c, store, input) })),
 
     'solve': () => {
       const report = solveTime(store, ctx());

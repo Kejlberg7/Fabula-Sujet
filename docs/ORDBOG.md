@@ -58,16 +58,21 @@ navn i en tabel eller et felt er også en fejl.
 ## Regelkoder
 
 Koden står i `finding.rule_code`, og en `law` med `hardness = 'hard'` peger på
-den samme kode, når den løfter reglen. Fase-tallet er, hvornår reglen bygges.
+den samme kode, når den løfter reglen. Fase-tallet er, hvornår reglen bygges;
+✓ betyder, at den kører.
+
+Alle reglerne beviser umulighed, før de siger noget. En uskarp dato kan lægges
+hvor som helst i sit spillerum, og findes der bare én placering, der går op, er
+der ikke noget galt — så har forfatteren bare ikke besluttet sig endnu.
 
 | Kode | Dansk navn | Fase |
 |---|---|---|
-| `bilocation` | Bilokation — samme person, ben og lag, to steder | 3 |
-| `impossible_chronology` | Umulig kronologi — tomt interval, eller cyklus i personlig tid | 3 |
-| `life_span` | Liv og alder | 3 |
-| `knowledge_gap` | Vidensbrud — handler på en plads, hun ikke har bundet | 3 |
-| `missing_carrier` | Bæreren mangler | 3 |
-| `travel_time` | Rejsetid — hård grænse, kun en evne løfter den | 3 |
+| `bilocation` | Bilokation — samme person, ben og lag, to steder | 3 ✓ |
+| `impossible_chronology` | Umulig kronologi — tomt interval, eller cyklus i personlig tid | 3 ✓ |
+| `life_span` | Liv og alder | 3 ✓ |
+| `knowledge_gap` | Vidensbrud — handler på en plads, hun ikke har bundet | 3 ✓ |
+| `missing_carrier` | Bæreren mangler | 3 ✓ |
+| `travel_time` | Rejsetid — hård grænse, kun en evne løfter den | 3 ✓ |
 | `law_violation` | Lovbrud — et påbud er overtrådt | 4 |
 | `realm_leak` | Lagbrud — viden krydser en laggrænse i strid med loven | 4 |
 | `self_meeting_leak` | Selvmøde-lækage | 4 |
@@ -82,7 +87,7 @@ den samme kode, når den løfter reglen. Fase-tallet er, hvornår reglen bygges.
 
 ## MCP-fladen
 
-48 værktøjer. Navnene og argumenterne er danske, fordi du skal tale til dem.
+53 værktøjer. Navnene og argumenterne er danske, fordi du skal tale til dem.
 Alt indenfor er engelsk.
 
 | Gruppe | Værktøj |
@@ -96,6 +101,7 @@ Alt indenfor er engelsk.
 | Fortælling | `opret_kapitel` · `opret_scene` · `knyt_scene_til_event` · `opret_afsloering` · `gem_scenetekst` · `vis_kapitler` · `saet_tekstanker` · `vis_skrivebord` · `vis_baand` |
 | Ret og fjern | `opdater` · `slet` · `fortryd` · `gentag` · `saet_nedslag` · `rul_tilbage_til` · `historik` · `vis_aendringer` |
 | Spørg | `hvem_vidste_hvad` · `hvem_var_hvor` · `hvad_ved_laeseren` · `vis_verdenslinje` · `find` · `koer_tidsloesning` |
+| Gennemgang | `koer_gennemgang` · `vis_fund` · `afvis_fund` · `genaabn_fund` · `vis_regler` |
 
 `opdater` og `slet` tager et engelsk tabelnavn fra listen ovenfor. Oprettelse er
 typet per slags, fordi felterne er vidt forskellige, når noget skabes — mens en

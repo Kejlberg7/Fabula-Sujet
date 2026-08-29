@@ -11,6 +11,7 @@ import { knowledgeTools } from './tools/knowledge';
 import { narrativeTools } from './tools/narrative';
 import { historyTools } from './tools/history';
 import { queryTools } from './tools/queries';
+import { reviewTools } from './tools/review';
 
 export const allTools: ToolDef[] = [
   ...worldTools,
@@ -20,6 +21,7 @@ export const allTools: ToolDef[] = [
   ...narrativeTools,
   ...historyTools,
   ...queryTools,
+  ...reviewTools,
 ];
 
 const INSTRUCTIONS = `
@@ -37,6 +39,10 @@ Nogle vaner, der gør modellen brugbar frem for larmende:
   LÆSEREN gør (opret_afsloering). Afstanden mellem dem er hele fortællegrebet.
 • Var nogen til stede uden at opdage noget, så brug rollen present_unaware eller opfatter=false.
 • Kør koer_tidsloesning, når du har sat bånd, og fortæl hvad den fandt.
+• Kør koer_gennemgang, når du har lagt en større bid ind, og fortæl hvad den fandt. Den melder kun
+  det, der ikke kan arrangeres anderledes — er noget bare uskarpt, er det ikke en fejl.
+• Er et fund forkert, fordi verdenen er sådan, så skriv en LOV (opret_lov, evne, med regelkoden)
+  frem for at afvise fundet. Afvis kun det enkelte tilfælde, der er en undtagelse i sig selv.
 `.trim();
 
 export function createServer(store: Store): McpServer {
