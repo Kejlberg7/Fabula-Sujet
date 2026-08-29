@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 import type { SQLiteTable } from 'drizzle-orm/sqlite-core';
 import type { Store } from '../db/client';
-import { chapter, entity, event, fact, realm, scene, work } from '../db/schema';
+import { chapter, entity, event, fact, realm, scene, work, world } from '../db/schema';
 import type { Context } from '../core/workbench';
 
 /**
@@ -18,6 +18,7 @@ function pick<T extends { id: string }>(
   needle: string,
   label: (row: T) => string,
   kind: string,
+  elsewhere?: () => string[],
 ): T {
   const byId = rows.find((r) => r.id === needle);
   if (byId) return byId;
@@ -33,7 +34,15 @@ function pick<T extends { id: string }>(
 
   const partial = rows.filter((r) => label(r).toLowerCase().includes(lowered));
   if (partial.length === 1) return partial[0]!;
-  if (partial.length === 0) throw new Error(`Jeg kan ikke finde nogen ${kind} der hedder "${needle}".`);
+  if (partial.length === 0) {
+    // With several worlds in one database, looking in the wrong one is the
+    // confusing failure: the name is right there, just not here. Say so.
+    const others = elsewhere?.() ?? [];
+    const hint = others.length
+      ? ` Der findes en i ${others.map((w) => `"${w}"`).join(' og ')} — skift verden med saet_aktivt_vaerk.`
+      : '';
+    throw new Error(`Jeg kan ikke finde nogen ${kind} der hedder "${needle}" i denne verden.${hint}`);
+  }
   throw new Error(
     `"${needle}" kan være flere ting: ${partial.slice(0, 8).map((r) => `${label(r)} (${r.id})`).join(', ')}. Vær lidt mere præcis.`,
   );
@@ -46,7 +55,14 @@ function rowsIn<T extends SQLiteTable>(store: Store, table: T, branchColumn: nev
 export function resolveEntity(store: Store, ctx: Context, needle: string, kind?: string) {
   const rows = rowsIn(store, entity, entity.branchId as never, ctx.branchId)
     .filter((e) => !kind || e.kind === kind);
-  return pick(rows, needle, (r) => r.name, kind ? `${kind}` : 'person eller ting');
+  const elsewhere = () => {
+    const lowered = needle.trim().toLowerCase();
+    const rest = store.db.select().from(entity).all()
+      .filter((e) => e.worldId !== ctx.worldId && e.name.toLowerCase().includes(lowered));
+    return [...new Set(rest.map((e) =>
+      store.db.select().from(world).where(eq(world.id, e.worldId)).get()?.name ?? '(ukendt)'))];
+  };
+  return pick(rows, needle, (r) => r.name, kind ? `${kind}` : 'person eller ting', elsewhere);
 }
 
 export function resolveEvent(store: Store, ctx: Context, needle: string) {

@@ -241,6 +241,14 @@ describe('flere verdener i samme database', () => {
     );
   });
 
+  it('siger til, når navnet findes — men i en anden verden', async () => {
+    await call('saet_aktivt_vaerk', { verden: 'Anden' });
+    await assert.rejects(
+      () => call('registrer_tilstedevaerelse', { person: 'Ida', sted: 'Baren' }),
+      /findes en i "Første"/,
+    );
+  });
+
   it('kan løse tiden i hver verden for sig', async () => {
     for (const verden of ['Første', 'Anden']) {
       await call('saet_aktivt_vaerk', { verden });
