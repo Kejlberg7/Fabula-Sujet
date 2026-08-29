@@ -87,12 +87,33 @@ export function whoKnewWhat(
 
   const at = query.at ?? Number.POSITIVE_INFINITY;
   const worldAt = Number.isFinite(at) ? toWorld(leg, at) : Number.POSITIVE_INFINITY;
-  const byFact = new Map<string, KnowledgeItem>();
+
+  /**
+   * Each source is gathered separately and the winner picked afterwards.
+   *
+   * Overwriting as we go looked simpler and was wrong: once a stated belief had
+   * expired, being present at the event quietly put the knowledge back, and
+   * Leonard remembered everything after all. Keeping the candidates apart is
+   * what lets an expired belief mean "he no longer remembers this" while the
+   * polaroid in his pocket still says it.
+   */
+  const candidates = new Map<string, {
+    carried?: KnowledgeItem;
+    derived?: KnowledgeItem;
+    stated?: KnowledgeItem;
+    statedExpired?: boolean;
+    statedUnaware?: boolean;
+  }>();
+  const slot = (factId: string) => {
+    let entry = candidates.get(factId);
+    if (!entry) { entry = {}; candidates.set(factId, entry); }
+    return entry;
+  };
 
   const summaryOf = (factId: string): string =>
     db.select().from(fact).where(eq(fact.id, factId)).get()?.summary ?? '(ukendt faktum)';
 
-  // 3. What she is carrying. Weakest, so it goes in first and may be overwritten.
+  // What she is carrying.
   const carried = db.select().from(possession)
     .where(and(eq(possession.holderEntityId, query.entityId), eq(possession.branchId, ctx.branchId)))
     .all()
@@ -105,18 +126,18 @@ export function whoKnewWhat(
       .where(and(eq(carrier.objectEntityId, held.objectEntityId), eq(carrier.branchId, ctx.branchId)))
       .all();
     for (const note of written) {
-      byFact.set(note.factId, {
+      slot(note.factId).carried = {
         factId: note.factId,
         summary: summaryOf(note.factId),
         source: 'carried',
         strength: note.accurate ? 'knows' : 'mistaken',
         binds: readBindings(store, 'carrier', note.id),
         viaObject: objectName ?? held.objectEntityId,
-      });
+      };
     }
   }
 
-  // 2. What she took in by being there.
+  // What she took in by being there.
   const took = db.select().from(participation)
     .where(and(eq(participation.entityId, query.entityId), eq(participation.branchId, ctx.branchId)))
     .all()
@@ -139,10 +160,10 @@ export function whoKnewWhat(
       const only = item.slotIds as string[] | null;
       const binds = only
         ? Object.fromEntries(Object.entries(truth).filter(([name]) =>
-            slotsOf(store, item.factId).some((s) => only.includes(s.id) && s.name === name)))
+            slotsOf(store, item.factId).some((sl) => only.includes(sl.id) && sl.name === name)))
         : truth;
 
-      byFact.set(item.factId, {
+      slot(item.factId).derived = {
         factId: item.factId,
         summary: summaryOf(item.factId),
         source: 'derived',
@@ -150,38 +171,59 @@ export function whoKnewWhat(
         binds,
         viaEventId: part.eventId,
         ...(timeUnknown ? { timeUnknown: true } : {}),
-      });
+      };
     }
   }
 
-  // 1. What you stated yourself. Always wins -- including "she is wrong about this".
+  // What you stated yourself.
   const stated = db.select().from(belief)
     .where(and(eq(belief.entityId, query.entityId), eq(belief.branchId, ctx.branchId)))
     .all()
     .filter((b) => !leg || !b.legId || b.legId === leg.id)
-    .filter((b) => (b.sincePersonal ?? Number.NEGATIVE_INFINITY) <= at)
-    // A belief with no end never expires. Comparing it as +Infinity would drop
-    // it when asked about "ever", which is exactly when it matters most.
-    .filter((b) => b.untilPersonal == null || b.untilPersonal > at);
+    .filter((b) => (b.sincePersonal ?? Number.NEGATIVE_INFINITY) <= at);
 
   for (const held of stated) {
-    if (held.strength === 'unaware') {
-      byFact.delete(held.factId);
+    const entry = slot(held.factId);
+    // A belief with no end never expires. Comparing it as +Infinity would drop
+    // it when asked about "ever", which is exactly when it matters most.
+    const expired = held.untilPersonal != null && held.untilPersonal <= at;
+    if (expired) {
+      entry.statedExpired = true;
       continue;
     }
-    byFact.set(held.factId, {
+    if (held.strength === 'unaware') {
+      entry.statedUnaware = true;
+      continue;
+    }
+    entry.stated = {
       factId: held.factId,
       summary: summaryOf(held.factId),
       source: 'stated',
       strength: held.strength,
       binds: readBindings(store, 'belief', held.id),
       ...(held.sourceEventId ? { viaEventId: held.sourceEventId } : {}),
-    });
+    };
+  }
+
+  const items: KnowledgeItem[] = [];
+  for (const entry of candidates.values()) {
+    // Saying outright that she is unaware settles it, including against a note
+    // in her pocket -- you were more specific than the machinery.
+    if (entry.statedUnaware) continue;
+    if (entry.stated) { items.push(entry.stated); continue; }
+    // A belief that has run out says she no longer remembers this, so being
+    // present is not allowed to hand it back. What is written down survives.
+    if (entry.statedExpired) {
+      if (entry.carried) items.push(entry.carried);
+      continue;
+    }
+    const chosen = entry.derived ?? entry.carried;
+    if (chosen) items.push(chosen);
   }
 
   return {
     entityName: who.name,
     legId: leg?.id ?? null,
-    items: [...byFact.values()].sort((a, b) => a.summary.localeCompare(b.summary, 'da')),
+    items: items.sort((a, b) => a.summary.localeCompare(b.summary, 'da')),
   };
 }

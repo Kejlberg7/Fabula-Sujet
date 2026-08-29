@@ -161,10 +161,10 @@ describe('viden i praksis', () => {
   });
 
   it('svarer på hvem der var hvor', () => {
-    const atMurder = whoWasWhere(store, ctx, { at: 1 * DAY + 600, placeId: id['stuen'] });
+    const atMurder = whoWasWhere(store, ctx, { from: 1 * DAY + 600, placeId: id['stuen'] });
     assert.deepEqual(atMurder.map((p) => p.entityName).sort(), ['Anna', 'Teddy']);
 
-    const later = whoWasWhere(store, ctx, { at: 2 * DAY, placeId: id['stuen'] });
+    const later = whoWasWhere(store, ctx, { from: 2 * DAY, placeId: id['stuen'] });
     assert.deepEqual(later.map((p) => p.entityName), ['Anna']);
   });
 

@@ -62,7 +62,21 @@ export const worldTools: ToolDef[] = [
 
       const ctx = tools.bench.setActive({ worldId, branchId });
       let workId = ctx.workId;
-      if (args.vaerk) workId = resolveWork(tools.store, ctx, args.vaerk).id;
+      let note = '';
+      if (args.vaerk) {
+        workId = resolveWork(tools.store, ctx, args.vaerk).id;
+      } else if (!workId) {
+        // Switching world drops the book, which is right -- but a world with
+        // exactly one book has no ambiguity to protect, and making someone name
+        // it anyway breaks the whole point of setting the context once.
+        const inWorld = tools.store.db.select().from(work)
+          .where(eq(work.worldId, worldId)).all()
+          .filter((w) => w.branchId === ctx.branchId);
+        if (inWorld.length === 1) workId = inWorld[0]!.id;
+        else if (inWorld.length > 1) {
+          note = `\nDer er flere bøger her: ${inWorld.map((w) => w.title).join(', ')}. Sig hvilken.`;
+        }
+      }
       const next = tools.bench.setActive({ worldId, branchId: ctx.branchId, workId });
 
       const workTitle = next.workId
@@ -70,7 +84,8 @@ export const worldTools: ToolDef[] = [
         : null;
       return `Nu arbejder vi i verdenen "${tools.bench.worldName(next.worldId)}"`
         + (workTitle ? `, på bogen "${workTitle}"` : ', uden en bog valgt')
-        + `, på grenen "${tools.store.db.select().from(branch).where(eq(branch.id, next.branchId)).get()?.name}".`;
+        + `, på grenen "${tools.store.db.select().from(branch).where(eq(branch.id, next.branchId)).get()?.name}".`
+        + note;
     },
   }),
 

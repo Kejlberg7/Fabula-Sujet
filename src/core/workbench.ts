@@ -54,11 +54,18 @@ export class Workbench {
    */
   setActive(next: Partial<Context> & { worldId: string }): Context {
     const current = this.peek();
-    const branchId = next.branchId ?? current?.branchId ?? this.defaultBranchOf(next.worldId);
+    const sameWorld = current?.worldId === next.worldId;
+    // Carrying the old branch into a new world silently mixes the two: rows
+    // filter by branch, so a Memento branch inside the Predestination world
+    // finds Memento's places and none of Predestination's realms. Every world
+    // has its own branches, and switching world must land on one of them.
+    const branchId = next.branchId
+      ?? (sameWorld ? current?.branchId : undefined)
+      ?? this.defaultBranchOf(next.worldId);
     const row = {
       id: 'singleton',
       activeWorldId: next.worldId,
-      activeWorkId: next.workId ?? (next.worldId === current?.worldId ? current?.workId ?? null : null),
+      activeWorkId: next.workId ?? (sameWorld ? current?.workId ?? null : null),
       activeBranchId: branchId,
       activeUserId: next.userId ?? current?.userId ?? null,
       updatedAt: new Date(),

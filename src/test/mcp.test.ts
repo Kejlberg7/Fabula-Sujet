@@ -181,3 +181,70 @@ describe('MCP-fladen', () => {
     await assert.rejects(() => call('slet', { tabel: 'change', id: 'x' }), /del af historikken/);
   });
 });
+
+/**
+ * Several worlds in one database is the ordinary case -- three prøvecases plus
+ * whatever is actually being written. Keeping them apart is not a detail: the
+ * failure mode is silent, and it looks like the model has gone mad.
+ */
+describe('flere verdener i samme database', () => {
+  let store: Store;
+  let client: Client;
+
+  const call = async (name: string, args: Record<string, unknown> = {}): Promise<string> => {
+    const result = await client.callTool({ name, arguments: args }) as
+      { content: { type: string; text: string }[]; isError?: boolean };
+    const text = result.content.map((c) => c.text).join('\n');
+    if (result.isError) throw new Error(text);
+    return text;
+  };
+
+  before(async () => {
+    store = openStore(':memory:');
+    const server = createServer(store);
+    const [clientSide, serverSide] = InMemoryTransport.createLinkedPair();
+    client = new Client({ name: 'proeve', version: '1.0.0' });
+    await Promise.all([server.connect(serverSide), client.connect(clientSide)]);
+
+    await call('opret_verden', { navn: 'Første' });
+    await call('opret_vaerk', { titel: 'Bog A' });
+    await call('opret_entitet', { navn: 'Baren', slags: 'place' });
+
+    await call('opret_verden', { navn: 'Anden' });
+    await call('opret_vaerk', { titel: 'Bog B' });
+    await call('opret_entitet', { navn: 'Baren', slags: 'place' });
+  });
+
+  after(async () => {
+    await client.close();
+    store.close();
+  });
+
+  it('skifter gren med, når man skifter verden', async () => {
+    await call('saet_aktivt_vaerk', { verden: 'Første' });
+    const context = await call('hent_kontekst');
+    assert.match(context, /Verden: Første/);
+    assert.match(context, /Entiteter: 1/, 'kun den ene verdens ting må tælle med');
+  });
+
+  it('vælger bogen selv, når verdenen kun har én', async () => {
+    assert.match(await call('saet_aktivt_vaerk', { verden: 'Anden' }), /på bogen "Bog B"/);
+  });
+
+  it('holder to steder med samme navn adskilt', async () => {
+    await call('saet_aktivt_vaerk', { verden: 'Første' });
+    await call('opret_entitet', { navn: 'Ida', slags: 'person' });
+    // Ville være tvetydigt, hvis begge verdeners "Baren" var i spil.
+    assert.match(
+      await call('registrer_tilstedevaerelse', { person: 'Ida', sted: 'Baren' }),
+      /Ida var på Baren/,
+    );
+  });
+
+  it('kan løse tiden i hver verden for sig', async () => {
+    for (const verden of ['Første', 'Anden']) {
+      await call('saet_aktivt_vaerk', { verden });
+      assert.match(await call('koer_tidsloesning'), /Ingen problemer/);
+    }
+  });
+});

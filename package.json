@@ -11,7 +11,9 @@
     "db:studio": "drizzle-kit studio",
     "test": "node --import tsx --test src/test/*.test.ts",
     "mcp": "node --import tsx src/mcp/server.ts",
-    "smoke": "node --import tsx scripts/smoke.ts"
+    "smoke": "node --import tsx scripts/smoke.ts",
+    "fixtures": "node --import tsx scripts/fixtures.ts",
+    "ask": "node --import tsx scripts/ask.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",

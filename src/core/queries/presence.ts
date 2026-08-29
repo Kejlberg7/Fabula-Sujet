@@ -26,7 +26,15 @@ export interface PresenceHit {
 export function whoWasWhere(
   store: Store,
   ctx: Context,
-  query: { at?: number; placeId?: string; realmId?: string; entityId?: string },
+  query: {
+    /** A window, not a point: "12 June" is a whole day, and asking about it
+     *  should find what happened during it rather than at midnight sharp. */
+    from?: number;
+    to?: number;
+    placeId?: string;
+    realmId?: string;
+    entityId?: string;
+  },
 ): PresenceHit[] {
   const { db } = store;
   const rows = db.select().from(presence)
@@ -34,9 +42,14 @@ export function whoWasWhere(
     .filter((p) => !query.placeId || p.placeId === query.placeId)
     .filter((p) => !query.realmId || p.realmId === query.realmId)
     .filter((p) => !query.entityId || p.entityId === query.entityId)
-    .filter((p) => query.at == null
-      || ((p.fromTime ?? Number.NEGATIVE_INFINITY) <= query.at
-        && (p.toTime ?? Number.POSITIVE_INFINITY) >= query.at));
+    .filter((p) => {
+      if (query.from == null && query.to == null) return true;
+      const askedFrom = query.from ?? Number.NEGATIVE_INFINITY;
+      const askedTo = query.to ?? query.from ?? Number.POSITIVE_INFINITY;
+      const wasFrom = p.fromTime ?? Number.NEGATIVE_INFINITY;
+      const wasTo = p.toTime ?? Number.POSITIVE_INFINITY;
+      return wasFrom <= askedTo && wasTo >= askedFrom;
+    });
 
   const nameOf = (id: string) =>
     db.select().from(entity).where(eq(entity.id, id)).get()?.name ?? '(ukendt)';

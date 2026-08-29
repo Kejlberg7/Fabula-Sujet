@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import type { Store } from '../../db/client';
 import {
   belief, binding, carrier, entity, entityLeg, identity, participation,
@@ -51,7 +51,7 @@ export function createIdentity(
  * the person than leg 1, whatever the world clock says about where they are.
  */
 export function createLeg(
-  session: Session, ctx: Context,
+  session: Session, ctx: Context, store: Store,
   input: {
     entityId: string; ordinal: number; label?: string;
     personalStart?: number; personalEnd?: number;
@@ -59,12 +59,29 @@ export function createLeg(
     realmId?: string; identityId?: string;
   },
 ): string {
-  return session.insert(entityLeg, {
-    entityId: input.entityId, branchId: ctx.branchId, ordinal: input.ordinal,
+  const values = {
     label: input.label ?? null,
     personalStart: input.personalStart ?? null, personalEnd: input.personalEnd ?? null,
     worldStart: input.worldStart ?? null, worldEnd: input.worldEnd ?? null,
     realmId: input.realmId ?? null, identityId: input.identityId ?? null,
+  };
+
+  // Every person is created with leg 1 already in place, so describing it is a
+  // change rather than an addition. Two legs sharing an ordinal would mean the
+  // person lived the same stretch of their life twice, which is not a thing.
+  const existing = store.db.select().from(entityLeg)
+    .where(and(
+      eq(entityLeg.entityId, input.entityId),
+      eq(entityLeg.branchId, ctx.branchId),
+      eq(entityLeg.ordinal, input.ordinal),
+    )).get();
+  if (existing) {
+    session.update(entityLeg, existing.id, values);
+    return existing.id;
+  }
+
+  return session.insert(entityLeg, {
+    entityId: input.entityId, branchId: ctx.branchId, ordinal: input.ordinal, ...values,
   })['id'] as string;
 }
 

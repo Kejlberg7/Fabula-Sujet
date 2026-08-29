@@ -69,7 +69,7 @@ export const entityTools: ToolDef[] = [
     },
     run: (args, tools) => {
       const { value } = write(tools, `Ben ${args.nummer} for ${args.person}`, (session, ctx) =>
-        createLeg(session, ctx, {
+        createLeg(session, ctx, tools.store, {
           entityId: resolveEntity(tools.store, ctx, args.person, 'person').id,
           ordinal: args.nummer,
           label: args.maerkat,

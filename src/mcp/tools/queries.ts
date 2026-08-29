@@ -32,7 +32,9 @@ export const queryTools: ToolDef[] = [
 
       const result = whoKnewWhat(tools.store, ctx, {
         entityId: who.id,
-        at: asInstant(args.tidspunkt, 'earliest'),
+        // "Hvad vidste hun den 12. juni" betyder ved dagens udgang, ikke ved
+        // midnat. Et uskarpt tidspunkt læses som "på det tidspunkt, senest".
+        at: asInstant(args.tidspunkt, 'latest'),
         legId: leg?.id,
       });
       if (result.items.length === 0) {
@@ -64,7 +66,8 @@ export const queryTools: ToolDef[] = [
     run: (args, tools) => {
       const ctx = tools.bench.context();
       const hits = whoWasWhere(tools.store, ctx, {
-        at: asInstant(args.tidspunkt, 'earliest'),
+        from: asInstant(args.tidspunkt, 'earliest'),
+        to: asInstant(args.tidspunkt, 'latest'),
         placeId: args.sted ? resolveEntity(tools.store, ctx, args.sted, 'place').id : undefined,
         entityId: args.person ? resolveEntity(tools.store, ctx, args.person, 'person').id : undefined,
       });

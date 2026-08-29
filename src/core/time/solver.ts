@@ -101,12 +101,23 @@ export function solve(
     }
   }
 
-  const usable = links.filter((l) => {
+  const connected = links.filter((l) => {
     const from = byId.get(l.fromEventId);
     const to = byId.get(l.toEventId);
     if (!from || !to) return false;
     return frameOf(clocks, from.realmId) === frameOf(clocks, to.realmId);
   });
+
+  /**
+   * Only world links move the intervals.
+   *
+   * A personal link says something about one person's own timeline, and their
+   * timeline is allowed to run against the world clock -- that is what time
+   * travel is. Letting "the barkeep leaves after the bar and lands before it"
+   * squeeze world time turns the whole of Predestination into a contradiction.
+   * Personal links still have to be acyclic, and that is checked separately.
+   */
+  const usable = connected.filter((l) => l.axis === 'world');
 
   const scale = (l: SolverLink, value: number): number => {
     const from = byId.get(l.fromEventId)!;
@@ -169,7 +180,7 @@ export function solve(
 
   findings.push(...reportEmptySpans(events, usable, span));
 
-  findings.push(...findCycles(usable));
+  findings.push(...findCycles(connected));
 
   const bounds = new Map<string, SolvedBounds>();
   for (const e of events) {

@@ -22,6 +22,7 @@ navn i en tabel eller et felt er også en fejl.
 | Besiddelse | `possession` | Hvem bærer hvad, hvornår |
 | Relation | `relationship` | Forhold mellem to entiteter, gyldigt i et interval |
 | Event | `event` | Noget der skete. Har interval og præcision, ikke et tidspunkt |
+| Blotlægning | `event_fact` | Hvilke fakta et event lægger på bordet, og hvilke pladser af dem |
 | Deltagelse | `participation` | Hvem deltog, i hvilket ben, i hvilken rolle |
 | Tidsbånd | `temporal_link` | «B sker tre dage efter A». Læses på verdens tid eller personlig tid |
 | Faktum | `fact` | Påstand med pladser, sand i et lag |
@@ -45,6 +46,7 @@ navn i en tabel eller et felt er også en fejl.
 | Tråd | `thread` | Plotlinje |
 | Slag | `beat` | Setup, komplikation eller payoff i en tråd |
 | Bruger | `app_user` | |
+| Arbejdssted | `app_state` | Hvilken verden, bog og gren der er valgt lige nu |
 | Tur | `turn` | Én samtaletur eller én handling i UI'et. Ændringer grupperes herefter |
 | Ændring | `change` | Én skrivning, med sin modsatte |
 | Nedslag | `checkpoint` | Navngivet punkt at rulle tilbage til eller forgrene fra |
@@ -79,27 +81,21 @@ den samme kode, når den løfter reglen. Fase-tallet er, hvornår reglen bygges.
 
 ## MCP-fladen
 
-Værktøjsnavnene er danske, fordi du skal tale til dem. Argumenterne er også
-danske. Alt indenfor er engelsk.
+45 værktøjer. Navnene og argumenterne er danske, fordi du skal tale til dem.
+Alt indenfor er engelsk.
 
-| Værktøj | Rører |
+| Gruppe | Værktøj |
 |---|---|
-| `saet_aktivt_vaerk` | sætter verden, værk og gren for resten af samtalen |
-| `hent_kontekst` | hvor er vi, og hvad blev senest ændret |
-| `opret_entitet`, `opret_identitet`, `opret_ben` | `entity`, `identity`, `entity_leg` |
-| `opret_lag` | `realm` |
-| `opret_event`, `tilfoej_tidsbaand` | `event`, `temporal_link` |
-| `registrer_tilstedevaerelse` | `presence` |
-| `registrer_faktum` | `fact`, `fact_slot`, `binding` |
-| `registrer_overbevisning` | `belief`, `binding` |
-| `registrer_udsagn` | `statement`, `binding` |
-| `knyt_faktum_til_baerer` | `carrier`, `binding` |
-| `opret_lov`, `opret_kilde` | `law`, `source` |
-| `opret_kapitel`, `opret_scene` | `chapter`, `scene` |
-| `knyt_scene_til_event` | `scene_event` |
-| `opret_afsloering` | `reveal` |
-| `opdater`, `slet`, `flet_entiteter` | alle tabeller, gennem loggen |
-| `fortryd`, `gentag` | `change`, `turn` |
-| `find`, `hvem_vidste_hvad`, `hvem_var_hvor`, `hvad_ved_laeseren` | kun læsning |
-| `koer_konsistenstjek` | `finding` |
-| `gennemgaa_scene` | `suggestion` |
+| Kontekst | `opret_verden` · `saet_aktivt_vaerk` · `hent_kontekst` |
+| Verden | `opret_lag` · `opret_serie` · `opret_vaerk` |
+| Entiteter | `opret_entitet` · `opret_identitet` · `opret_ben` · `registrer_tilstedevaerelse` · `registrer_besiddelse` · `opret_relation` · `opret_rejseforbindelse` · `flet_entiteter` |
+| Events | `opret_event` · `tilfoej_tidsbaand` · `tilfoej_deltager` · `knyt_event_til_faktum` |
+| Viden | `registrer_faktum` · `registrer_overbevisning` · `registrer_udsagn` · `knyt_faktum_til_baerer` |
+| Love og kilder | `opret_lov` · `opret_kilde` · `knyt_kilde` |
+| Fortælling | `opret_kapitel` · `opret_scene` · `knyt_scene_til_event` · `opret_afsloering` · `gem_scenetekst` · `vis_kapitler` |
+| Ret og fjern | `opdater` · `slet` · `fortryd` · `gentag` · `saet_nedslag` · `rul_tilbage_til` · `historik` · `vis_aendringer` |
+| Spørg | `hvem_vidste_hvad` · `hvem_var_hvor` · `hvad_ved_laeseren` · `vis_verdenslinje` · `find` · `koer_tidsloesning` |
+
+`opdater` og `slet` tager et engelsk tabelnavn fra listen ovenfor. Oprettelse er
+typet per slags, fordi felterne er vidt forskellige, når noget skabes — mens en
+rettelse altid er «denne række, disse felter».
