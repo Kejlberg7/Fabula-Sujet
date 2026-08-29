@@ -9,12 +9,16 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
-    "test": "node --import tsx --test src/test/*.test.ts"
+    "test": "node --import tsx --test src/test/*.test.ts",
+    "mcp": "node --import tsx src/mcp/server.ts",
+    "smoke": "node --import tsx scripts/smoke.ts"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "better-sqlite3": "^11.5.0",
     "drizzle-orm": "^0.36.4",
-    "nanoid": "^5.0.9"
+    "nanoid": "^5.0.9",
+    "zod": "^4.5.2"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.11",

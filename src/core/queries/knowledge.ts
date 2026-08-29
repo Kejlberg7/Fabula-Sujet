@@ -160,7 +160,9 @@ export function whoKnewWhat(
     .all()
     .filter((b) => !leg || !b.legId || b.legId === leg.id)
     .filter((b) => (b.sincePersonal ?? Number.NEGATIVE_INFINITY) <= at)
-    .filter((b) => (b.untilPersonal ?? Number.POSITIVE_INFINITY) > at);
+    // A belief with no end never expires. Comparing it as +Infinity would drop
+    // it when asked about "ever", which is exactly when it matters most.
+    .filter((b) => b.untilPersonal == null || b.untilPersonal > at);
 
   for (const held of stated) {
     if (held.strength === 'unaware') {
