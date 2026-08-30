@@ -36,6 +36,9 @@ export const identity = sqliteTable('identity', {
   name: text('name').notNull(),
   /** The fact whose reveal ties this identity to the entity, if there is one. */
   sameAsFactId: text('same_as_fact_id'),
+  /** The stretch of world time in which this name or appearance is in use. */
+  validFrom: instant('valid_from'),
+  validTo: instant('valid_to'),
   note: text('note'),
 });
 
@@ -107,6 +110,26 @@ export const possession = sqliteTable('possession', {
   byObject: index('possession_object_idx').on(t.objectEntityId, t.branchId),
 }));
 
+/**
+ * A state carried by an entity over time: a gun is loaded, a door is locked,
+ * a document is forged. Categories are user-defined, while values within one
+ * category are mutually exclusive. That small convention lets the engine find
+ * contradictions without pretending to understand every fictional object.
+ */
+export const entityState = sqliteTable('entity_state', {
+  id: pk(),
+  branchId: branchId(),
+  originId: originId(),
+  entityId: text('entity_id').notNull().references(() => entity.id),
+  category: text('category').notNull(),
+  value: text('value').notNull(),
+  fromTime: instant('from_time'),
+  toTime: instant('to_time'),
+  note: text('note'),
+}, (t) => ({
+  byEntity: index('entity_state_entity_idx').on(t.entityId, t.branchId, t.category),
+}));
+
 /** A relationship that is true for a stretch of time and then is not. */
 export const relationship = sqliteTable('relationship', {
   id: pk(),
@@ -116,10 +139,29 @@ export const relationship = sqliteTable('relationship', {
   toEntityId: text('to_entity_id').notNull().references(() => entity.id),
   /** "mother of", "betrays", "in love with" -- defined by the world, not by us. */
   kind: text('kind').notNull(),
+  /** Different values in the same category are mutually exclusive. Optional by design. */
+  category: text('category'),
   symmetric: integer('symmetric', { mode: 'boolean' }).notNull().default(false),
   fromTime: instant('from_time'),
   toTime: instant('to_time'),
   note: text('note'),
 }, (t) => ({
   byFrom: index('relationship_from_idx').on(t.fromEntityId, t.branchId),
+}));
+
+/**
+ * An explicit disappearance and, optionally, the event that ends it.
+ * Keeping these as events means fuzzy time and time travel continue to work;
+ * the rule only complains about an appearance that is certainly inside the gap.
+ */
+export const disappearance = sqliteTable('disappearance', {
+  id: pk(),
+  branchId: branchId(),
+  originId: originId(),
+  entityId: text('entity_id').notNull().references(() => entity.id),
+  disappearsEventId: text('disappears_event_id').notNull(),
+  returnsEventId: text('returns_event_id'),
+  note: text('note'),
+}, (t) => ({
+  byEntity: index('disappearance_entity_idx').on(t.entityId, t.branchId),
 }));

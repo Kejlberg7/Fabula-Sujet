@@ -26,7 +26,8 @@ export const reviewTools: ToolDef[] = [
     title: 'Kør gennemgangen',
     description:
       'Løser tiden og kører alle reglerne igennem: bilokation, rejsetid, liv og alder, '
-      + 'vidensbrud, manglende bærer, POV, lag, selvmøder og afsløringsrækkefølge. '
+      + 'vidensbrud, manglende bærer, POV, lag, selvmøder, afsløringsrækkefølge, '
+      + 'genstande, relationer, identiteter, forsvindinger, setups og kilder. '
       + 'Melder kun det, der ikke kan arrangeres anderledes — '
       + 'en uskarp dato, der stadig kan lægges, så det går op, er ikke en fejl, men noget '
       + 'du ikke har besluttet endnu. En evne, der nævner regelkoden, slår den pågældende '

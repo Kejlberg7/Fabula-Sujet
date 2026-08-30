@@ -3,7 +3,7 @@ import { addParticipation, addTemporalLink, createEvent, linkEventFact } from '.
 import { rootRealmOf } from '../../core/services/world';
 import { slotsOf } from '../../core/queries/bindings';
 import { asInstant, asSpan, defineTool, made, timeArg, write, type ToolDef } from '../kit';
-import { resolveEntity, resolveEvent, resolveFact, resolveRealm } from '../resolve';
+import { resolveEntity, resolveEvent, resolveFact, resolveIdentity, resolveRealm } from '../resolve';
 
 export const eventTools: ToolDef[] = [
   defineTool({
@@ -82,6 +82,7 @@ export const eventTools: ToolDef[] = [
       person: z.string(),
       rolle: z.enum(['actor', 'witness', 'victim', 'present_unaware', 'mentioned']),
       ben: z.number().optional(),
+      identitet: z.string().optional().describe('Det navn eller den skikkelse personen bruger her'),
       opfatter: z.boolean().optional(),
       note: z.string().optional(),
     },
@@ -95,7 +96,10 @@ export const eventTools: ToolDef[] = [
         if (args.ben && !leg) throw new Error(`${who.name} har ikke et ben nummer ${args.ben}.`);
         return addParticipation(session, ctx, {
           eventId: resolveEvent(tools.store, ctx, args.event).id,
-          entityId: who.id, legId: leg?.id, role: args.rolle,
+          entityId: who.id, legId: leg?.id,
+          identityId: args.identitet
+            ? resolveIdentity(tools.store, ctx, args.identitet, who.id).id : undefined,
+          role: args.rolle,
           absorbsKnowledge: args.opfatter, note: args.note,
         });
       });

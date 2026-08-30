@@ -60,9 +60,9 @@ export const law = sqliteTable('law', {
 /**
  * Research: anything you want the story to stay honest about.
  *
- * A source is stored and shown, not read -- extracting text from a PDF or a
- * photographed page is phase 5 work and deliberately out of scope here. The
- * claims you draw from a source are soft laws with a provenance, which is how
+ * A source is stored and shown, not read -- including PDFs and photographed
+ * pages. The writer decides whether it supports, contextualises or conflicts
+ * with something in the model. Claims drawn from it are soft laws with a provenance, which is how
  * "a diesel engine will not start at forty below" ends up being checked by the
  * same machinery as "magic fails near iron".
  */
@@ -93,6 +93,10 @@ export const sourceLink = sqliteTable('source_link', {
     enum: ['fact', 'law', 'event', 'entity', 'scene', 'work'],
   }).notNull(),
   targetId: text('target_id').notNull(),
+  /** The writer's relationship to the source; the file itself is never inspected. */
+  relation: text('relation', {
+    enum: ['supports', 'context', 'conflicts'],
+  }).notNull().default('context'),
   quote: text('quote'),
   note: text('note'),
 }, (t) => ({

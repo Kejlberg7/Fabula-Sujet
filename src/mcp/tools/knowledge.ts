@@ -8,7 +8,7 @@ import { slotsOf } from '../../core/queries/bindings';
 import type { Store } from '../../db/client';
 import type { Context } from '../../core/workbench';
 import { asInstant, defineTool, timeArg, write, type ToolDef } from '../kit';
-import { resolveEntity, resolveEvent, resolveFact, resolveRealm } from '../resolve';
+import { resolveEntity, resolveEvent, resolveFact, resolveRealm, resolveSource } from '../resolve';
 
 const slotValue = z.object({
   person: z.string().optional().describe('Navn eller id på en entitet'),
@@ -249,17 +249,24 @@ export const knowledgeTools: ToolDef[] = [
   defineTool({
     name: 'knyt_kilde',
     title: 'Knyt kilde',
-    description: 'Hvad kilden bakker op: et faktum, en lov, et event, en person eller en scene.',
+    description:
+      'Knytter en kilde til et faktum, en lov, et event, en person eller en scene. Angiv om den '
+      + 'understøtter, giver kontekst eller er markeret som en mulig modstrid. Programmet læser '
+      + 'aldrig selve filen for at gætte relationen.',
     inputSchema: {
       kilde: z.string(),
       maal_slags: z.enum(['fact', 'law', 'event', 'entity', 'scene', 'work']),
       maal: z.string().describe('Id på det, kilden bakker op'),
+      relation: z.enum(['supports', 'context', 'conflicts']).optional(),
       citat: z.string().optional(),
+      note: z.string().optional(),
     },
     run: (args, tools) => {
       const { value } = write(tools, `Kildehenvisning`, (session, ctx) =>
         linkSource(session, ctx, {
-          sourceId: args.kilde, targetKind: args.maal_slags, targetId: args.maal, quote: args.citat,
+          sourceId: resolveSource(tools.store, ctx, args.kilde).id,
+          targetKind: args.maal_slags, targetId: args.maal,
+          relation: args.relation, quote: args.citat, note: args.note,
         }));
       return `Kilden er knyttet til ${args.maal_slags} ${args.maal}. (id: ${value})`;
     },

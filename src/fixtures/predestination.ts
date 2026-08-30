@@ -7,7 +7,8 @@ import {
 import { addParticipation, addTemporalLink, createEvent, linkEventFact } from '../core/services/events';
 import { createFact, recordBelief, recordStatement } from '../core/services/knowledge';
 import {
-  createChapter, createReveal, createScene, linkSceneToEvent, saveSceneText,
+  createBeat, createChapter, createReveal, createScene, createThread, linkSceneToEvent,
+  saveSceneText,
 } from '../core/services/narrative';
 import { createWorld, createWork } from '../core/services/world';
 import { Workbench } from '../core/workbench';
@@ -127,10 +128,18 @@ export function loadPredestination(store: Store): { worldId: string; workId: str
     route(orphanage, agency, 3);
     route(clinic, agency, 2);
 
-    const asJane = createIdentity(s, ctx, { entityId: traveller, name: 'Jane' });
-    const asJohn = createIdentity(s, ctx, { entityId: traveller, name: 'John' });
-    const asBarkeep = createIdentity(s, ctx, { entityId: traveller, name: 'Bartenderen' });
-    const asBomber = createIdentity(s, ctx, { entityId: traveller, name: 'Bomberen' });
+    const asJane = createIdentity(s, ctx, {
+      entityId: traveller, name: 'Jane', validFrom: at(1945), validTo: at(1963) + YEAR,
+    });
+    const asJohn = createIdentity(s, ctx, {
+      entityId: traveller, name: 'John', validFrom: at(1963), validTo: at(1971),
+    });
+    const asBarkeep = createIdentity(s, ctx, {
+      entityId: traveller, name: 'Bartenderen', validFrom: at(1970),
+    });
+    const asBomber = createIdentity(s, ctx, {
+      entityId: traveller, name: 'Bomberen', validFrom: at(1975),
+    });
 
     // Sandheden bag hele historien. Sandhedsværdien er kendt af os; ingen af
     // benene kender den, før det tredje gør.
@@ -221,7 +230,10 @@ export function loadPredestination(store: Store): { worldId: string; workId: str
     });
 
     // ----------------------------------------------------------------- hvem var
-    addParticipation(s, ctx, { eventId: born, entityId: traveller, legId: leg3, role: 'actor' });
+    addParticipation(s, ctx, {
+      eventId: born, entityId: traveller, legId: leg3, role: 'actor',
+      note: 'Han er den ukendte mand her; bartendernavnet bliver ikke brugt i 1945.',
+    });
     // Hun er spædbarnet på trappen. Rollen er offer, men hun tager ingenting
     // til sig — og uden det flag ville modellen mene, at Jane har vidst hvem
     // hun var, siden hun var en time gammel.
@@ -229,17 +241,35 @@ export function loadPredestination(store: Store): { worldId: string; workId: str
       eventId: born, entityId: traveller, legId: leg1, role: 'victim',
       absorbsKnowledge: false,
     });
-    addParticipation(s, ctx, { eventId: childhood, entityId: traveller, legId: leg1, role: 'actor' });
-    addParticipation(s, ctx, { eventId: recruited, entityId: traveller, legId: leg1, role: 'actor' });
+    addParticipation(s, ctx, {
+      eventId: childhood, entityId: traveller, legId: leg1, identityId: asJane, role: 'actor',
+    });
+    addParticipation(s, ctx, {
+      eventId: recruited, entityId: traveller, legId: leg1, identityId: asJane, role: 'actor',
+    });
     addParticipation(s, ctx, { eventId: recruited, entityId: robertson, role: 'actor' });
-    addParticipation(s, ctx, { eventId: surgery, entityId: traveller, legId: leg1, role: 'victim' });
-    addParticipation(s, ctx, { eventId: meeting, entityId: traveller, legId: leg2, role: 'actor' });
-    addParticipation(s, ctx, { eventId: meeting, entityId: traveller, legId: leg3, role: 'actor' });
-    addParticipation(s, ctx, { eventId: recruitedAgain, entityId: traveller, legId: leg2, role: 'actor' });
+    addParticipation(s, ctx, {
+      eventId: surgery, entityId: traveller, legId: leg1, identityId: asJane, role: 'victim',
+    });
+    addParticipation(s, ctx, {
+      eventId: meeting, entityId: traveller, legId: leg2, identityId: asJohn, role: 'actor',
+    });
+    addParticipation(s, ctx, {
+      eventId: meeting, entityId: traveller, legId: leg3, identityId: asBarkeep, role: 'actor',
+    });
+    addParticipation(s, ctx, {
+      eventId: recruitedAgain, entityId: traveller, legId: leg2, identityId: asJohn, role: 'actor',
+    });
     addParticipation(s, ctx, { eventId: recruitedAgain, entityId: robertson, role: 'actor' });
-    addParticipation(s, ctx, { eventId: bombing, entityId: traveller, legId: leg4, role: 'actor' });
-    addParticipation(s, ctx, { eventId: lastMeeting, entityId: traveller, legId: leg3, role: 'actor' });
-    addParticipation(s, ctx, { eventId: lastMeeting, entityId: traveller, legId: leg4, role: 'actor' });
+    addParticipation(s, ctx, {
+      eventId: bombing, entityId: traveller, legId: leg4, identityId: asBomber, role: 'actor',
+    });
+    addParticipation(s, ctx, {
+      eventId: lastMeeting, entityId: traveller, legId: leg3, identityId: asBarkeep, role: 'actor',
+    });
+    addParticipation(s, ctx, {
+      eventId: lastMeeting, entityId: traveller, legId: leg4, identityId: asBomber, role: 'actor',
+    });
 
     recordPresence(s, ctx, {
       entityId: traveller, legId: leg2, placeId: bar, realmId,
@@ -408,6 +438,7 @@ export function loadPredestination(store: Store): { worldId: string; workId: str
       },
     ];
 
+    const sceneIds = new Map<string, string>();
     book.forEach((chapter, chapterIndex) => {
       const chapterId = createChapter(s, ctx, store, {
         workId, title: chapter.title, position: chapterIndex + 1, summary: chapter.summary,
@@ -418,6 +449,7 @@ export function loadPredestination(store: Store): { worldId: string; workId: str
           povEntityId: spec.pov ?? traveller, povLegId: spec.leg,
           narrationPerson: 'first', narrationTense: 'past', realmId,
         });
+        sceneIds.set(spec.title, sceneId);
         linkSceneToEvent(s, ctx, {
           sceneId, eventId: spec.event, mode: spec.mode ?? 'dramatised',
         });
@@ -432,6 +464,19 @@ export function loadPredestination(store: Store): { worldId: string; workId: str
           sceneId, doc: paragraphs(...prose), markdown: markdownOf(...prose),
         });
       });
+    });
+
+    const identityThread = createThread(s, ctx, {
+      workId, name: 'Den samme person',
+      summary: 'Hvert navn føjer endnu et stykke til den samme lukkede verdenslinje.',
+    });
+    createBeat(s, ctx, {
+      threadId: identityThread, kind: 'setup', sceneId: sceneIds.get('Jeg fortæller ham det hele'),
+      summary: 'Bartenderen kender historien lidt for godt.',
+    });
+    createBeat(s, ctx, {
+      threadId: identityThread, kind: 'payoff', sceneId: sceneIds.get('Jeg har hørt den historie før'),
+      summary: 'Den anden side af baren afslører, at fortælleren og lytteren er samme liv.',
     });
   });
 

@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { chapter } from '../../db/schema';
 import {
-  createChapter, createReveal, createScene, linkSceneToEvent, saveSceneText,
+  createBeat, createChapter, createReveal, createScene, createThread, linkSceneToEvent, saveSceneText,
 } from '../../core/services/narrative';
 import { createTextAnchor } from '../../core/services/narrative';
 import { slotsOf } from '../../core/queries/bindings';
@@ -10,7 +10,10 @@ import { sceneDesk } from '../../core/queries/desk';
 import { bandView } from '../../core/queries/band';
 import { formatInstant } from '../../core/time/gregorian';
 import { defineTool, made, write, type ToolDef } from '../kit';
-import { resolveChapter, resolveEntity, resolveEvent, resolveFact, resolveRealm, resolveScene, resolveWork } from '../resolve';
+import {
+  resolveChapter, resolveEntity, resolveEvent, resolveFact, resolveRealm, resolveScene,
+  resolveThread, resolveWork,
+} from '../resolve';
 
 function activeWork(tools: Parameters<ToolDef['run']>[1], given?: string): string {
   const ctx = tools.bench.context();
@@ -20,6 +23,51 @@ function activeWork(tools: Parameters<ToolDef['run']>[1], given?: string): strin
 }
 
 export const narrativeTools: ToolDef[] = [
+  defineTool({
+    name: 'opret_plottraad',
+    title: 'Opret plottråd',
+    description:
+      'En udviklingslinje gennem bogen. Setups, komplikationer og payoffs hænger på tråden, så '
+      + 'gennemgangen kan finde et løfte til læseren, der aldrig bliver indfriet.',
+    inputSchema: {
+      navn: z.string(),
+      resume: z.string().optional(),
+      vaerk: z.string().optional(),
+    },
+    run: (args, tools) => {
+      const { value } = write(tools, `Plottråd: ${args.navn}`, (session, ctx) =>
+        createThread(session, ctx, {
+          workId: activeWork(tools, args.vaerk), name: args.navn, summary: args.resume,
+        }));
+      return made('Plottråden', args.navn, value);
+    },
+  }),
+
+  defineTool({
+    name: 'tilfoej_slag',
+    title: 'Tilføj slag til plottråd',
+    description:
+      'Et setup, en komplikation eller et payoff. Knyt det helst til en scene; placeringen bruges '
+      + 'kun som manuel rækkefølge, når slaget endnu ikke er skrevet ind i bogen.',
+    inputSchema: {
+      plottraad: z.string(),
+      slags: z.enum(['setup', 'complication', 'payoff']),
+      resume: z.string(),
+      scene: z.string().optional(),
+      placering: z.number().optional(),
+    },
+    run: (args, tools) => {
+      const { value } = write(tools, `${args.slags}: ${args.resume}`, (session, ctx) =>
+        createBeat(session, ctx, {
+          threadId: resolveThread(tools.store, ctx, args.plottraad).id,
+          kind: args.slags, summary: args.resume,
+          sceneId: args.scene ? resolveScene(tools.store, ctx, args.scene).id : undefined,
+          position: args.placering,
+        }));
+      return `Slaget er lagt på «${args.plottraad}». (id: ${value})`;
+    },
+  }),
+
   defineTool({
     name: 'opret_kapitel',
     title: 'Opret kapitel',

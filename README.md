@@ -6,16 +6,17 @@ og hvornår de **fortælles**.
 
 ## Status
 
-**Fase 0 til 4 er færdige.** Datamodellen, tidsløseren, ændringsloggen og
+**Fase 0 til 5 er færdige.** Datamodellen, tidsløseren, ændringsloggen og
 MCP-serveren står; oven på dem et interface med værkvælger, tidslinje, lister og
 historik, et skrivebord hvor prosaen bliver til med bibelen åben ved siden af —
 og en motor, der siger fra, når noget ikke kan lade sig gøre. Fortællelaget
 kontrollerer desuden POV, lag, selvmøder og afsløringsrækkefølge, mens en AI kan
-lægge manuskriptforslag i margenen uden at røre prosaen.
+lægge manuskriptforslag i margenen uden at røre prosaen. Kontinuitetslaget følger
+desuden genstande, relationer, identiteter, forsvindinger, setups og researchkilder.
 
 ```bash
 npm install
-npm test                              # 122 prøver
+npm test                              # 132 prøver
 npm run fixtures -- ./fabula.db       # læg Memento, Predestination og Inception ind
 npm run build && npm run dev          # interfacet på http://localhost:4173
 npm run ask -- ./fabula.db hent_kontekst
@@ -36,6 +37,7 @@ lander i den samme log, som Claude skriver til.
 | **Personer · Steder · Ting** | Listerne, med et panel der viser ben, tilstedeværelse og hvad personen ved |
 | **Events** | Hvad der skete, og hvor fast tiden på det er |
 | **Fakta · Love** | Påstande med pladser, og hvad der kan lade sig gøre i verdenen |
+| **Kontinuitet** | Genstandstilstande og besiddelser, relationer, identiteter, forsvindinger, setups/payoffs og researchkilder |
 | **Kapitler** | Bogen i læserækkefølge, med hvert events kronologiske plads ved siden af |
 | **Båndet** | De to akser mod hinanden, en tråd for hver gang bogen fortæller noget |
 | **Skrivebordet** | Manuskriptet, og ved siden af det hvad synsvinklen ved her og hvad læseren ved |
@@ -83,11 +85,31 @@ hukommelsesregel kan sige én gang, at nye oplevelser kun holder et kvarter,
 mens ældre minder og det, der står på en polaroid, består. Leonards kurve
 stiger derfor, når han ser noget, og falder igen, når oplevelsen glider ud.
 
+### Kontinuitet
+
+Tilstande er brugerdefinerede frem for hårdkodede. Kategorien kan være
+«lås», «helbred» eller «ladning»; værdierne inden for den kan være «åben» og
+«låst». To forskellige værdier i samme kategori må ikke overlappe. Det samme
+gælder relationer, når du giver dem en kategori som «alliance» eller «forhold».
+Uden en kategori gætter programmet ikke på, hvilke ord der udelukker hinanden.
+
+Plottråde samler setups, komplikationer og payoffs i bogens rækkefølge. Et setup
+uden et senere payoff bliver en bemærkning i gennemgangen. Identiteter kan have
+deres eget tidsrum og knyttes til en konkret deltagelse, og en registreret
+forsvinding gør en sikker optræden midt i hullet synlig.
+
+Researchkilder er fortsat **kun gemt og vist**. En henvisning kan markeres som
+støtte, kontekst eller mulig modstrid, men programmet åbner, udtrækker eller
+fortolker aldrig filens indhold. Det er markeringen — ikke et maskinelt gæt —
+der bliver vist i gennemgangen.
+
 ### Gennemgangen
 
-Ti regler kører: **bilokation**, **rejsetid**, **liv og alder**, **vidensbrud**,
+Seksten regler kører. Ud over **bilokation**, **rejsetid**, **liv og alder**, **vidensbrud**,
 **bæreren mangler**, **umulig kronologi**, **POV-lækage**, **lagbrud**,
-**selvmøde-lækage** og **afsløringsrækkefølge**. De har alle den samme disciplin:
+**selvmøde-lækage** og **afsløringsrækkefølge** følger de nu
+**genstandskontinuitet**, **relationstilstande**, **hængende setups**,
+**navne og identiteter**, **forsvindinger** og **kildemodstrid**. De har alle den samme disciplin:
 
 > Meld kun det, der ikke kan arrangeres anderledes.
 
@@ -181,7 +203,7 @@ oversættelsen — tilføj dér, før du bruger et nyt ord.
 ## Layout
 
 ```
-src/db/schema/     45 tabeller. Læs index.ts først; den siger i hvilken rækkefølge.
+src/db/schema/     47 tabeller. Læs index.ts først; den siger i hvilken rækkefølge.
 src/core/
   changelog.ts     det eneste, der skriver
   workbench.ts     hvilken verden, bog og gren vi arbejder på
@@ -189,7 +211,7 @@ src/core/
   services/        skrivning, som UI og MCP begge kalder
   queries/         hvem vidste hvad, hvem var hvor, hvad ved læseren
   solve.ts         løseren kørt på databasen
-src/mcp/           58 værktøjer, danske navne
+src/mcp/           62 værktøjer, danske navne
 src/server/        API'et interfacet taler med, og HTTP-serveren
 src/fixtures/      de tre prøvecases
 web/               interfacet: React, egen CSS, ingen komponentbibliotek
@@ -198,7 +220,6 @@ docs/ORDBOG.md     dansk ↔ engelsk, regelkoder, MCP-flade
 
 ## Næste skridt
 
-**Fase 5: kontinuiteten i dybden.** Genstande og relationer skal have tydelige
-tilstande gennem tiden; setups skal kunne findes uden payoff; identiteter og
-forsvindinger skal kunne følges; og researchkilder skal kunne pege på en mulig
-modstrid uden at programmet læser eller omskriver deres indhold.
+**Fase 6: virkelige alternativer.** Opret en gren fra et nedslag i den synlige
+historik, prøv en anden scene- og afsløringsrækkefølge, sammenlign grenene og
+vælg eller arkivér en variant uden at flette dem eller miste den oprindelige.

@@ -2,14 +2,16 @@ import { inTurn } from '../core/changelog';
 import type { Store } from '../db/client';
 import { SECONDS, parseInstant } from '../core/time/gregorian';
 import {
-  createEntity, createPlaceLink, recordPossession, recordPresence,
-  recordMemoryPolicy,
+  createEntity, createIdentity, createPlaceLink, createRelationship, recordDisappearance,
+  recordEntityState, recordPossession, recordPresence, recordMemoryPolicy,
 } from '../core/services/entities';
 import { addParticipation, createEvent, linkEventFact } from '../core/services/events';
 import { attachFactToCarrier, createFact, recordBelief, recordStatement } from '../core/services/knowledge';
 import {
-  createChapter, createReveal, createScene, linkSceneToEvent, saveSceneText,
+  createBeat, createChapter, createReveal, createScene, createThread, linkSceneToEvent,
+  saveSceneText,
 } from '../core/services/narrative';
+import { createSource, linkSource } from '../core/services/laws';
 import { createWorld, createWork } from '../core/services/world';
 import { Workbench } from '../core/workbench';
 import { markdownOf, paragraphs } from './prose';
@@ -179,6 +181,15 @@ export function loadMemento(store: Store): { worldId: string; workId: string } {
       summary: 'En tidligere forsikringssag om hukommelsestab, som Leonard bruger som forklaring og advarsel; hvor meget af historien der egentlig er hans egen, er omstridt.',
     });
 
+    createIdentity(s, ctx, {
+      entityId: teddy, name: 'Teddy', validFrom: assault,
+      note: 'Navnet Leonard møder ham under.',
+    });
+    createIdentity(s, ctx, {
+      entityId: teddy, name: 'John Edward Gammell', validFrom: assault,
+      note: 'Det navn, der til sidst bliver knyttet til ham.',
+    });
+
     // ------------------------------------------------------------------ steder
     const motel = createEntity(s, ctx, {
       name: 'Motellet', kind: 'place',
@@ -278,6 +289,36 @@ export function loadMemento(store: Store): { worldId: string; workId: string } {
       summary: 'Den centrale anklage skrevet permanent på Leonards krop; i modsætning til en note kan den hverken mistes, gemmes væk eller uden videre rettes.',
     });
 
+    recordEntityState(s, ctx, {
+      entityId: tattoo, category: 'tekst', value: 'ufuldstændig',
+      fromTime: assault, toTime: bwStart + 4 * DAY + 14 * HOUR,
+    });
+    recordEntityState(s, ctx, {
+      entityId: tattoo, category: 'tekst', value: 'færdig',
+      fromTime: bwStart + 4 * DAY + 14 * HOUR,
+    });
+    recordEntityState(s, ctx, {
+      entityId: polaroidTeddy, category: 'bagside', value: 'blank',
+      fromTime: colourStart, toTime: colourStart + 17 * HOUR,
+    });
+    recordEntityState(s, ctx, {
+      entityId: polaroidTeddy, category: 'bagside', value: 'advarsel skrevet',
+      fromTime: colourStart + 17 * HOUR,
+    });
+
+    createRelationship(s, ctx, {
+      fromEntityId: natalie, toEntityId: jimmy, kind: 'kærester', category: 'forhold',
+      fromTime: assault, toTime: colourStart + 20 * MIN,
+    });
+    createRelationship(s, ctx, {
+      fromEntityId: leonard, toEntityId: teddy, kind: 'samarbejder', category: 'alliance',
+      fromTime: assault, toTime: colourStart + 18 * HOUR,
+    });
+    createRelationship(s, ctx, {
+      fromEntityId: leonard, toEntityId: teddy, kind: 'fjender', category: 'alliance',
+      fromTime: colourStart + 18 * HOUR,
+    });
+
     // ============================================================== kronologien
     // 1998: Sammy-sporet. Leonard er efterforsker og tror stadig på sin egen historie.
     const sammyStrand = [
@@ -328,6 +369,20 @@ export function loadMemento(store: Store): { worldId: string; workId: string } {
       earliest: colourStart + entry.at, latest: colourStart + entry.at + 10 * MIN,
       durationMin: 20 * MIN, precision: 'minute',
     }));
+
+    recordDisappearance(s, ctx, {
+      entityId: jimmy, disappearsEventId: colour[0]!,
+      note: 'Jimmy kommer ikke tilbage efter mødet i den forladte bygning.',
+    });
+
+    const research = createSource(s, ctx, {
+      title: 'Prøvenotat om anterograd amnesi', kind: 'note',
+      note: 'Fixture-kilde: gemt og vist som researchmetadata; indholdet bliver ikke maskinlæst.',
+    });
+    linkSource(s, ctx, {
+      sourceId: research, targetKind: 'entity', targetId: leonard, relation: 'context',
+      note: 'Baggrund for hukommelsesreglen.',
+    });
 
     // --------------------------------------------------------------- deltagere
     const be = (
@@ -612,6 +667,7 @@ export function loadMemento(store: Store): { worldId: string; workId: string } {
       },
     ];
 
+    const sceneIds = new Map<string, string>();
     book.forEach((chapter, chapterIndex) => {
       const chapterId = createChapter(s, ctx, store, {
         workId, title: chapter.title, position: chapterIndex + 1, summary: chapter.summary,
@@ -622,6 +678,7 @@ export function loadMemento(store: Store): { worldId: string; workId: string } {
           povEntityId: spec.pov ?? leonard,
           narrationPerson: 'third_limited', narrationTense: 'present', realmId,
         });
+        sceneIds.set(spec.title, sceneId);
         linkSceneToEvent(s, ctx, {
           sceneId, eventId: spec.event, mode: spec.mode ?? 'dramatised',
         });
@@ -637,6 +694,36 @@ export function loadMemento(store: Store): { worldId: string; workId: string } {
           sceneId, doc: paragraphs(...prose), markdown: markdownOf(...prose),
         });
       });
+    });
+
+    const teddyThread = createThread(s, ctx, {
+      workId, name: 'Hvem er Teddy?',
+      summary: 'Mistanken på fotografiet bliver til afsløringen af hans navn og rolle.',
+    });
+    createBeat(s, ctx, {
+      threadId: teddyThread, kind: 'setup', sceneId: sceneIds.get('Nogen har ringet'),
+      summary: 'En ukendt hjælper styrer samtalen og ved mere end Leonard.',
+    });
+    createBeat(s, ctx, {
+      threadId: teddyThread, kind: 'payoff', sceneId: sceneIds.get('Teddy siger det hele'),
+      summary: 'Teddy afslører sit navn og den jagt, Leonard selv holder i live.',
+    });
+
+    const sammyThread = createThread(s, ctx, {
+      workId, name: 'Sammy Jankis',
+      summary: 'Forsikringssagen spejler det, Leonard nægter at se om sig selv.',
+    });
+    createBeat(s, ctx, {
+      threadId: sammyThread, kind: 'setup', sceneId: sceneIds.get('Sagen om Sammy'),
+      summary: 'Sammy præsenteres som den anden mand med samme problem.',
+    });
+    createBeat(s, ctx, {
+      threadId: sammyThread, kind: 'complication', sceneId: sceneIds.get('De elektriske genstande'),
+      summary: 'Prøven antyder, at kroppen måske lærer mere end Leonard påstår.',
+    });
+    createBeat(s, ctx, {
+      threadId: sammyThread, kind: 'payoff', sceneId: sceneIds.get('Natten, i glimt'),
+      summary: 'Sammys fortælling og Leonards eget tab glider sammen.',
     });
   });
 

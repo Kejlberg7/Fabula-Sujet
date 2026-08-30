@@ -83,6 +83,7 @@ export function linkSource(
     sourceId: string;
     targetKind: 'fact' | 'law' | 'event' | 'entity' | 'scene' | 'work';
     targetId: string;
+    relation?: 'supports' | 'context' | 'conflicts';
     quote?: string;
     note?: string;
   },
@@ -90,6 +91,7 @@ export function linkSource(
   return session.insert(sourceLink, {
     sourceId: input.sourceId, branchId: ctx.branchId,
     targetKind: input.targetKind, targetId: input.targetId,
+    relation: input.relation ?? 'context',
     quote: input.quote ?? null, note: input.note ?? null,
   })['id'] as string;
 }

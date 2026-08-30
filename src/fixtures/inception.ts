@@ -1,12 +1,13 @@
 import { inTurn } from '../core/changelog';
 import type { Store } from '../db/client';
 import { SECONDS, parseInstant } from '../core/time/gregorian';
-import { createEntity, recordPresence } from '../core/services/entities';
+import { createEntity, recordEntityState, recordPossession, recordPresence } from '../core/services/entities';
 import { addParticipation, createEvent, linkEventFact } from '../core/services/events';
 import { createFact, recordBelief, recordStatement } from '../core/services/knowledge';
 import { createLaw } from '../core/services/laws';
 import {
-  createChapter, createReveal, createScene, linkSceneToEvent, saveSceneText,
+  createBeat, createChapter, createReveal, createScene, createThread, linkSceneToEvent,
+  saveSceneText,
 } from '../core/services/narrative';
 import { createRealm, createWorld, createWork, defaultTimeSystemOf } from '../core/services/world';
 import { Workbench } from '../core/workbench';
@@ -161,6 +162,21 @@ export function loadInception(store: Store): { worldId: string; workId: string; 
     const exit = createEvent(s, ctx, {
       title: 'Sparket', realmId: reality, placeId: van,
       earliest: epoch + 10 * MIN, latest: epoch + 10 * MIN, precision: 'minute',
+    });
+
+    recordPossession(s, ctx, {
+      holderEntityId: cobb, objectEntityId: totem,
+      fromTime: epoch - MIN, toTime: epoch + 11 * MIN,
+      note: 'Toppen bliver hos Cobb gennem alle lagene.',
+    });
+    recordEntityState(s, ctx, {
+      entityId: totem, category: 'virkelighedstest', value: 'ikke aflæst',
+      fromTime: epoch - MIN, toTime: epoch + 10 * MIN,
+    });
+    recordEntityState(s, ctx, {
+      entityId: totem, category: 'virkelighedstest', value: 'sat i gang',
+      fromTime: epoch + 10 * MIN, toTime: epoch + 11 * MIN,
+      note: 'Slutningen giver ikke et sikkert svar på, om den standser.',
     });
     const team = [cobb, arthur, ariadne, eames, saito, fischer];
     for (const who of [...team, yusuf]) {
@@ -365,6 +381,7 @@ export function loadInception(store: Store): { worldId: string; workId: string; 
       },
     ];
 
+    const sceneIds = new Map<string, string>();
     book.forEach((chapter, chapterIndex) => {
       const chapterId = createChapter(s, ctx, store, {
         workId, title: chapter.title, position: chapterIndex + 1, summary: chapter.summary,
@@ -375,6 +392,7 @@ export function loadInception(store: Store): { worldId: string; workId: string; 
           povEntityId: spec.pov, narrationPerson: 'third_limited',
           narrationTense: 'past', realmId: spec.realm,
         });
+        sceneIds.set(spec.title, sceneId);
         linkSceneToEvent(s, ctx, { sceneId, eventId: spec.event, mode: 'dramatised' });
         for (const shown of spec.reveals ?? []) {
           createReveal(s, ctx, {
@@ -387,6 +405,36 @@ export function loadInception(store: Store): { worldId: string; workId: string; 
           sceneId, doc: paragraphs(...prose), markdown: markdownOf(...prose),
         });
       });
+    });
+
+    const malThread = createThread(s, ctx, {
+      workId, name: 'Mal i konstruktionen',
+      summary: 'Cobbs private erindring bliver missionens offentlige fare.',
+    });
+    createBeat(s, ctx, {
+      threadId: malThread, kind: 'setup', sceneId: sceneIds.get('De venter'),
+      summary: 'Elevatoren antyder, at Cobb har bygget skjulte rum til sine minder.',
+    });
+    createBeat(s, ctx, {
+      threadId: malThread, kind: 'complication', sceneId: sceneIds.get('Ariadne ser hende'),
+      summary: 'Ariadne opdager, at Mal er kommet med ind i planen.',
+    });
+    createBeat(s, ctx, {
+      threadId: malThread, kind: 'payoff', sceneId: sceneIds.get('Han lader hende blive'),
+      summary: 'Cobb navngiver projektionen og går fra den.',
+    });
+
+    const kickThread = createThread(s, ctx, {
+      workId, name: 'Det fælles spark',
+      summary: 'Et kort fald i varevognen skal lande på fire forskellige ure.',
+    });
+    createBeat(s, ctx, {
+      threadId: kickThread, kind: 'setup', sceneId: sceneIds.get('Yusuf ved rattet'),
+      summary: 'Varevognen nærmer sig broen og det planlagte fald.',
+    });
+    createBeat(s, ctx, {
+      threadId: kickThread, kind: 'payoff', sceneId: sceneIds.get('Sparket når ned'),
+      summary: 'Sparket forplanter sig helt til kysten og trækker dem op.',
     });
   });
 

@@ -2,7 +2,9 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { eq } from 'drizzle-orm';
 import { openStore } from '../db/client';
-import { chapter, entity, entityLeg, event, sceneEvent, scene, sceneText } from '../db/schema';
+import {
+  beat, chapter, entity, entityLeg, event, sceneEvent, scene, sceneText, thread,
+} from '../db/schema';
 import { whoKnewWhat } from '../core/queries/knowledge';
 import { whoWasWhere, worldline } from '../core/queries/presence';
 import { solveTime } from '../core/solve';
@@ -254,6 +256,16 @@ describe('Prøvecasene har vægt nok til at bevise noget', () => {
           assert.ok((text.wordCount ?? 0) >= 30,
             `sceneteksten ${text.id} er for tynd (${text.wordCount ?? 0} ord)`);
         }
+      });
+
+      it('har mindst én plottråd med både setup og payoff', () => {
+        const lines = store.db.select().from(thread).where(eq(thread.workId, workId)).all();
+        assert.ok(lines.length > 0, 'prøvehistorien skal vise kontinuitetens plottråde');
+        assert.ok(lines.some((line) => {
+          const items = store.db.select().from(beat).where(eq(beat.threadId, line.id)).all();
+          return items.some((item) => item.kind === 'setup')
+            && items.some((item) => item.kind === 'payoff');
+        }), 'mindst én tråd skal vise hele bevægelsen fra setup til payoff');
       });
     });
   }

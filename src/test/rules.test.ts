@@ -404,9 +404,11 @@ describe('Gennemgangen', () => {
       const { worldId, workId } = load(store);
       const ctx = new Workbench(store).setActive({ worldId, workId });
       const report = review(store, ctx);
-      assert.equal(report.counts.errors, 0,
-        `${load.name} skal loade rent, fik: ${report.findings
-          .filter((f) => f.severity === 'error').map((f) => f.message).join(' / ')}`);
+      assert.deepEqual(
+        { errors: report.counts.errors, warnings: report.counts.warnings, notes: report.counts.notes },
+        { errors: 0, warnings: 0, notes: 0 },
+        `${load.name} skal loade helt rent, fik: ${report.findings.map((f) => f.message).join(' / ')}`,
+      );
     }
   });
 

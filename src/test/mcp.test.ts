@@ -43,6 +43,7 @@ describe('MCP-fladen', () => {
       'opret_event', 'tilfoej_tidsbaand', 'registrer_faktum', 'registrer_overbevisning',
       'opret_afsloering', 'opdater', 'slet', 'fortryd', 'hvem_vidste_hvad', 'koer_tidsloesning',
       'vis_scene_til_gennemgang', 'tilfoej_margennote', 'vis_margennoter', 'afgoer_margennote',
+      'registrer_tilstand', 'registrer_forsvinding', 'opret_plottraad', 'tilfoej_slag',
     ]) {
       assert.ok(names.includes(expected), `mangler værktøjet ${expected}`);
     }

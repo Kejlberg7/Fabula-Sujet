@@ -14,10 +14,11 @@ import { Band } from './views/Band';
 import { Desk } from './views/Desk';
 import { Findings } from './views/Findings';
 import { History } from './views/History';
+import { Continuity } from './views/Continuity';
 
 export type View =
   | 'overblik' | 'tidslinje' | 'personer' | 'steder' | 'ting'
-  | 'events' | 'fakta' | 'love' | 'kapitler' | 'baand' | 'skrivebord' | 'gennemgang' | 'historik';
+  | 'events' | 'fakta' | 'love' | 'kontinuitet' | 'kapitler' | 'baand' | 'skrivebord' | 'gennemgang' | 'historik';
 
 export interface Notice { text: string; bad?: boolean }
 
@@ -205,6 +206,7 @@ function App() {
           {item('events', 'Events', events?.length)}
           {item('fakta', 'Fakta')}
           {item('love', 'Love')}
+          {item('kontinuitet', 'Kontinuitet')}
           <h3>Fortælling</h3>
           {item('kapitler', 'Kapitler')}
           {item('baand', 'Båndet')}
@@ -223,6 +225,9 @@ function App() {
           {view === 'events' && <Events nonce={dataNonce} notify={notify} onChanged={bump} />}
           {view === 'fakta' && <Facts nonce={dataNonce} />}
           {view === 'love' && <Laws nonce={dataNonce} />}
+          {view === 'kontinuitet' && (
+            <Continuity nonce={dataNonce} notify={notify} onChanged={bump} />
+          )}
           {view === 'kapitler' && <Chapters nonce={dataNonce} />}
           {view === 'baand' && <Band nonce={dataNonce} />}
           {view === 'skrivebord' && (

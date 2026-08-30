@@ -1,6 +1,7 @@
 import { bilocation, lifeSpan, travelTime } from './place';
 import { knowledgeGap, missingCarrier } from './knowing';
 import { narrativeRules } from './narrative';
+import { continuityRules } from './continuity';
 import { loadSnapshot, type Finding, type Rule } from './kit';
 import type { Store } from '../../db/client';
 import type { Context } from '../workbench';
@@ -21,6 +22,7 @@ export const RULES: Rule[] = [
   knowledgeGap,
   missingCarrier,
   ...narrativeRules,
+  ...continuityRules,
 ];
 
 export interface RuleRun {

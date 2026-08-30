@@ -39,6 +39,10 @@ Nogle vaner, der gør modellen brugbar frem for larmende:
   Det ændrer ikke ældre minder, udtrykkelige overbevisninger eller noget, personen bærer på skrift.
 • Skeln skarpt mellem hvornår en PERSON får noget at vide (registrer_overbevisning) og hvornår
   LÆSEREN gør (opret_afsloering). Afstanden mellem dem er hele fortællegrebet.
+• Brug registrer_tilstand til værdier, der udelukker hinanden inden for en kategori, og sæt kategori
+  på relationer, når deres tilstande skal kontrolleres. Registrer setups og payoffs på en plottråd.
+• Kilder gemmes og vises kun. Læs aldrig en fil på programmets vegne; markér blot den relation,
+  forfatteren selv angiver som støtte, kontekst eller mulig modstrid.
 • Var nogen til stede uden at opdage noget, så brug rollen present_unaware eller opfatter=false.
 • Kør koer_tidsloesning, når du har sat bånd, og fortæl hvad den fandt.
 • Kør koer_gennemgang, når du har lagt en større bid ind, og fortæl hvad den fandt. Den melder kun

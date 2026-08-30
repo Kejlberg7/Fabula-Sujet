@@ -1,11 +1,12 @@
 import { z } from 'zod';
 import {
   createEntity, createIdentity, createLeg, createPlaceLink, createRelationship,
-  mergeEntities, recordMemoryPolicy, recordPossession, recordPresence,
+  mergeEntities, recordDisappearance, recordEntityState, recordMemoryPolicy,
+  recordPossession, recordPresence,
 } from '../../core/services/entities';
 import { rootRealmOf } from '../../core/services/world';
 import { asInstant, asSpan, defineTool, made, timeArg, write, type ToolDef } from '../kit';
-import { resolveEntity, resolveRealm } from '../resolve';
+import { resolveEntity, resolveEvent, resolveRealm } from '../resolve';
 
 export const entityTools: ToolDef[] = [
   defineTool({
@@ -39,15 +40,46 @@ export const entityTools: ToolDef[] = [
     inputSchema: {
       person: z.string(),
       navn: z.string(),
+      fra: timeArg.optional().describe('Hvornår navnet eller skikkelsen tages i brug'),
+      til: timeArg.optional().describe('Hvornår navnet eller skikkelsen ophører'),
       note: z.string().optional(),
     },
     run: (args, tools) => {
       const { value } = write(tools, `Identitet: ${args.navn}`, (session, ctx) =>
         createIdentity(session, ctx, {
           entityId: resolveEntity(tools.store, ctx, args.person, 'person').id,
-          name: args.navn, note: args.note,
+          name: args.navn,
+          validFrom: asInstant(args.fra, 'earliest'), validTo: asInstant(args.til, 'latest'),
+          note: args.note,
         }));
       return made('Identiteten', args.navn, value);
+    },
+  }),
+
+  defineTool({
+    name: 'registrer_tilstand',
+    title: 'Registrer tilstand',
+    description:
+      'En genstands eller anden entitets tilstand i et tidsrum. Kategorien samler værdier, der '
+      + 'udelukker hinanden: fx kategori "lås" med værdierne "låst" og "åben". Overlap bliver '
+      + 'fundet af genstandskontinuiteten.',
+    inputSchema: {
+      entitet: z.string(),
+      kategori: z.string(),
+      vaerdi: z.string(),
+      fra: timeArg.optional(),
+      til: timeArg.optional(),
+      note: z.string().optional(),
+    },
+    run: (args, tools) => {
+      const { value } = write(tools, `Tilstand: ${args.entitet} er ${args.vaerdi}`, (session, ctx) =>
+        recordEntityState(session, ctx, {
+          entityId: resolveEntity(tools.store, ctx, args.entitet).id,
+          category: args.kategori, value: args.vaerdi,
+          fromTime: asInstant(args.fra, 'earliest'), toTime: asInstant(args.til, 'latest'),
+          note: args.note,
+        }));
+      return `Noteret: ${args.entitet} er «${args.vaerdi}» i kategorien ${args.kategori}. (id: ${value})`;
     },
   }),
 
@@ -189,6 +221,8 @@ export const entityTools: ToolDef[] = [
       fra: z.string(),
       til: z.string(),
       slags: z.string().describe('Fx "mor til", "forråder", "forelsket i"'),
+      kategori: z.string().optional()
+        .describe('Fx "loyalitet". Værdier i samme kategori må ikke overlappe'),
       gensidig: z.boolean().optional(),
       fra_tid: timeArg.optional(),
       til_tid: timeArg.optional(),
@@ -198,11 +232,36 @@ export const entityTools: ToolDef[] = [
         createRelationship(session, ctx, {
           fromEntityId: resolveEntity(tools.store, ctx, args.fra).id,
           toEntityId: resolveEntity(tools.store, ctx, args.til).id,
-          kind: args.slags, symmetric: args.gensidig,
+          kind: args.slags, category: args.kategori, symmetric: args.gensidig,
           fromTime: asInstant(args.fra_tid, 'earliest'),
           toTime: asInstant(args.til_tid, 'latest'),
         }));
       return `Noteret: ${args.fra} — ${args.slags} — ${args.til}. (id: ${value})`;
+    },
+  }),
+
+  defineTool({
+    name: 'registrer_forsvinding',
+    title: 'Registrer forsvinding',
+    description:
+      'Markerer eventet hvor en person eller ting forsvinder og eventuelt eventet hvor den kommer '
+      + 'tilbage. En sikker optræden midt i hullet bliver meldt; en uskarp dato bliver ladt i fred.',
+    inputSchema: {
+      entitet: z.string(),
+      forsvinder_i: z.string(),
+      vender_tilbage_i: z.string().optional(),
+      note: z.string().optional(),
+    },
+    run: (args, tools) => {
+      const { value } = write(tools, `Forsvinding: ${args.entitet}`, (session, ctx) =>
+        recordDisappearance(session, ctx, {
+          entityId: resolveEntity(tools.store, ctx, args.entitet).id,
+          disappearsEventId: resolveEvent(tools.store, ctx, args.forsvinder_i).id,
+          returnsEventId: args.vender_tilbage_i
+            ? resolveEvent(tools.store, ctx, args.vender_tilbage_i).id : undefined,
+          note: args.note,
+        }));
+      return `${args.entitet}s forsvinding er registreret. (id: ${value})`;
     },
   }),
 

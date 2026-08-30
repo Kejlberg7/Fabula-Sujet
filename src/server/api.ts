@@ -1,9 +1,10 @@
 import { and, desc, eq, sql } from 'drizzle-orm';
 import type { Store } from '../db/client';
 import {
-  belief, branch, change, chapter, entity, entityLeg, event, eventFact, fact, memoryPolicy,
-  law, participation, presence, realm, scene, sceneEvent, sceneText, series, temporalLink,
-  textAnchor, work, world,
+  beat, belief, branch, change, chapter, disappearance, entity, entityLeg, entityState,
+  event, eventFact, fact, identity, law, memoryPolicy, participation, possession, presence,
+  realm, relationship, scene, sceneEvent, sceneText, series, source, sourceLink, temporalLink,
+  textAnchor, thread, work, world,
 } from '../db/schema';
 import {
   history, markCheckpoint, redoLast, rollbackTo, undoLast, type Actor,
@@ -17,12 +18,15 @@ import { whoWasWhere, worldline } from '../core/queries/presence';
 import { whatReaderKnows } from '../core/queries/reader';
 import { find } from '../core/queries/search';
 import { deleteRow, updateRow } from '../core/services/generic';
-import { createEntity } from '../core/services/entities';
+import {
+  createEntity, createRelationship, recordDisappearance, recordEntityState,
+} from '../core/services/entities';
 import { createEvent } from '../core/services/events';
 import {
-  createChapter, createReveal, createScene, createTextAnchor, linkSceneToEvent,
-  saveSceneText,
+  createBeat, createChapter, createReveal, createScene, createTextAnchor, createThread,
+  linkSceneToEvent, saveSceneText,
 } from '../core/services/narrative';
+import { createSource, linkSource } from '../core/services/laws';
 import { openFindings, review } from '../core/review';
 import { RULES } from '../core/rules';
 import { dismissFinding, revokeDismissal } from '../core/services/findings';
@@ -208,6 +212,94 @@ export function createApi(store: Store) {
           statement: l.statement, scopeKind: l.scopeKind, enabled: l.enabled,
           subject: l.subjectEntityId ? nameOf(l.subjectEntityId) : l.subjectExpression,
         }));
+    },
+
+    /**
+     * The deep continuity ledger in one read: state through time rather than
+     * isolated facts. Sources are metadata only; this route never opens a file.
+     */
+    'continuity.get': () => {
+      const c = ctx();
+      const allEntities = db.select().from(entity).where(eq(entity.branchId, c.branchId)).all();
+      const entityNames = new Map(allEntities.map((row) => [row.id, row.name]));
+      const eventNames = new Map(db.select().from(event).where(eq(event.branchId, c.branchId)).all()
+        .map((row) => [row.id, row.title]));
+      const scenes = db.select().from(scene).where(eq(scene.branchId, c.branchId)).all();
+      const sceneNames = new Map(scenes.map((row) => [row.id, row.title ?? '(uden titel)']));
+      const states = db.select().from(entityState).where(eq(entityState.branchId, c.branchId)).all();
+      const held = db.select().from(possession).where(eq(possession.branchId, c.branchId)).all();
+      const identities = db.select().from(identity).where(eq(identity.branchId, c.branchId)).all();
+      const relations = db.select().from(relationship).where(eq(relationship.branchId, c.branchId)).all();
+      const absences = db.select().from(disappearance)
+        .where(eq(disappearance.branchId, c.branchId)).all();
+      const lines = db.select().from(thread).where(eq(thread.branchId, c.branchId)).all()
+        .filter((row) => !c.workId || row.workId === c.workId);
+      const sources = db.select().from(source).where(eq(source.worldId, c.worldId)).all();
+      const sourceLinks = db.select().from(sourceLink).where(eq(sourceLink.branchId, c.branchId)).all();
+
+      const when = (from: number | null, to: number | null) => {
+        if (from == null && to == null) return 'hele tiden';
+        if (from != null && to != null) return `${formatInstant(from, 'day')} – ${formatInstant(to, 'day')}`;
+        return from != null ? `fra ${formatInstant(from, 'day')}` : `til ${formatInstant(to!, 'day')}`;
+      };
+      const targetName = (kind: string, id: string) => {
+        if (kind === 'entity') return entityNames.get(id) ?? id;
+        if (kind === 'event') return eventNames.get(id) ?? id;
+        if (kind === 'scene') return sceneNames.get(id) ?? id;
+        if (kind === 'work') return db.select().from(work).where(eq(work.id, id)).get()?.title ?? id;
+        if (kind === 'fact') return db.select().from(fact).where(eq(fact.id, id)).get()?.summary ?? id;
+        if (kind === 'law') return db.select().from(law).where(eq(law.id, id)).get()?.statement ?? id;
+        return id;
+      };
+
+      return {
+        stats: {
+          states: states.length, possessions: held.length, relationships: relations.length,
+          identities: identities.length, disappearances: absences.length,
+          threads: lines.length, sources: sources.length,
+        },
+        objects: allEntities.filter((row) => row.kind === 'object').map((row) => ({
+          id: row.id, name: row.name, summary: row.summary,
+          states: states.filter((item) => item.entityId === row.id).map((item) => ({
+            ...item, when: when(item.fromTime, item.toTime),
+          })),
+          possessions: held.filter((item) => item.objectEntityId === row.id).map((item) => ({
+            ...item, holderName: entityNames.get(item.holderEntityId) ?? '(ukendt)',
+            when: when(item.fromTime, item.toTime),
+          })),
+        })),
+        relationships: relations.map((row) => ({
+          ...row,
+          fromName: entityNames.get(row.fromEntityId) ?? '(ukendt)',
+          toName: entityNames.get(row.toEntityId) ?? '(ukendt)',
+          when: when(row.fromTime, row.toTime),
+        })),
+        identities: identities.map((row) => ({
+          ...row, entityName: entityNames.get(row.entityId) ?? '(ukendt)',
+          when: when(row.validFrom, row.validTo),
+        })),
+        disappearances: absences.map((row) => ({
+          ...row,
+          entityName: entityNames.get(row.entityId) ?? '(ukendt)',
+          disappearsEvent: eventNames.get(row.disappearsEventId) ?? '(ukendt)',
+          returnsEvent: row.returnsEventId ? eventNames.get(row.returnsEventId) ?? '(ukendt)' : null,
+        })),
+        threads: lines.map((line) => ({
+          ...line,
+          beats: db.select().from(beat).where(eq(beat.threadId, line.id)).all()
+            .filter((item) => item.branchId === c.branchId)
+            .sort((a, b) => (a.position ?? Infinity) - (b.position ?? Infinity))
+            .map((item) => ({
+              ...item, sceneName: item.sceneId ? sceneNames.get(item.sceneId) ?? '(ukendt)' : null,
+            })),
+        })),
+        sources: sources.map((item) => ({
+          ...item,
+          links: sourceLinks.filter((link) => link.sourceId === item.id).map((link) => ({
+            ...link, targetName: targetName(link.targetKind, link.targetId),
+          })),
+        })),
+      };
     },
 
     'list.chapters': (input: { workId?: string }) => {
@@ -457,6 +549,49 @@ export function createApi(store: Store) {
       title: string; realmId: string; summary?: string; earliest?: number; latest?: number;
     }) => bench.run({ actor, summary: `Event: ${input.title}` }, (session, c) =>
       ({ id: createEvent(session, c, input) })),
+
+    'continuity.state.create': (input: {
+      entityId: string; category: string; value: string;
+      fromTime?: number; toTime?: number; note?: string;
+    }) => bench.run({ actor, summary: `Tilstand: ${input.value}` }, (session, c) =>
+      ({ id: recordEntityState(session, c, input) })),
+
+    'continuity.relationship.create': (input: {
+      fromEntityId: string; toEntityId: string; kind: string; category?: string;
+      symmetric?: boolean; fromTime?: number; toTime?: number; note?: string;
+    }) => bench.run({ actor, summary: `Relation: ${input.kind}` }, (session, c) =>
+      ({ id: createRelationship(session, c, input) })),
+
+    'continuity.disappearance.create': (input: {
+      entityId: string; disappearsEventId: string; returnsEventId?: string; note?: string;
+    }) => bench.run({ actor, summary: 'Registrer forsvinding' }, (session, c) =>
+      ({ id: recordDisappearance(session, c, input) })),
+
+    'continuity.thread.create': (input: { name: string; summary?: string; workId?: string }) =>
+      bench.run({ actor, summary: `Plottråd: ${input.name}` }, (session, c) => {
+        const workId = input.workId ?? c.workId;
+        if (!workId) throw new Error('Der er ikke valgt en bog.');
+        return { id: createThread(session, c, { ...input, workId }) };
+      }),
+
+    'continuity.beat.create': (input: {
+      threadId: string; kind: 'setup' | 'complication' | 'payoff';
+      sceneId?: string; summary?: string; position?: number;
+    }) => bench.run({ actor, summary: `Plotslag: ${input.kind}` }, (session, c) =>
+      ({ id: createBeat(session, c, input) })),
+
+    'source.create': (input: {
+      title: string; kind: 'note' | 'link' | 'pdf' | 'article' | 'image' | 'file';
+      url?: string; filePath?: string; mimeType?: string; byteSize?: number; note?: string;
+    }) => bench.run({ actor, summary: `Kilde: ${input.title}` }, (session, c) =>
+      ({ id: createSource(session, c, input) })),
+
+    'source.link': (input: {
+      sourceId: string; targetKind: 'fact' | 'law' | 'event' | 'entity' | 'scene' | 'work';
+      targetId: string; relation?: 'supports' | 'context' | 'conflicts';
+      quote?: string; note?: string;
+    }) => bench.run({ actor, summary: 'Knyt kilde' }, (session, c) =>
+      ({ id: linkSource(session, c, input) })),
 
     /**
      * The writing desk: one scene, its prose, and the two answers that stop a

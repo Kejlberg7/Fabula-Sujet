@@ -1,7 +1,9 @@
 import { eq } from 'drizzle-orm';
 import type { SQLiteTable } from 'drizzle-orm/sqlite-core';
 import type { Store } from '../db/client';
-import { chapter, entity, event, fact, realm, scene, work, world } from '../db/schema';
+import {
+  chapter, entity, event, fact, identity, realm, scene, source, thread, work, world,
+} from '../db/schema';
 import type { Context } from '../core/workbench';
 
 /**
@@ -88,4 +90,21 @@ export function resolveChapter(store: Store, ctx: Context, needle: string) {
 export function resolveScene(store: Store, ctx: Context, needle: string) {
   const rows = rowsIn(store, scene, scene.branchId as never, ctx.branchId);
   return pick(rows, needle, (r) => r.title ?? r.id, 'scene');
+}
+
+export function resolveIdentity(store: Store, ctx: Context, needle: string, entityId?: string) {
+  const rows = rowsIn(store, identity, identity.branchId as never, ctx.branchId)
+    .filter((row) => !entityId || row.entityId === entityId);
+  return pick(rows, needle, (row) => row.name, 'identitet');
+}
+
+export function resolveSource(store: Store, ctx: Context, needle: string) {
+  const rows = store.db.select().from(source).where(eq(source.worldId, ctx.worldId)).all();
+  return pick(rows, needle, (row) => row.title, 'kilde');
+}
+
+export function resolveThread(store: Store, ctx: Context, needle: string) {
+  const rows = rowsIn(store, thread, thread.branchId as never, ctx.branchId)
+    .filter((row) => !ctx.workId || row.workId === ctx.workId);
+  return pick(rows, needle, (row) => row.name, 'plottråd');
 }

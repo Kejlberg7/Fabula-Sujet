@@ -1,6 +1,6 @@
 import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import { PRECISION, branchId, createdAt, instant, originId, pk, span } from './_shared';
-import { entity, entityLeg } from './entities';
+import { entity, entityLeg, identity } from './entities';
 import { realm, world } from './world';
 
 /**
@@ -49,6 +49,8 @@ export const participation = sqliteTable('participation', {
   eventId: text('event_id').notNull().references(() => event.id),
   entityId: text('entity_id').notNull().references(() => entity.id),
   legId: text('leg_id').references(() => entityLeg.id),
+  /** Which name or appearance the person uses in this event, when it matters. */
+  identityId: text('identity_id').references(() => identity.id),
   role: text('role', {
     enum: ['actor', 'witness', 'victim', 'present_unaware', 'mentioned'],
   }).notNull(),

@@ -43,13 +43,14 @@ export function addParticipation(
     entityId: string;
     role: 'actor' | 'witness' | 'victim' | 'present_unaware' | 'mentioned';
     legId?: string;
+    identityId?: string;
     absorbsKnowledge?: boolean;
     note?: string;
   },
 ): string {
   return session.insert(participation, {
     branchId: ctx.branchId, eventId: input.eventId, entityId: input.entityId,
-    legId: input.legId ?? null, role: input.role,
+    legId: input.legId ?? null, identityId: input.identityId ?? null, role: input.role,
     absorbsKnowledge: input.absorbsKnowledge ?? null, note: input.note ?? null,
   })['id'] as string;
 }

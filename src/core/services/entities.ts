@@ -1,8 +1,8 @@
 import { and, eq } from 'drizzle-orm';
 import type { Store } from '../../db/client';
 import {
-  belief, binding, carrier, entity, entityLeg, identity, memoryPolicy, participation,
-  placeLink, possession, presence, relationship, statement,
+  belief, binding, carrier, disappearance, entity, entityLeg, entityState, identity,
+  memoryPolicy, participation, placeLink, possession, presence, relationship, statement,
 } from '../../db/schema';
 import type { Session } from '../changelog';
 import type { Context } from '../workbench';
@@ -36,11 +36,16 @@ export function createEntity(
 
 export function createIdentity(
   session: Session, ctx: Context,
-  input: { entityId: string; name: string; sameAsFactId?: string; note?: string },
+  input: {
+    entityId: string; name: string; sameAsFactId?: string;
+    validFrom?: number; validTo?: number; note?: string;
+  },
 ): string {
   return session.insert(identity, {
     entityId: input.entityId, branchId: ctx.branchId, name: input.name,
-    sameAsFactId: input.sameAsFactId ?? null, note: input.note ?? null,
+    sameAsFactId: input.sameAsFactId ?? null,
+    validFrom: input.validFrom ?? null, validTo: input.validTo ?? null,
+    note: input.note ?? null,
   })['id'] as string;
 }
 
@@ -115,17 +120,53 @@ export function recordPossession(
   })['id'] as string;
 }
 
+export function recordEntityState(
+  session: Session, ctx: Context,
+  input: {
+    entityId: string; category: string; value: string;
+    fromTime?: number; toTime?: number; note?: string;
+  },
+): string {
+  if (!input.category.trim() || !input.value.trim()) {
+    throw new Error('En tilstand skal have både kategori og værdi.');
+  }
+  return session.insert(entityState, {
+    branchId: ctx.branchId, entityId: input.entityId,
+    category: input.category.trim(), value: input.value.trim(),
+    fromTime: input.fromTime ?? null, toTime: input.toTime ?? null,
+    note: input.note ?? null,
+  })['id'] as string;
+}
+
 export function createRelationship(
   session: Session, ctx: Context,
   input: {
     fromEntityId: string; toEntityId: string; kind: string;
-    symmetric?: boolean; fromTime?: number; toTime?: number; note?: string;
+    category?: string; symmetric?: boolean; fromTime?: number; toTime?: number; note?: string;
   },
 ): string {
   return session.insert(relationship, {
     branchId: ctx.branchId, fromEntityId: input.fromEntityId, toEntityId: input.toEntityId,
-    kind: input.kind, symmetric: input.symmetric ?? false,
+    kind: input.kind, category: input.category?.trim() || null,
+    symmetric: input.symmetric ?? false,
     fromTime: input.fromTime ?? null, toTime: input.toTime ?? null, note: input.note ?? null,
+  })['id'] as string;
+}
+
+export function recordDisappearance(
+  session: Session, ctx: Context,
+  input: {
+    entityId: string; disappearsEventId: string; returnsEventId?: string; note?: string;
+  },
+): string {
+  if (input.disappearsEventId === input.returnsEventId) {
+    throw new Error('Forsvinden og tilbagekomst kan ikke være det samme event.');
+  }
+  return session.insert(disappearance, {
+    branchId: ctx.branchId, entityId: input.entityId,
+    disappearsEventId: input.disappearsEventId,
+    returnsEventId: input.returnsEventId ?? null,
+    note: input.note ?? null,
   })['id'] as string;
 }
 
@@ -200,10 +241,14 @@ export function mergeEntities(
     possession as never, { holderEntityId: input.keepId });
   repoint(db.select().from(possession).where(eq(possession.objectEntityId, input.mergeId)).all(),
     possession as never, { objectEntityId: input.keepId });
+  repoint(db.select().from(entityState).where(eq(entityState.entityId, input.mergeId)).all(),
+    entityState as never, { entityId: input.keepId });
   repoint(db.select().from(relationship).where(eq(relationship.fromEntityId, input.mergeId)).all(),
     relationship as never, { fromEntityId: input.keepId });
   repoint(db.select().from(relationship).where(eq(relationship.toEntityId, input.mergeId)).all(),
     relationship as never, { toEntityId: input.keepId });
+  repoint(db.select().from(disappearance).where(eq(disappearance.entityId, input.mergeId)).all(),
+    disappearance as never, { entityId: input.keepId });
   repoint(db.select().from(belief).where(eq(belief.entityId, input.mergeId)).all(),
     belief as never, { entityId: input.keepId });
   repoint(db.select().from(memoryPolicy).where(eq(memoryPolicy.entityId, input.mergeId)).all(),
