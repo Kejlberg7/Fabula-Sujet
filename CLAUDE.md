@@ -3,6 +3,20 @@
 Story bible and manuscript workbench. See `README.md` for what it is and
 `docs/ORDBOG.md` for the Danish ↔ English mapping.
 
+## Start here
+
+Before changing anything, read these files in order:
+
+1. `docs/STATUS.md` -- the current hand-off, including the exact next action.
+2. `docs/ROADMAP.md` -- the agreed continuation after phase 8.
+3. `README.md` -- what the finished phases do.
+4. `docs/ORDBOG.md` -- the only Danish ↔ English vocabulary.
+
+Update `docs/STATUS.md` while a phase is in progress, not only when it is done.
+It must be possible for another AI to continue safely from the working tree and
+that file alone. At a minimum record the active phase, completed slices, open
+decisions, verification already run, and the next concrete action.
+
 ## Rules that are not negotiable
 
 - **Identifiers are English, the surface is Danish.** UI labels, MCP tool names
