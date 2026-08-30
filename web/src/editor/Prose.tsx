@@ -86,6 +86,12 @@ export function Prose({
   const [mentionIndex, setMentionIndex] = useState(0);
   const timer = useRef<number>(0);
   const pending = useRef<Editor | null>(null);
+  const openAnchor = useRef(onOpenAnchor);
+  const mentionState = useRef<typeof mention>(null);
+  const mentionChoices = useRef<AnchorTarget[]>([]);
+  const activeMention = useRef(0);
+  const chooseMention = useRef<(target: AnchorTarget) => void>(() => {});
+  openAnchor.current = onOpenAnchor;
 
   const readMention = useCallback((e: Editor) => {
     const selection = e.state.selection;
@@ -132,8 +138,43 @@ export function Prose({
           ? event.target.closest<HTMLElement>('[data-anchor]') : null;
         const markId = element?.dataset['anchor'];
         if (!markId) return false;
-        onOpenAnchor(markId);
+        openAnchor.current(markId);
         return true;
+      },
+      // ProseMirror handles Enter itself and stops the DOM event before a
+      // React handler on the surrounding pane sees it. Keep the mention
+      // keyboard contract inside ProseMirror's own key pipeline instead.
+      handleKeyDown: (_view, event) => {
+        if (!mentionState.current || mentionChoices.current.length === 0) return false;
+        if (event.key === 'ArrowDown') {
+          event.preventDefault();
+          const next = (activeMention.current + 1) % mentionChoices.current.length;
+          activeMention.current = next;
+          setMentionIndex(next);
+          return true;
+        }
+        if (event.key === 'ArrowUp') {
+          event.preventDefault();
+          const next = (activeMention.current - 1 + mentionChoices.current.length)
+            % mentionChoices.current.length;
+          activeMention.current = next;
+          setMentionIndex(next);
+          return true;
+        }
+        if (event.key === 'Enter' || event.key === 'Tab') {
+          event.preventDefault();
+          chooseMention.current(
+            mentionChoices.current[activeMention.current] ?? mentionChoices.current[0]!,
+          );
+          return true;
+        }
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          mentionState.current = null;
+          setMention(null);
+          return true;
+        }
+        return false;
       },
     },
     onUpdate: ({ editor: e }) => {
@@ -156,12 +197,32 @@ export function Prose({
 
   useEffect(() => {
     if (!editor || !focusMarkId) return;
-    const node = editor.view.dom.querySelector<HTMLElement>(`[data-anchor="${CSS.escape(focusMarkId)}"]`);
-    if (!node) return;
-    node.scrollIntoView({ block: 'center', behavior: 'smooth' });
-    node.classList.add('anchor-focus');
-    const timerId = window.setTimeout(() => node.classList.remove('anchor-focus'), 2400);
-    return () => window.clearTimeout(timerId);
+    let attempts = 0;
+    let finder = 0;
+    let remover = 0;
+    let focused: HTMLElement | null = null;
+    const find = () => {
+      focused = editor.view.dom.querySelector<HTMLElement>(
+        `[data-anchor="${CSS.escape(focusMarkId)}"]`,
+      );
+      // TipTap gives us the Editor before EditorContent has necessarily put
+      // its document into the DOM. A backlink must still land precisely, so
+      // wait briefly for that normal mount sequence instead of giving up.
+      if (!focused && attempts++ < 10) {
+        finder = window.setTimeout(find, 40);
+        return;
+      }
+      if (!focused) return;
+      focused.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      focused.classList.add('anchor-focus');
+      remover = window.setTimeout(() => focused?.classList.remove('anchor-focus'), 2400);
+    };
+    finder = window.setTimeout(find, 0);
+    return () => {
+      window.clearTimeout(finder);
+      window.clearTimeout(remover);
+      focused?.classList.remove('anchor-focus');
+    };
   }, [editor, focusMarkId]);
 
   /**
@@ -245,11 +306,19 @@ export function Prose({
     void flush(editor);
   };
 
-  const mentionTargets = mention ? targets.filter((target) => {
+  const mentionTargets = mention ? targets.map((target) => {
     const query = mention.query.toLocaleLowerCase('da');
-    return target.code.toLocaleLowerCase('da').includes(query)
-      || target.label.toLocaleLowerCase('da').includes(query);
-  }).slice(0, 10) : [];
+    const code = target.code.toLocaleLowerCase('da');
+    const label = target.label.toLocaleLowerCase('da');
+    const rank = code.startsWith(query) ? 0
+      : code.includes(query) ? 1
+        : label.startsWith(query) ? 2
+          : label.includes(query) ? 3 : 4;
+    return { target, rank };
+  }).filter(({ rank }) => rank < 4)
+    .sort((a, b) => a.rank - b.rank
+      || a.target.code.localeCompare(b.target.code, 'da', { numeric: true }))
+    .slice(0, 10).map(({ target }) => target) : [];
 
   const insertMention = async (target: AnchorTarget) => {
     if (!editor || !mention) return;
@@ -265,23 +334,10 @@ export function Prose({
     await onAnchor(target, markId, target.label);
     void flush(editor);
   };
-
-  const proseKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (!mention || mentionTargets.length === 0) return;
-    if (event.key === 'ArrowDown') {
-      event.preventDefault();
-      setMentionIndex((value) => (value + 1) % mentionTargets.length);
-    } else if (event.key === 'ArrowUp') {
-      event.preventDefault();
-      setMentionIndex((value) => (value - 1 + mentionTargets.length) % mentionTargets.length);
-    } else if (event.key === 'Enter' || event.key === 'Tab') {
-      event.preventDefault();
-      void insertMention(mentionTargets[mentionIndex] ?? mentionTargets[0]!);
-    } else if (event.key === 'Escape') {
-      event.preventDefault();
-      setMention(null);
-    }
-  };
+  mentionState.current = mention;
+  mentionChoices.current = mentionTargets;
+  activeMention.current = mentionIndex;
+  chooseMention.current = (target) => void insertMention(target);
 
   const button = (label: string, active: boolean, run: () => void, title?: string) => (
     <button type="button" className={active ? 'tool on' : 'tool'} title={title}
@@ -291,7 +347,7 @@ export function Prose({
   const groups = [...new Set(targets.map((t) => t.group))];
 
   return (
-    <div className="prose-pane" onKeyDown={proseKeyDown}>
+    <div className="prose-pane">
       <div className="prose-tools">
         {editor && (
           <>

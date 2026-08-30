@@ -6,18 +6,20 @@ og hvornår de **fortælles**.
 
 ## Status
 
-**Fase 0 til 8 er færdige.** Datamodellen, tidsløseren, ændringsloggen og
+**Fase 0 til 9 er færdige.** Datamodellen, tidsløseren, ændringsloggen og
 MCP-serveren står; oven på dem et interface med værkvælger, tidslinje, lister og
 historik, et skrivebord hvor prosaen bliver til med bibelen åben ved siden af —
 og en motor, der siger fra, når noget ikke kan lade sig gøre. Fortællelaget
 kontrollerer desuden POV, lag, selvmøder og afsløringsrækkefølge, mens en AI kan
 lægge manuskriptforslag i margenen uden at røre prosaen. Kontinuitetslaget følger
 desuden genstande, relationer, identiteter, forsvindinger, setups og researchkilder,
-og kildehylden viser, hvad hver kilde faktisk holder oppe.
+og kildehylden viser, hvad hver kilde faktisk holder oppe. Prosa og bibel er nu
+bundet sammen med stabile arbejdsreferencer, der kan skrives som `@G1` og vises
+som det naturlige navn på siden.
 
 ```bash
 npm install
-npm test                              # 184 prøver
+npm test                              # 194 prøver
 npm run fixtures -- ./fabula.db       # læg de fire prøvecases ind
 npm run build && npm run dev          # interfacet på http://localhost:4173
 npm run ask -- ./fabula.db hent_kontekst
@@ -66,9 +68,18 @@ Svaret er læst på personens egen tid, ikke verdens. To scener af den samme aft
 i Predestination, fortalt fra hver sit ben af det samme liv, får derfor to
 forskellige svar: som John ved han ingenting, som bartenderen ved han det hele.
 
-Markér en passage og knyt den til et event, et faktum eller en person. Ankret
-hænger på et mærke-id i dokumentet, aldrig på en tegnposition — positioner
-overlever ikke den næste rettelse.
+Skriv `@` efterfulgt af en arbejdsreference eller et navn — for eksempel
+`@G1` — og vælg målet. På siden står det naturlige navn, mens den stabile kode
+ligger i et tekstanker. Personer, identiteter, steder, genstande,
+organisationer, begreber, events, fakta, afsløringer, scener og plottråde kan
+adresseres på den måde. Klik på omtalen for at åbne kortet; kortets backlinks
+fører tilbage til den præcise passage. Man kan også markere en eksisterende
+passage og vælge et mål. Ankret hænger på et mærke-id i dokumentet, aldrig på en
+tegnposition — positioner overlever ikke den næste rettelse.
+
+Koden er et arbejdsredskab, ikke en del af bogens ordlyd. En omdøbning ændrer
+derfor ikke forfatterens ord, og en slettet reference står som brudt frem for at
+forsvinde. Koderne er stabile gennem omdøbning, fortryd og historiegrene.
 
 **Prosaen er din.** Skrivebordet gemmer det, du selv skriver, og hver gemning
 lader det forrige udkast blive liggende. Ingenting andet i programmet retter i
@@ -216,7 +227,7 @@ oversættelsen — tilføj dér, før du bruger et nyt ord.
 ## Layout
 
 ```
-src/db/schema/     47 tabeller. Læs index.ts først; den siger i hvilken rækkefølge.
+src/db/schema/     48 tabeller. Læs index.ts først; den siger i hvilken rækkefølge.
 src/core/
   changelog.ts     det eneste, der skriver
   workbench.ts     hvilken verden, bog og gren vi arbejder på
@@ -224,7 +235,7 @@ src/core/
   services/        skrivning, som UI og MCP begge kalder
   queries/         hvem vidste hvad, hvem var hvor, hvad ved læseren
   solve.ts         løseren kørt på databasen
-src/mcp/           73 værktøjer, danske navne
+src/mcp/           75 værktøjer, danske navne
 src/server/        API'et interfacet taler med, og HTTP-serveren
 src/fixtures/      de fire prøvecases
 web/               interfacet: React, egen CSS, ingen komponentbibliotek
@@ -324,6 +335,11 @@ gemning kan ikke rejse ind under en notes navn. Er passagen skrevet om, siden
 noten blev lagt, siger den det frem for at gætte, hvor sætningen sad.
 
 ## Næste skridt
+
+**Fase 10:** gennemgå prosaen mod bibelen. Omtaler, der endnu ikke er knyttet,
+skal kunne foreslås som eksisterende eller nye poster, og de knyttede omtaler
+skal sammenholdes med tid, sted, viden, identitet, besiddelse og love. Resultatet
+lander i margenen og ændrer aldrig prosaen af sig selv.
 
 **Kendt grænse:** en plottråd hører til én bog (`thread.work_id`), så et setup i
 bind et og en indfrielse i bind to kan ikke skrives som én tråd. Hver bog må have

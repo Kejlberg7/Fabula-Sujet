@@ -12,12 +12,12 @@ import { addParticipation, createEvent, linkEventFact } from '../core/services/e
 import { attachFactToCarrier, createFact, recordBelief, recordStatement } from '../core/services/knowledge';
 import {
   createBeat, createChapter, createReveal, createScene, createThread, linkSceneToEvent,
-  saveSceneText,
+  createTextAnchor, saveSceneText,
 } from '../core/services/narrative';
 import { createSource, linkSource } from '../core/services/laws';
 import { createWorld, createWork } from '../core/services/world';
 import { Workbench } from '../core/workbench';
-import { markdownOf, paragraphs } from './prose';
+import { markdownOf, paragraphs, type Passage } from './prose';
 
 const DAY = SECONDS.DAY;
 const HOUR = SECONDS.HOUR;
@@ -550,7 +550,13 @@ export function loadMemento(store: Store): { worldId: string; workId: string } {
       pov?: string;
       mode?: 'dramatised' | 'mentioned' | 'implied';
       reveals?: { factId: string; slotId?: string; strength: 'hinted' | 'implied' | 'stated' | 'confirmed' }[];
-      prose?: string[];
+      prose?: Passage[];
+      anchors?: {
+        markId: string;
+        targetKind: 'event' | 'fact' | 'entity' | 'identity' | 'reveal' | 'scene' | 'thread';
+        targetId: string;
+        excerpt: string;
+      }[];
     }
 
     /**
@@ -604,8 +610,24 @@ export function loadMemento(store: Store): { worldId: string; workId: string } {
         title: 'Farve 9 — Polaroiden',
         summary: 'Han skriver noget ned, han om et kvarter kun har på papir.',
         scenes: [
-          { title: 'Han skriver på bagsiden', event: colour[7]!,
-            reveals: [{ factId: teddyFact.factId, strength: 'stated' }] },
+          {
+            title: 'Han skriver på bagsiden', event: colour[7]!,
+            reveals: [{ factId: teddyFact.factId, strength: 'stated' }],
+            prose: [
+              'Teddy står med ryggen til, mens billedet langsomt bliver tydeligt. Leonard vender det om og holder pennen over den blanke flade.',
+              {
+                text: 'Mistanken er stadig varm og præcis. Han skriver den ned, før den bliver til den samme tåge som alt andet: Stol ikke på hans løgne.',
+                mark: {
+                  id: 'memento-polaroid-teddy', kind: 'entity', label: 'Polaroid af Teddy',
+                },
+              },
+            ],
+            anchors: [{
+              markId: 'memento-polaroid-teddy', targetKind: 'entity',
+              targetId: polaroidTeddy,
+              excerpt: 'Stol ikke på hans løgne.',
+            }],
+          },
         ],
       },
       {
@@ -700,6 +722,12 @@ export function loadMemento(store: Store): { worldId: string; workId: string } {
         saveSceneText(s, ctx, store, {
           sceneId, doc: paragraphs(...prose), markdown: markdownOf(...prose),
         });
+        for (const tie of spec.anchors ?? []) {
+          createTextAnchor(s, ctx, {
+            sceneId, markId: tie.markId, targetKind: tie.targetKind,
+            targetId: tie.targetId, excerpt: tie.excerpt,
+          });
+        }
       });
     });
 

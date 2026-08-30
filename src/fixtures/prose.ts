@@ -8,7 +8,11 @@
 export interface Anchored {
   text: string;
   /** The mark a text anchor -- and a margin note -- can address this passage by. */
-  mark: { id: string; kind: 'event' | 'fact' | 'entity'; label: string };
+  mark: {
+    id: string;
+    kind: 'event' | 'fact' | 'entity' | 'identity' | 'reveal' | 'scene' | 'thread';
+    label: string;
+  };
 }
 
 export type Passage = string | Anchored;

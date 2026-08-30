@@ -46,6 +46,7 @@ navn i en tabel eller et felt er også en fejl.
 | Scene ↔ event | `scene_event` | Hvilke events en scene fortæller, og hvordan |
 | Afsløring | `reveal` | Hvornår **læseren** får noget at vide |
 | Tekstanker | `text_anchor` | Et stykke prosa bundet til det, det udtrykker |
+| Arbejdsreference | `story_reference` | Stabil, kort adresse som P1, G1 eller E4 til et mål i biblen |
 | Tråd | `thread` | Plotlinje |
 | Slag | `beat` | Setup, komplikation eller payoff i en tråd |
 | Bruger | `app_user` | |
@@ -90,7 +91,7 @@ der ikke noget galt — så har forfatteren bare ikke besluttet sig endnu.
 
 ## MCP-fladen
 
-72 værktøjer. Navnene og argumenterne er danske, fordi du skal tale til dem.
+75 værktøjer. Navnene og argumenterne er danske, fordi du skal tale til dem.
 Alt indenfor er engelsk.
 
 | Gruppe | Værktøj |
@@ -103,7 +104,7 @@ Alt indenfor er engelsk.
 | Love og kilder | `opret_lov` · `opret_kilde` · `knyt_kilde` · `vis_kilder` |
 | Fortælling | `opret_plottraad` · `tilfoej_slag` · `opret_kapitel` · `opret_scene` · `knyt_scene_til_event` · `opret_afsloering` · `gem_scenetekst` · `vis_kapitler` · `saet_tekstanker` · `vis_skrivebord` · `vis_baand` |
 | Ret og fjern | `opdater` · `slet` · `fortryd` · `gentag` · `saet_nedslag` · `rul_tilbage_til` · `historik` · `vis_aendringer` |
-| Spørg | `hvem_vidste_hvad` · `hvem_var_hvor` · `hvad_ved_laeseren` · `vis_verdenslinje` · `find` · `koer_tidsloesning` |
+| Spørg | `vis_referencer` · `vis_omtaler` · `hvem_vidste_hvad` · `hvem_var_hvor` · `hvad_ved_laeseren` · `vis_verdenslinje` · `find` · `koer_tidsloesning` |
 | Gennemgang | `koer_gennemgang` · `vis_fund` · `afvis_fund` · `genaabn_fund` · `vis_regler` · `vis_scene_til_gennemgang` · `tilfoej_margennote` · `vis_margennoter` · `afgoer_margennote` |
 | Grene | `vis_grene` · `opret_gren` · `sammenlign_grene` · `vaelg_hovedgren` · `arkiver_gren` · `genaabn_gren` · `flyt_scene` · `flyt_afsloering` |
 | Grebet | `vurder_afsloeringer` · `sammenlign_afsloeringer` |

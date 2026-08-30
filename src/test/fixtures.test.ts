@@ -3,7 +3,8 @@ import { describe, it } from 'node:test';
 import { eq } from 'drizzle-orm';
 import { openStore, type Store } from '../db/client';
 import {
-  beat, chapter, entity, entityLeg, event, sceneEvent, scene, sceneText, thread,
+  beat, chapter, entity, entityLeg, event, identity, sceneEvent, scene, sceneText,
+  textAnchor, thread,
 } from '../db/schema';
 import { whoKnewWhat } from '../core/queries/knowledge';
 import { whoWasWhere, worldline } from '../core/queries/presence';
@@ -78,6 +79,15 @@ describe('Memento — fortællerorden mod kronologi', () => {
     assert.equal(truth.truth, 'undecided');
     assert.equal(solveTime(store, ctx).findings.length, 0, 'et uafgjort faktum er ikke et problem');
   });
+
+  it('viser polaroiden som en arbejdsreference direkte i prosaen', () => {
+    const polaroid = store.db.select().from(entity)
+      .where(eq(entity.name, 'Polaroid af Teddy')).get()!;
+    const anchor = store.db.select().from(textAnchor)
+      .where(eq(textAnchor.targetId, polaroid.id)).get();
+    assert.equal(anchor?.targetKind, 'entity');
+    assert.match(anchor?.excerpt ?? '', /Stol ikke/);
+  });
 });
 
 describe('Predestination — personlig tid', () => {
@@ -129,6 +139,14 @@ describe('Predestination — personlig tid', () => {
     assert.equal(report.findings.length, 0,
       'sløjfen er tidsrejse, ikke en umulig kronologi');
   });
+
+  it('kan adressere bartender-identiteten fra prosaen', () => {
+    const barkeep = store.db.select().from(identity)
+      .where(eq(identity.name, 'Bartenderen')).get()!;
+    const anchor = store.db.select().from(textAnchor)
+      .where(eq(textAnchor.targetId, barkeep.id)).get();
+    assert.equal(anchor?.targetKind, 'identity');
+  });
 });
 
 describe('Inception — lag inden i lag', () => {
@@ -174,6 +192,14 @@ describe('Inception — lag inden i lag', () => {
       .all(worldId) as { statement: string; hardness: string }[];
     assert.ok(laws.some((l) => l.hardness === 'soft' && /husker drømmen/.test(l.statement)),
       'det er en lov, du sætter — ikke noget værktøjet gætter');
+  });
+
+  it('knytter limbo-passagen til stedet i biblen', () => {
+    const place = store.db.select().from(entity).where(eq(entity.name, 'Kysten')).get()!;
+    const anchor = store.db.select().from(textAnchor)
+      .where(eq(textAnchor.targetId, place.id)).get();
+    assert.equal(anchor?.targetKind, 'entity');
+    assert.match(anchor?.excerpt ?? '', /Byen ved kysten/);
   });
 });
 

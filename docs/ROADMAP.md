@@ -19,6 +19,8 @@ personlige appvision; fase 17 holder de bevidst udskudte døre åbne.
 
 ## Fase 9 — Entydige referencer i prosaen
 
+**Status: færdig.** Implementeret og browserprøvet 30. august 2026.
+
 Prosaen og bibelen bindes rigtigt sammen.
 
 - Stabile arbejds-id'er som `P1`, `S1`, `G1`, `E1` og `F1`.

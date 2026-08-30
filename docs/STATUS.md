@@ -4,10 +4,12 @@ Sidst opdateret: 30. august 2026
 
 ## Aktiv fase
 
-**Fase 9 — Entydige referencer i prosaen.** I gang.
+**Fase 10 — Prosaen kontrolleres mod bibelen.** Næste aktive fase; endnu ikke
+implementeret. Fase 9 er færdig og verificeret.
 
-Fase 0–8 er færdige og pushet. Udgangspunktet er commit `12febf6`. Den aftalte
-fortsættelsesplan ligger i `docs/ROADMAP.md`.
+Fase 0–9 er færdige. Fase 9 begyndte med plan/status i `424e4bc` og fik sit
+første gennemtestede referencecheckpoint i `8ce4e26`. Den aftalte videre plan
+ligger i `docs/ROADMAP.md`.
 
 ## Færdigt i denne fase
 
@@ -24,11 +26,21 @@ fortsættelsesplan ligger i `docs/ROADMAP.md`.
 - Skrivebordet henter nu alle referencetyper. `@` åbner en filtreret menu, og
   eksisterende markering-med-vælger viser kode og navn.
 - Person-, sted-, ting- og eventkort viser arbejdsreference og backlinks.
+- Browserforløbet er prøvet på en isoleret Havnen-database: `@G1` bliver til
+  «Ingeborgs brev», omtalen åbner genstandskortet, og backlinket vender tilbage
+  til den præcise fremhævede passage.
+- Memento, Predestination og Inception har nu synlige prøveankre til henholdsvis
+  en genstand, en identitet og et sted. Havnen har både sit ældre eventanker og
+  en interaktivt oprettet reference i browserprøven.
+- Browserprøven fandt og rettede to fejl: ProseMirror slugte Enter før Reacts
+  forslagshåndtering, og nyligt oprettede ankre beholdt en forældet
+  navigationscallback. Backlinkets fremhævelse venter nu også på, at editorens
+  dokument faktisk er monteret.
 
 ## I gang nu
 
-- Verificér hele skriveforløbet i en rigtig browser: skriv `@G1`, vælg målet,
-  gem, åbn kortet, og gå tilbage gennem backlinket til den samme passage.
+- Ingen halv implementering står åben. Næste konkrete arbejde er første snit af
+  fase 10 nedenfor.
 
 ## Beslutninger
 
@@ -39,22 +51,26 @@ fortsættelsesplan ligger i `docs/ROADMAP.md`.
 
 ## Verificering
 
-- 190/190 prøver grønne.
+- 194/194 prøver er grønne.
 - Typecheck og produktionsbuild er rene. Vite gentager den kendte advarsel om
   en JavaScript-chunk over 500 kB; det er ikke en buildfejl.
 - Migration 0007 er prøvet mod en kopi af den eksisterende database. Prøven
   fandt og rettede migrationsjournalens fremskudte tidsstempler.
-- Browserprøven mangler endnu.
+- Browserprøven er grøn. Forslagmenuens placering er også kontrolleret visuelt
+  i den smalle trekolonnevisning.
 
 ## Næste konkrete handling
 
-Start appen på en isoleret fixture-database og udfør browserforløbet ovenfor.
-Ret den konkrete UX, udvid prøvecasene med synlige ankre, og afslut derefter
-dokumentation, commit og push.
+Begynd fase 10 med en versionsbundet gennemgangskørsel: en gennemgang skal kende
+den konkrete `scene_text`-version, omfatte scene/kapitel/bog/serie og kunne
+markere sine margennoter som forældede efter næste prosagemning. Derefter kan
+koblingsforslag og kontinuitetstjek bygges ovenpå uden at give MCP en vej til at
+skrive prosa.
 
 ## Åbne risici
 
-- Eksisterende ankre har ingen kode i selve ProseMirror-mærket. Rækken i
-  `text_anchor` leverer koden ved læsning, men browserprøven skal bekræfte, at
-  klik og visning stadig virker.
-- `@`-menuens placering er endnu ikke prøvet tæt ved vinduets kanter.
+- Ældre ProseMirror-mærker har stadig ingen kode i selve dokumentet. Det er
+  bagudkompatibelt: `text_anchor` leverer E8 i sidepanelet, og det ældre anker
+  kan fortsat åbnes derfra. Nye ankre gemmer både kode og mål i mærket.
+- Identiteter åbner ejerens personkort, mens afsløringer åbner
+  alternativvisningen. Egne detailkort til de to typer hører til fase 16.

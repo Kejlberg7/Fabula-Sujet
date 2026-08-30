@@ -8,11 +8,11 @@ import { addParticipation, addTemporalLink, createEvent, linkEventFact } from '.
 import { createFact, recordBelief, recordStatement } from '../core/services/knowledge';
 import {
   createBeat, createChapter, createReveal, createScene, createThread, linkSceneToEvent,
-  saveSceneText,
+  createTextAnchor, saveSceneText,
 } from '../core/services/narrative';
 import { createWorld, createWork } from '../core/services/world';
 import { Workbench } from '../core/workbench';
-import { markdownOf, paragraphs } from './prose';
+import { markdownOf, paragraphs, type Passage } from './prose';
 
 const YEAR = Math.round(365.2425 * SECONDS.DAY);
 const DAY = SECONDS.DAY;
@@ -360,7 +360,13 @@ export function loadPredestination(store: Store): { worldId: string; workId: str
       pov?: string;
       mode?: 'dramatised' | 'mentioned' | 'implied';
       reveals?: { factId: string; slotId?: string; strength: 'hinted' | 'implied' | 'stated' | 'confirmed' }[];
-      prose?: string[];
+      prose?: Passage[];
+      anchors?: {
+        markId: string;
+        targetKind: 'event' | 'fact' | 'entity' | 'identity' | 'reveal' | 'scene' | 'thread';
+        targetId: string;
+        excerpt: string;
+      }[];
     }
 
     const book: { title: string; summary: string; scenes: SceneSpec[] }[] = [
@@ -373,8 +379,19 @@ export function loadPredestination(store: Store): { worldId: string; workId: str
             reveals: [{ factId: identityFact.factId, strength: 'hinted' }],
             prose: [
               'Han tørrer af på det samme sted i disken, mens jeg taler, og han spørger aldrig om noget, jeg ikke allerede har svaret på.',
-              'Jeg har fortalt historien før. Aldrig til nogen, der lyttede sådan her.',
+              {
+                text: 'Jeg har fortalt historien før. Aldrig til nogen, der lyttede sådan her.',
+                mark: {
+                  id: 'predestination-barkeep-identity', kind: 'identity',
+                  label: 'Bartenderen',
+                },
+              },
             ],
+            anchors: [{
+              markId: 'predestination-barkeep-identity', targetKind: 'identity',
+              targetId: asBarkeep,
+              excerpt: 'Aldrig til nogen, der lyttede sådan her.',
+            }],
           },
           { title: 'Barnet, som det bliver fortalt', event: born, leg: leg2, mode: 'mentioned' },
         ],
@@ -463,6 +480,12 @@ export function loadPredestination(store: Store): { worldId: string; workId: str
         saveSceneText(s, ctx, store, {
           sceneId, doc: paragraphs(...prose), markdown: markdownOf(...prose),
         });
+        for (const tie of spec.anchors ?? []) {
+          createTextAnchor(s, ctx, {
+            sceneId, markId: tie.markId, targetKind: tie.targetKind,
+            targetId: tie.targetId, excerpt: tie.excerpt,
+          });
+        }
       });
     });
 

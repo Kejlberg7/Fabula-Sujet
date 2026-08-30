@@ -7,12 +7,12 @@ import { createFact, recordBelief, recordStatement } from '../core/services/know
 import { createLaw } from '../core/services/laws';
 import {
   createBeat, createChapter, createReveal, createScene, createThread, linkSceneToEvent,
-  saveSceneText,
+  createTextAnchor, saveSceneText,
 } from '../core/services/narrative';
 import { createRealm, createWorld, createWork, defaultTimeSystemOf } from '../core/services/world';
 import { Workbench } from '../core/workbench';
 import { updateRow } from '../core/services/generic';
-import { markdownOf, paragraphs } from './prose';
+import { markdownOf, paragraphs, type Passage } from './prose';
 
 const INCEPTION_PROSE: Record<string, string[]> = {
   'Yusuf ved rattet': [
@@ -313,7 +313,13 @@ export function loadInception(store: Store): { worldId: string; workId: string; 
       pov: string;
       realm: string;
       reveals?: { factId: string; slotId?: string; strength: 'hinted' | 'implied' | 'stated' | 'confirmed' }[];
-      prose?: string[];
+      prose?: Passage[];
+      anchors?: {
+        markId: string;
+        targetKind: 'event' | 'fact' | 'entity' | 'identity' | 'reveal' | 'scene' | 'thread';
+        targetId: string;
+        excerpt: string;
+      }[];
     }
 
     const book: { title: string; summary: string; scenes: SceneSpec[] }[] = [
@@ -367,7 +373,21 @@ export function loadInception(store: Store): { worldId: string; workId: string; 
         title: 'Kysten',
         summary: 'Tredje lag. Otte uger, mens sparket falder.',
         scenes: [
-          { title: 'Han går i land', event: insideByLevel[2]![0]!, pov: cobb, realm: realmIds[3]! },
+          {
+            title: 'Han går i land', event: insideByLevel[2]![0]!,
+            pov: cobb, realm: realmIds[3]!,
+            prose: [
+              {
+                text: 'Cobb vågnede med ansigtet i det lave vand. Byen ved kysten var bygget af år, han havde forsøgt at kalde uvirkelige, og hvert tomt vindue kendte hans navn.',
+                mark: { id: 'inception-limbo-place', kind: 'entity', label: 'Limbo' },
+              },
+              'Han gik mod huset uden at se sig tilbage. Ovenfor faldt varevognen stadig; hernede havde han tid nok til at blive gammel med sin skyld igen.',
+            ],
+            anchors: [{
+              markId: 'inception-limbo-place', targetKind: 'entity', targetId: limbo,
+              excerpt: 'Byen ved kysten',
+            }],
+          },
           {
             title: 'Han lader hende blive', event: insideByLevel[2]![1]!, pov: cobb,
             realm: realmIds[3]!,
@@ -404,6 +424,12 @@ export function loadInception(store: Store): { worldId: string; workId: string; 
         saveSceneText(s, ctx, store, {
           sceneId, doc: paragraphs(...prose), markdown: markdownOf(...prose),
         });
+        for (const tie of spec.anchors ?? []) {
+          createTextAnchor(s, ctx, {
+            sceneId, markId: tie.markId, targetKind: tie.targetKind,
+            targetId: tie.targetId, excerpt: tie.excerpt,
+          });
+        }
       });
     });
 

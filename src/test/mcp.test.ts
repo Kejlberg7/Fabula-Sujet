@@ -43,6 +43,7 @@ describe('MCP-fladen', () => {
       'opret_event', 'tilfoej_tidsbaand', 'registrer_faktum', 'registrer_overbevisning',
       'opret_afsloering', 'opdater', 'slet', 'fortryd', 'hvem_vidste_hvad', 'koer_tidsloesning',
       'vis_scene_til_gennemgang', 'tilfoej_margennote', 'vis_margennoter', 'afgoer_margennote',
+      'vis_referencer', 'vis_omtaler',
       'registrer_tilstand', 'registrer_forsvinding', 'opret_plottraad', 'tilfoej_slag',
       'vis_grene', 'opret_gren', 'sammenlign_grene', 'vaelg_hovedgren', 'arkiver_gren',
       'genaabn_gren', 'flyt_scene', 'flyt_afsloering',
@@ -75,6 +76,14 @@ describe('MCP-fladen', () => {
       person: 'Anna', sted: 'Havnen', fra: '1985-06-12', til: '1985-06-13',
     });
     assert.match(answer, /Anna var på Havnen/);
+  });
+
+  it('bruger de samme korte arbejdsreferencer som prosaen', async () => {
+    const refs = await call('vis_referencer', { soeg: 'Havnen' });
+    const code = /• (S\d+) — Havnen/.exec(refs)?.[1];
+    assert.ok(code, refs);
+    assert.match(await call('hvem_var_hvor', { sted: `@${code}` }), /Anna.*Havnen/);
+    assert.match(await call('vis_omtaler', { reference: code }), /ikke omtalt i prosaen endnu/);
   });
 
   it('kan sætte personens hukommelse én gang gennem samtalen', async () => {
