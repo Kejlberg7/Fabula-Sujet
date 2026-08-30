@@ -15,7 +15,12 @@ import { tableByName } from '../tables';
  */
 
 /** Editing these through the generic path would corrupt the very record of it. */
-const PROTECTED = new Set(['change', 'turn', 'checkpoint', 'app_state', 'app_user', 'current_user']);
+const PROTECTED = new Set([
+  'change', 'turn', 'checkpoint', 'app_state', 'app_user', 'current_user',
+  // Codes are stable addresses. They are created and carried by the reference
+  // service, never casually renamed or removed through the universal escape hatch.
+  'story_reference',
+]);
 
 function resolve(tableName: string) {
   if (PROTECTED.has(tableName)) {

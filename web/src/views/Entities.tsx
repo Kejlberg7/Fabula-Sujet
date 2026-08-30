@@ -4,6 +4,7 @@ import { formatInstant, KIND_DA, ROLE_DA, SOURCE_DA, STRENGTH_DA } from '../form
 import { Editable } from './Editable';
 import { Scrubber } from './Scrubber';
 import type { Notice } from '../main';
+import { ReferenceLinks } from './ReferenceLinks';
 
 const TITLES: Record<string, { heading: string; lede: string }> = {
   person: {
@@ -23,8 +24,10 @@ const TITLES: Record<string, { heading: string; lede: string }> = {
 export function Entities({
   kind, nonce, notify, onChanged,
 }: { kind: string; nonce: number; notify: (n: Notice) => void; onChanged: () => void }) {
-  const [selected, setSelected] = useState<string | null>(null);
+  const requested = new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('id');
+  const [selected, setSelected] = useState<string | null>(requested);
   const { data, loading } = useQuery('list.entities', { kind }, [nonce]);
+  const { data: references } = useQuery('reference.list', undefined, [nonce]);
   const meta = TITLES[kind]!;
 
   const saved = (text: string) => { notify({ text }); onChanged(); };
@@ -53,7 +56,11 @@ export function Entities({
               {data.map((row) => (
                 <tr key={row.id} aria-selected={selected === row.id}
                   onClick={() => setSelected(row.id)}>
-                  <td>{row.name}</td>
+                  <td>
+                    {references?.filter((item) => item.targetKind === 'entity' && item.targetId === row.id)
+                      .map((item) => <span className="reference-code" key={item.id}>{item.code}</span>)}
+                    {row.name}
+                  </td>
                   <td className="dim">{row.summary ?? '—'}</td>
                   {kind === 'person' && (
                     <td className="num">
@@ -93,6 +100,8 @@ function EntityPanel({
       </h3>
       <Editable table="entity" id={data.id} field="summary" value={data.summary} multiline
         placeholder="Kort beskrivelse …" onSaved={onSaved} onError={onError} />
+
+      <ReferenceLinks targetKind="entity" targetId={data.id} nonce={nonce} />
 
       {data.kind === 'person' && (
         <>

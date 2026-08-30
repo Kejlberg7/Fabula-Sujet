@@ -3,6 +3,7 @@ import type { SQLiteTable } from 'drizzle-orm/sqlite-core';
 import type { Db, Store } from '../db/client';
 import { change, checkpoint, turn } from '../db/schema';
 import { newId } from './ids';
+import { indexMissingReferences } from './services/references';
 import { tableByName } from './tables';
 
 /**
@@ -217,7 +218,9 @@ export class Session {
 export function inTurn<T>(store: Store, options: TurnOptions, work: (session: Session) => T): T {
   const session = Session.begin(store, options);
   try {
-    return work(session);
+    const value = work(session);
+    indexMissingReferences(session, store, options.branchId);
+    return value;
   } finally {
     session.end();
   }

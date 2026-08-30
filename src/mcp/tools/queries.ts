@@ -3,6 +3,9 @@ import { whoKnewWhat } from '../../core/queries/knowledge';
 import { whoWasWhere, worldline } from '../../core/queries/presence';
 import { whatReaderKnows } from '../../core/queries/reader';
 import { find } from '../../core/queries/search';
+import {
+  referenceBacklinks, referenceByCode, referenceCatalog,
+} from '../../core/queries/references';
 import { solveTime } from '../../core/solve';
 import { formatInstant } from '../../core/time/gregorian';
 import { asInstant, defineTool, timeArg, type ToolDef } from '../kit';
@@ -11,6 +14,49 @@ import { resolveEntity, resolveWork } from '../resolve';
 const at = (v: number | null) => (v == null ? '?' : formatInstant(v, 'day'));
 
 export const queryTools: ToolDef[] = [
+  defineTool({
+    name: 'vis_referencer',
+    title: 'Vis arbejdsreferencer',
+    description:
+      'Viser de korte, stabile adresser som P1, G4 og E12. De kan bruges i alle andre '
+      + 'værktøjer i stedet for et internt id eller et navn, og de bliver de samme på en gren.',
+    inputSchema: {
+      soeg: z.string().optional().describe('Kode eller en del af navnet'),
+    },
+    run: (args, tools) => {
+      const ctx = tools.bench.context();
+      const needle = args.soeg?.trim().toLocaleLowerCase('da');
+      const rows = referenceCatalog(tools.store, ctx).filter((item) => !needle
+        || item.code.toLocaleLowerCase('da').includes(needle)
+        || item.label.toLocaleLowerCase('da').includes(needle));
+      if (rows.length === 0) return 'Ingen arbejdsreferencer matcher.';
+      return rows.slice(0, 100).map((item) =>
+        `• ${item.code} — ${item.label} · ${item.group.toLocaleLowerCase('da')}`
+        + `${item.exists ? '' : ' · BRUDT'} · ${item.mentionCount} omtale${item.mentionCount === 1 ? '' : 'r'}`)
+        .join('\n');
+    },
+  }),
+
+  defineTool({
+    name: 'vis_omtaler',
+    title: 'Vis omtaler i prosaen',
+    description:
+      'Finder alle tekstankre, der omtaler én arbejdsreference, og viser bog, kapitel, scene og uddrag.',
+    inputSchema: { reference: z.string().describe('Fx G1 eller @G1') },
+    run: (args, tools) => {
+      const ctx = tools.bench.context();
+      const ref = referenceByCode(tools.store, ctx, args.reference);
+      if (!ref) throw new Error(`Jeg kan ikke finde arbejdsreferencen «${args.reference}».`);
+      const hits = referenceBacklinks(tools.store, ctx, {
+        targetKind: ref.targetKind, targetId: ref.targetId,
+      });
+      if (hits.length === 0) return `${ref.code} er ikke omtalt i prosaen endnu.`;
+      return hits.map((hit) =>
+        `• ${hit.workTitle} · ${hit.chapterTitle} · ${hit.sceneTitle}`
+        + `${hit.excerpt ? `\n  «${hit.excerpt}»` : ''}`).join('\n');
+    },
+  }),
+
   defineTool({
     name: 'hvem_vidste_hvad',
     title: 'Hvem vidste hvad',

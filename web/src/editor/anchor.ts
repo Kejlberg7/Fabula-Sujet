@@ -36,6 +36,18 @@ export const Anchor = Mark.create({
         renderHTML: (attributes) =>
           attributes['label'] ? { title: attributes['label'] as string } : {},
       },
+      code: {
+        default: null,
+        parseHTML: (element) => element.getAttribute('data-code'),
+        renderHTML: (attributes) =>
+          attributes['code'] ? { 'data-code': attributes['code'] as string } : {},
+      },
+      targetId: {
+        default: null,
+        parseHTML: (element) => element.getAttribute('data-target'),
+        renderHTML: (attributes) =>
+          attributes['targetId'] ? { 'data-target': attributes['targetId'] as string } : {},
+      },
     };
   },
 

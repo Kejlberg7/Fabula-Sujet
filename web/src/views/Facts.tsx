@@ -3,6 +3,7 @@ import { TRUTH_DA } from '../format';
 
 export function Facts({ nonce }: { nonce: number }) {
   const { data, loading } = useQuery('list.facts', undefined, [nonce]);
+  const { data: references } = useQuery('reference.list', undefined, [nonce]);
 
   return (
     <div className="page">
@@ -31,6 +32,8 @@ export function Facts({ nonce }: { nonce: number }) {
               return (
                 <tr key={row.id}>
                   <td>
+                    {references?.filter((item) => item.targetKind === 'fact' && item.targetId === row.id)
+                      .map((item) => <span className="reference-code" key={item.id}>{item.code}</span>)}
                     {row.summary}
                     <div className="mono" style={{ color: 'var(--muted)' }}>{row.predicate}</div>
                   </td>

@@ -26,7 +26,7 @@ export type View =
 export interface Notice { text: string; bad?: boolean }
 
 function useHashView(): [View, (v: View) => void] {
-  const read = (): View => (window.location.hash.slice(1) || 'overblik') as View;
+  const read = (): View => (window.location.hash.slice(1).split('?')[0] || 'overblik') as View;
   const [view, setView] = useState<View>(read);
   useEffect(() => {
     const onChange = () => setView(read());

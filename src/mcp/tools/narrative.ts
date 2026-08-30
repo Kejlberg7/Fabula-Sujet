@@ -12,7 +12,7 @@ import { formatInstant } from '../../core/time/gregorian';
 import { defineTool, made, write, type ToolDef } from '../kit';
 import {
   resolveChapter, resolveEntity, resolveEvent, resolveFact, resolveRealm, resolveScene,
-  resolveThread, resolveWork,
+  resolveIdentity, resolveReveal, resolveThread, resolveWork,
 } from '../resolve';
 
 function activeWork(tools: Parameters<ToolDef['run']>[1], given?: string): string {
@@ -340,7 +340,7 @@ export const narrativeTools: ToolDef[] = [
     inputSchema: {
       scene: z.string(),
       maerke_id: z.string().describe('Mærke-id fra dokumentet'),
-      slags: z.enum(['event', 'fact', 'reveal', 'belief', 'beat', 'entity']),
+      slags: z.enum(['event', 'fact', 'reveal', 'belief', 'beat', 'entity', 'identity', 'scene', 'thread']),
       maal: z.string().describe('Hvad det peger på'),
       uddrag: z.string().optional(),
     },
@@ -350,6 +350,10 @@ export const narrativeTools: ToolDef[] = [
       const targetId = args.slags === 'event' ? resolveEvent(tools.store, ctx, args.maal).id
         : args.slags === 'fact' ? resolveFact(tools.store, ctx, args.maal).id
         : args.slags === 'entity' ? resolveEntity(tools.store, ctx, args.maal).id
+        : args.slags === 'identity' ? resolveIdentity(tools.store, ctx, args.maal).id
+        : args.slags === 'reveal' ? resolveReveal(tools.store, ctx, args.maal).id
+        : args.slags === 'scene' ? resolveScene(tools.store, ctx, args.maal).id
+        : args.slags === 'thread' ? resolveThread(tools.store, ctx, args.maal).id
         : args.maal;
       const { value } = write(tools, 'Sæt tekstanker', (session, c) =>
         createTextAnchor(session, c, {

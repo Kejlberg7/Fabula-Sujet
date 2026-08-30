@@ -5,6 +5,7 @@ import {
   realm, reveal, scene, sceneEvent, sceneText, textAnchor,
 } from '../../db/schema';
 import type { Context } from '../workbench';
+import { referenceCatalog } from './references';
 import { lawsLifting } from '../laws/consult';
 import { personalTimeOf, whoKnewWhat, type KnowledgeItem } from './knowledge';
 import { whatReaderKnows, type ReaderFact } from './reader';
@@ -91,8 +92,11 @@ export interface DeskResult {
     markId: string;
     targetKind: string;
     targetId: string;
+    code: string | null;
     targetLabel: string;
+    href: string | null;
     excerpt: string | null;
+    broken: boolean;
   }[];
   leaks: Leak[];
   /**
@@ -297,6 +301,10 @@ export function sceneDesk(store: Store, ctx: Context, query: { sceneId: string }
 
   const anchorRows = db.select().from(textAnchor)
     .where(and(eq(textAnchor.sceneId, sc.id), eq(textAnchor.branchId, ctx.branchId))).all();
+  const references = referenceCatalog(store, ctx);
+  const referenceOf = new Map(references.map((item) => [
+    `${item.targetKind}:${item.targetId}`, item,
+  ]));
 
   const labelFor = (kind: string, id: string): string => {
     switch (kind) {
@@ -353,10 +361,18 @@ export function sceneDesk(store: Store, ctx: Context, query: { sceneId: string }
       slotName: r.slotId ? slotNames.get(r.slotId) ?? null : null,
       strength: r.strength,
     })),
-    anchors: anchorRows.map((a) => ({
-      id: a.id, markId: a.markId, targetKind: a.targetKind, targetId: a.targetId,
-      targetLabel: labelFor(a.targetKind, a.targetId), excerpt: a.excerpt,
-    })),
+    anchors: anchorRows.map((a) => {
+      const addressed = referenceOf.get(`${a.targetKind}:${a.targetId}`);
+      const fallback = labelFor(a.targetKind, a.targetId);
+      return {
+        id: a.id, markId: a.markId, targetKind: a.targetKind, targetId: a.targetId,
+        code: addressed?.code ?? null,
+        targetLabel: addressed?.label ?? fallback,
+        href: addressed?.href ?? null,
+        excerpt: a.excerpt,
+        broken: addressed ? !addressed.exists : fallback === a.targetId,
+      };
+    }),
     leaks: leaks.filter((l) => !l.lifted),
     lifted: leaks.filter((l) => l.lifted),
   };

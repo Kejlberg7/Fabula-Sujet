@@ -3,12 +3,15 @@ import { useQuery } from '../store';
 import { formatInstant, LINK_DA, MODE_DA, ROLE_DA } from '../format';
 import { Editable } from './Editable';
 import type { Notice } from '../main';
+import { ReferenceLinks } from './ReferenceLinks';
 
 export function Events({
   nonce, notify, onChanged,
 }: { nonce: number; notify: (n: Notice) => void; onChanged: () => void }) {
-  const [selected, setSelected] = useState<string | null>(null);
+  const requested = new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('id');
+  const [selected, setSelected] = useState<string | null>(requested);
   const { data, loading } = useQuery('list.events', undefined, [nonce]);
+  const { data: references } = useQuery('reference.list', undefined, [nonce]);
 
   const unplaced = data?.filter((e) => !e.placed).length ?? 0;
   const vague = data?.filter((e) => e.placed && !e.certain).length ?? 0;
@@ -50,7 +53,11 @@ export function Events({
                 <tr key={row.id} aria-selected={selected === row.id}
                   onClick={() => setSelected(row.id)}>
                   <td className={row.certain ? 'mono' : 'mono vague'}>{row.when}</td>
-                  <td>{row.title}</td>
+                  <td>
+                    {references?.filter((item) => item.targetKind === 'event' && item.targetId === row.id)
+                      .map((item) => <span className="reference-code" key={item.id}>{item.code}</span>)}
+                    {row.title}
+                  </td>
                   <td className="dim">
                     {row.placeName ?? '—'}
                     {row.realmName !== 'Virkeligheden' && (
@@ -93,6 +100,8 @@ function EventPanel({
       </h3>
       <Editable table="event" id={data.id} field="summary" value={data.summary} multiline
         placeholder="Hvad skete der …" onSaved={onSaved} onError={onError} />
+
+      <ReferenceLinks targetKind="event" targetId={data.id} nonce={nonce} />
 
       <dl>
         <dt>Tid</dt>

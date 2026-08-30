@@ -3,6 +3,7 @@ import type { Store } from '../db/client';
 import { appState, branch, work, world } from '../db/schema';
 import { Session, type Actor, type TurnOptions } from './changelog';
 import { workInBranch } from './branches';
+import { indexMissingReferences } from './services/references';
 
 /**
  * What we are working on.
@@ -127,7 +128,9 @@ export class Workbench {
     };
     const session = Session.begin(this.store, turnOptions);
     try {
-      return work(session, ctx);
+      const value = work(session, ctx);
+      indexMissingReferences(session, this.store, ctx.branchId);
+      return value;
     } finally {
       session.end();
     }

@@ -38,6 +38,8 @@ Nogle vaner, der gør modellen brugbar frem for larmende:
 • Sæt en verden og en bog først (opret_verden / saet_aktivt_vaerk). Så behøver ingen nævne bogen igen.
 • Giv events et SPÆND, ikke et tidspunkt, og bind dem sammen med tidsbånd. Opfind aldrig en dato,
   forfatteren ikke har besluttet — det er hele pointen med modellen.
+• Brug arbejdsreferencer som P1, G4 og E12, når forfatteren gør det. vis_referencer slår dem op,
+  og de almindelige værktøjer accepterer koden direkte. Gæt aldrig hvad en kode peger på.
 • Fakta har pladser. Delvis viden er en ubunden plads, ikke et nyt faktum.
 • Hvis en persons oplevelser glemmes efter en fast tid, så sig det én gang med registrer_hukommelse.
   Det ændrer ikke ældre minder, udtrykkelige overbevisninger eller noget, personen bærer på skrift.

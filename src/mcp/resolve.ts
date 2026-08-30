@@ -5,6 +5,7 @@ import {
   branch, chapter, entity, event, fact, identity, realm, reveal, scene, source, thread, work, world,
 } from '../db/schema';
 import type { Context } from '../core/workbench';
+import { referenceByCode } from '../core/queries/references';
 
 /**
  * Turning what was said into what was meant.
@@ -57,6 +58,12 @@ function rowsIn<T extends SQLiteTable>(store: Store, table: T, branchColumn: nev
 export function resolveEntity(store: Store, ctx: Context, needle: string, kind?: string) {
   const rows = rowsIn(store, entity, entity.branchId as never, ctx.branchId)
     .filter((e) => !kind || e.kind === kind);
+  const addressed = referenceByCode(store, ctx, needle, ['entity']);
+  if (addressed) {
+    const row = rows.find((item) => item.id === addressed.targetId);
+    if (row) return row;
+    throw new Error(`Referencen ${addressed.code} peger på noget, der er slettet.`);
+  }
   const elsewhere = () => {
     const lowered = needle.trim().toLowerCase();
     const rest = store.db.select().from(entity).all()
@@ -68,10 +75,24 @@ export function resolveEntity(store: Store, ctx: Context, needle: string, kind?:
 }
 
 export function resolveEvent(store: Store, ctx: Context, needle: string) {
+  const addressed = referenceByCode(store, ctx, needle, ['event']);
+  if (addressed) {
+    const row = rowsIn(store, event, event.branchId as never, ctx.branchId)
+      .find((item) => item.id === addressed.targetId);
+    if (row) return row;
+    throw new Error(`Referencen ${addressed.code} peger på et event, der er slettet.`);
+  }
   return pick(rowsIn(store, event, event.branchId as never, ctx.branchId), needle, (r) => r.title, 'event');
 }
 
 export function resolveFact(store: Store, ctx: Context, needle: string) {
+  const addressed = referenceByCode(store, ctx, needle, ['fact']);
+  if (addressed) {
+    const row = rowsIn(store, fact, fact.branchId as never, ctx.branchId)
+      .find((item) => item.id === addressed.targetId);
+    if (row) return row;
+    throw new Error(`Referencen ${addressed.code} peger på et faktum, der er slettet.`);
+  }
   return pick(rowsIn(store, fact, fact.branchId as never, ctx.branchId), needle, (r) => r.summary, 'faktum');
 }
 
@@ -89,12 +110,24 @@ export function resolveChapter(store: Store, ctx: Context, needle: string) {
 
 export function resolveScene(store: Store, ctx: Context, needle: string) {
   const rows = rowsIn(store, scene, scene.branchId as never, ctx.branchId);
+  const addressed = referenceByCode(store, ctx, needle, ['scene']);
+  if (addressed) {
+    const row = rows.find((item) => item.id === addressed.targetId);
+    if (row) return row;
+    throw new Error(`Referencen ${addressed.code} peger på en scene, der er slettet.`);
+  }
   return pick(rows, needle, (r) => r.title ?? r.id, 'scene');
 }
 
 export function resolveIdentity(store: Store, ctx: Context, needle: string, entityId?: string) {
   const rows = rowsIn(store, identity, identity.branchId as never, ctx.branchId)
     .filter((row) => !entityId || row.entityId === entityId);
+  const addressed = referenceByCode(store, ctx, needle, ['identity']);
+  if (addressed) {
+    const row = rows.find((item) => item.id === addressed.targetId);
+    if (row) return row;
+    throw new Error(`Referencen ${addressed.code} peger på en identitet, der er slettet.`);
+  }
   return pick(rows, needle, (row) => row.name, 'identitet');
 }
 
@@ -106,6 +139,12 @@ export function resolveSource(store: Store, ctx: Context, needle: string) {
 export function resolveThread(store: Store, ctx: Context, needle: string) {
   const rows = rowsIn(store, thread, thread.branchId as never, ctx.branchId)
     .filter((row) => !ctx.workId || row.workId === ctx.workId);
+  const addressed = referenceByCode(store, ctx, needle, ['thread']);
+  if (addressed) {
+    const row = rows.find((item) => item.id === addressed.targetId);
+    if (row) return row;
+    throw new Error(`Referencen ${addressed.code} peger på en plottråd, der er slettet.`);
+  }
   return pick(rows, needle, (row) => row.name, 'plottråd');
 }
 
@@ -118,5 +157,11 @@ export function resolveReveal(store: Store, ctx: Context, needle: string) {
   const facts = new Map(store.db.select().from(fact).where(eq(fact.worldId, ctx.worldId)).all()
     .map((row) => [row.id, row.summary]));
   const rows = rowsIn(store, reveal, reveal.branchId as never, ctx.branchId);
+  const addressed = referenceByCode(store, ctx, needle, ['reveal']);
+  if (addressed) {
+    const row = rows.find((item) => item.id === addressed.targetId);
+    if (row) return row;
+    throw new Error(`Referencen ${addressed.code} peger på en afsløring, der er slettet.`);
+  }
   return pick(rows, needle, (row) => facts.get(row.factId) ?? row.id, 'afsløring');
 }

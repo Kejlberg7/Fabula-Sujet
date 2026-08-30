@@ -134,7 +134,7 @@ describe('ændringsloggen', () => {
     const entries = history(db, w.branchId, 5);
     const claude = entries.find((e) => e.actorKind === 'assistant');
     assert.ok(claude, 'historikken skal kunne skelne dig fra Claude');
-    assert.equal(claude!.changeCount, 1);
+    assert.equal(claude!.changeCount, 2, 'personen og dens arbejdsreference er én synlig handling');
     assert.equal(claude!.summary, 'Claude tilføjede Karen');
   });
 });

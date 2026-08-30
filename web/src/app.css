@@ -532,7 +532,7 @@ main { overflow: auto; min-width: 0; }
   border-bottom: 1px dotted var(--story);
   background: var(--story-wash);
   border-radius: 2px;
-  cursor: help;
+  cursor: pointer;
 }
 
 .anchor[data-kind='fact'] { border-bottom-color: var(--disc); background: var(--disc-wash); }
@@ -544,6 +544,65 @@ main { overflow: auto; min-width: 0; }
  * tell you failed to make.
  */
 .anchor[data-kind='entity'] { border-bottom-color: var(--ink-2); background: transparent; }
+
+.anchor-focus {
+  outline: 2px solid var(--disc);
+  outline-offset: 3px;
+  background: var(--disc-wash) !important;
+}
+
+.reference-code {
+  display: inline-block;
+  margin-right: 7px;
+  padding: 1px 5px;
+  border: 1px solid var(--line-2);
+  border-radius: 3px;
+  color: var(--story);
+  background: var(--story-wash);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.mention-menu {
+  position: fixed;
+  z-index: 80;
+  width: min(390px, calc(100vw - 24px));
+  max-height: 310px;
+  overflow-y: auto;
+  border: 1px solid var(--line-2);
+  border-radius: 5px;
+  background: var(--surface);
+  box-shadow: 0 12px 30px color-mix(in srgb, var(--ink) 18%, transparent);
+  padding: 4px;
+}
+
+.mention-menu button {
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 8px;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.mention-menu button:hover,
+.mention-menu button[aria-selected='true'] { background: var(--story-wash); }
+.mention-menu button small { color: var(--muted); }
+.mention-menu .reference-code { margin-right: 0; }
+.mention-empty { padding: 9px; color: var(--muted); font-size: 12px; }
+
+.broken-reference {
+  border-left: 2px solid var(--alert);
+  padding-left: 8px;
+}
 
 .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); margin-bottom: 10px; }
 

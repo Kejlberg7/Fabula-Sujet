@@ -40,7 +40,8 @@ export function Desk({
   nonce, notify, onChanged,
 }: { nonce: number; notify: (n: Notice) => void; onChanged: () => void }) {
   const { data: scenes } = useQuery('scene.list', {}, [nonce]);
-  const [sceneId, setSceneId] = useState<string | null>(null);
+  const requested = new URLSearchParams(window.location.hash.split('?')[1] ?? '');
+  const [sceneId, setSceneId] = useState<string | null>(requested.get('scene'));
   const [tab, setTab] = useState<'pov' | 'reader' | 'anchors' | 'margin'>('pov');
   const prose = useRef<ProseHandle>(null);
 
@@ -52,20 +53,14 @@ export function Desk({
   const { data: desk, reload } = useQuery(
     'desk.get', { sceneId: sceneId ?? '' }, [nonce, sceneId],
   );
-  const { data: entities } = useQuery('list.entities', { kind: 'person' }, [nonce]);
-  const { data: facts } = useQuery('list.facts', undefined, [nonce]);
+  const { data: references } = useQuery('reference.list', undefined, [nonce]);
 
-  const targets = useMemo<AnchorTarget[]>(() => [
-    ...(desk?.tells ?? []).map((t) => ({
-      kind: 'event' as const, id: t.eventId, label: t.title, group: 'Events i scenen',
-    })),
-    ...(facts ?? []).map((f) => ({
-      kind: 'fact' as const, id: f.id, label: f.summary, group: 'Fakta',
-    })),
-    ...(entities ?? []).map((e) => ({
-      kind: 'entity' as const, id: e.id, label: e.name, group: 'Personer',
-    })),
-  ], [desk?.tells, facts, entities]);
+  const targets = useMemo<AnchorTarget[]>(() => (references ?? [])
+    .filter((item) => item.exists)
+    .map((item) => ({
+      kind: item.targetKind, id: item.targetId, code: item.code,
+      label: item.label, group: item.group, href: item.href,
+    })), [references]);
 
   const save = useCallback(async (doc: unknown, markdown: string) => {
     if (!sceneId) return;
@@ -94,6 +89,19 @@ export function Desk({
       if (r.removed > 0) { reload(); onChanged(); }
     }).catch(() => { /* An anchor left behind is harmless; a crash is not. */ });
   }, [sceneId, reload, onChanged]);
+
+  const openAnchor = useCallback((markId: string) => {
+    const tied = desk?.anchors.find((item) => item.markId === markId);
+    if (!tied) return;
+    if (tied.href) {
+      const target = tied.href.startsWith('skrivebord?scene=')
+        ? new URLSearchParams(tied.href.split('?')[1]).get('scene') : null;
+      if (target) setSceneId(target);
+      window.location.hash = tied.href;
+      return;
+    }
+    setTab('anchors');
+  }, [desk?.anchors]);
 
   const decideSuggestion = useCallback(async (
     id: string, status: 'open' | 'accepted' | 'rejected',
@@ -229,6 +237,8 @@ export function Desk({
           onSave={save}
           onAnchor={anchor}
           onAnchorsPruned={prune}
+          onOpenAnchor={openAnchor}
+          focusMarkId={requested.get('mark')}
         />
       </section>
 
@@ -329,10 +339,14 @@ export function Desk({
               </p>
             )}
             {desk.anchors.map((a) => (
-              <div key={a.id} className="know">
-                <div className="dim small">{a.targetKind === 'event' ? 'event'
-                  : a.targetKind === 'fact' ? 'faktum' : 'person'}: {a.targetLabel}</div>
+              <div key={a.id} className={a.broken ? 'know broken-reference' : 'know'}>
+                <div className="dim small">
+                  {a.code && <span className="reference-code">{a.code}</span>}
+                  {a.targetLabel}
+                  {a.broken && <span className="chip alert">brudt reference</span>}
+                </div>
                 {a.excerpt && <div className="excerpt">«{a.excerpt}»</div>}
+                {a.href && <a className="small" href={`#${a.href}`}>Åbn kortet →</a>}
               </div>
             ))}
           </div>

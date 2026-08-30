@@ -140,7 +140,8 @@ export function createTextAnchor(
   input: {
     sceneId: string;
     markId: string;
-    targetKind: 'event' | 'fact' | 'reveal' | 'belief' | 'beat' | 'entity';
+    targetKind: 'event' | 'fact' | 'reveal' | 'belief' | 'beat' | 'entity'
+      | 'identity' | 'scene' | 'thread';
     targetId: string;
     excerpt?: string;
   },

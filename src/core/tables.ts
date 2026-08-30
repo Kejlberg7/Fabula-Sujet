@@ -39,5 +39,6 @@ export const DIVERGEABLE_TABLES: ReadonlySet<string> = new Set([
   'law', 'source_link',
   'work', 'part', 'chapter', 'scene', 'scene_text',
   'scene_event', 'reveal', 'text_anchor', 'thread', 'beat',
+  'story_reference',
   'suggestion',
 ]);

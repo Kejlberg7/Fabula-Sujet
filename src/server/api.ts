@@ -18,6 +18,7 @@ import { knowledgeTrack } from '../core/queries/track';
 import { whoKnewWhat } from '../core/queries/knowledge';
 import { whoWasWhere, worldline } from '../core/queries/presence';
 import { whatReaderKnows } from '../core/queries/reader';
+import { referenceBacklinks, referenceCatalog } from '../core/queries/references';
 import { find } from '../core/queries/search';
 import { deleteRow, updateRow } from '../core/services/generic';
 import {
@@ -224,6 +225,11 @@ export function createApi(store: Store) {
           subject: l.subjectEntityId ? nameOf(l.subjectEntityId) : l.subjectExpression,
         }));
     },
+
+    'reference.list': () => referenceCatalog(store, ctx()),
+
+    'reference.backlinks': (input: { targetKind: string; targetId: string }) =>
+      referenceBacklinks(store, ctx(), input),
 
     /**
      * The deep continuity ledger in one read: state through time rather than
@@ -751,7 +757,8 @@ export function createApi(store: Store) {
     'anchor.create': (input: {
       sceneId: string;
       markId: string;
-      targetKind: 'event' | 'fact' | 'reveal' | 'belief' | 'beat' | 'entity';
+      targetKind: 'event' | 'fact' | 'reveal' | 'belief' | 'beat' | 'entity'
+        | 'identity' | 'scene' | 'thread';
       targetId: string;
       excerpt?: string;
     }) => bench.run({ actor, summary: 'Sæt tekstanker' }, (session, c) =>

@@ -7,10 +7,12 @@ import { Anchor, markIdsIn } from './anchor';
 import { countWords, toMarkdown } from './markdown';
 
 export interface AnchorTarget {
-  kind: 'event' | 'fact' | 'entity';
+  kind: 'event' | 'fact' | 'entity' | 'identity' | 'reveal' | 'scene' | 'thread';
   id: string;
+  code: string;
   label: string;
   group: string;
+  href: string | null;
 }
 
 export type SaveState = 'clean' | 'dirty' | 'saving' | 'saved' | 'failed';
@@ -62,7 +64,8 @@ function rangeOfMark(editor: Editor, markId: string): { from: number; to: number
  * here: the bible is data Claude may work in freely, the prose is the writer's.
  */
 export function Prose({
-  sceneId, initialDoc, targets, onSave, onAnchor, onAnchorsPruned, ref,
+  sceneId, initialDoc, targets, onSave, onAnchor, onAnchorsPruned, onOpenAnchor,
+  focusMarkId, ref,
 }: {
   sceneId: string;
   initialDoc: unknown;
@@ -70,13 +73,32 @@ export function Prose({
   onSave: (doc: unknown, markdown: string) => Promise<void>;
   onAnchor: (target: AnchorTarget, markId: string, excerpt: string) => Promise<void>;
   onAnchorsPruned: (markIds: string[]) => void;
+  onOpenAnchor: (markId: string) => void;
+  focusMarkId?: string | null;
   ref?: RefObject<ProseHandle | null>;
 }) {
   const [state, setState] = useState<SaveState>('clean');
   const [words, setWords] = useState(0);
   const [hasSelection, setHasSelection] = useState(false);
+  const [mention, setMention] = useState<{
+    from: number; to: number; query: string; left: number; top: number;
+  } | null>(null);
+  const [mentionIndex, setMentionIndex] = useState(0);
   const timer = useRef<number>(0);
   const pending = useRef<Editor | null>(null);
+
+  const readMention = useCallback((e: Editor) => {
+    const selection = e.state.selection;
+    if (!selection.empty) { setMention(null); return; }
+    const before = selection.$from.parent.textBetween(0, selection.$from.parentOffset, undefined, '\ufffc');
+    const match = before.match(/(?:^|\s)@([^\s@]*)$/u);
+    if (!match) { setMention(null); return; }
+    const query = match[1] ?? '';
+    const from = selection.from - query.length - 1;
+    const at = e.view.coordsAtPos(selection.from);
+    setMention({ from, to: selection.from, query, left: at.left, top: at.bottom + 6 });
+    setMentionIndex(0);
+  }, []);
 
   const flush = useCallback(async (editor: Editor) => {
     window.clearTimeout(timer.current);
@@ -105,6 +127,14 @@ export function Prose({
         spellcheck: 'true',
         lang: 'da',
       },
+      handleClick: (_view, _pos, event) => {
+        const element = event.target instanceof Element
+          ? event.target.closest<HTMLElement>('[data-anchor]') : null;
+        const markId = element?.dataset['anchor'];
+        if (!markId) return false;
+        onOpenAnchor(markId);
+        return true;
+      },
     },
     onUpdate: ({ editor: e }) => {
       setState('dirty');
@@ -112,13 +142,27 @@ export function Prose({
       pending.current = e;
       window.clearTimeout(timer.current);
       timer.current = window.setTimeout(() => void flush(e), 1200);
+      readMention(e);
     },
-    onSelectionUpdate: ({ editor: e }) => setHasSelection(!e.state.selection.empty),
+    onSelectionUpdate: ({ editor: e }) => {
+      setHasSelection(!e.state.selection.empty);
+      readMention(e);
+    },
   }, [sceneId]);
 
   useEffect(() => {
     if (editor) setWords(countWords(toMarkdown(editor.getJSON())));
   }, [editor]);
+
+  useEffect(() => {
+    if (!editor || !focusMarkId) return;
+    const node = editor.view.dom.querySelector<HTMLElement>(`[data-anchor="${CSS.escape(focusMarkId)}"]`);
+    if (!node) return;
+    node.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    node.classList.add('anchor-focus');
+    const timerId = window.setTimeout(() => node.classList.remove('anchor-focus'), 2400);
+    return () => window.clearTimeout(timerId);
+  }, [editor, focusMarkId]);
 
   /**
    * Følg med, når prosaen skifter under editoren.
@@ -192,10 +236,51 @@ export function Prose({
     const excerpt = editor.state.doc.textBetween(from, to, ' ').slice(0, 240);
     const markId = crypto.randomUUID();
     editor.chain().focus()
-      .setMark('anchor', { markId, kind: target.kind, label: target.label })
+      .setMark('anchor', {
+        markId, kind: target.kind, label: target.label,
+        code: target.code, targetId: target.id,
+      })
       .run();
     await onAnchor(target, markId, excerpt);
     void flush(editor);
+  };
+
+  const mentionTargets = mention ? targets.filter((target) => {
+    const query = mention.query.toLocaleLowerCase('da');
+    return target.code.toLocaleLowerCase('da').includes(query)
+      || target.label.toLocaleLowerCase('da').includes(query);
+  }).slice(0, 10) : [];
+
+  const insertMention = async (target: AnchorTarget) => {
+    if (!editor || !mention) return;
+    const markId = crypto.randomUUID();
+    const mark = editor.state.schema.marks['anchor']!.create({
+      markId, kind: target.kind, label: target.label,
+      code: target.code, targetId: target.id,
+    });
+    editor.view.dispatch(editor.state.tr.replaceWith(
+      mention.from, mention.to, editor.state.schema.text(target.label, [mark]),
+    ));
+    setMention(null);
+    await onAnchor(target, markId, target.label);
+    void flush(editor);
+  };
+
+  const proseKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!mention || mentionTargets.length === 0) return;
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      setMentionIndex((value) => (value + 1) % mentionTargets.length);
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      setMentionIndex((value) => (value - 1 + mentionTargets.length) % mentionTargets.length);
+    } else if (event.key === 'Enter' || event.key === 'Tab') {
+      event.preventDefault();
+      void insertMention(mentionTargets[mentionIndex] ?? mentionTargets[0]!);
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      setMention(null);
+    }
   };
 
   const button = (label: string, active: boolean, run: () => void, title?: string) => (
@@ -206,7 +291,7 @@ export function Prose({
   const groups = [...new Set(targets.map((t) => t.group))];
 
   return (
-    <div className="prose-pane">
+    <div className="prose-pane" onKeyDown={proseKeyDown}>
       <div className="prose-tools">
         {editor && (
           <>
@@ -237,7 +322,7 @@ export function Prose({
             <select
               value=""
               onChange={(e) => {
-                const target = targets.find((t) => `${t.kind}:${t.id}` === e.target.value);
+                const target = targets.find((t) => `${t.kind}:${t.id}:${t.code}` === e.target.value);
                 if (target) void anchorSelection(target);
                 e.target.value = '';
               }}
@@ -246,7 +331,9 @@ export function Prose({
               {groups.map((group) => (
                 <optgroup key={group} label={group}>
                   {targets.filter((t) => t.group === group).map((t) => (
-                    <option key={`${t.kind}:${t.id}`} value={`${t.kind}:${t.id}`}>{t.label}</option>
+                    <option key={`${t.kind}:${t.id}:${t.code}`} value={`${t.kind}:${t.id}:${t.code}`}>
+                      {t.code} · {t.label}
+                    </option>
                   ))}
                 </optgroup>
               ))}
@@ -260,6 +347,23 @@ export function Prose({
       </div>
 
       <EditorContent editor={editor} />
+      {mention && (
+        <div className="mention-menu" role="listbox" aria-label="Arbejdsreferencer"
+          style={{ left: mention.left, top: mention.top }}>
+          {mentionTargets.length === 0 ? (
+            <div className="mention-empty">Ingen reference matcher @{mention.query}</div>
+          ) : mentionTargets.map((target, index) => (
+            <button type="button" role="option" aria-selected={index === mentionIndex}
+              key={`${target.kind}:${target.id}:${target.code}`}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => void insertMention(target)}>
+              <span className="reference-code">{target.code}</span>
+              <span>{target.label}</span>
+              <small>{target.group}</small>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

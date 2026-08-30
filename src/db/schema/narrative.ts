@@ -180,7 +180,7 @@ export const textAnchor = sqliteTable('text_anchor', {
   sceneId: text('scene_id').notNull().references(() => scene.id),
   markId: text('mark_id').notNull(),
   targetKind: text('target_kind', {
-    enum: ['event', 'fact', 'reveal', 'belief', 'beat', 'entity'],
+    enum: ['event', 'fact', 'reveal', 'belief', 'beat', 'entity', 'identity', 'scene', 'thread'],
   }).notNull(),
   targetId: text('target_id').notNull(),
   /** Cached copy of the anchored text, for lists. Not the source of truth. */

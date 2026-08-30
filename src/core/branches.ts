@@ -5,7 +5,7 @@ import {
   entityLeg, entityState, event, eventFact, fact, factSlot, identity, law, memoryPolicy,
   part, participation, placeLink, possession, presence, realm, relationship, reveal,
   scene, sceneEvent, sceneText, sourceLink, statement, suggestion, temporalLink,
-  textAnchor, thread, work,
+  textAnchor, thread, work, storyReference,
 } from '../db/schema';
 import type { Context } from './workbench';
 import { inTurn, type Actor, type RawRow, type Session } from './changelog';
@@ -19,7 +19,8 @@ const COPY_ORDER = [
   'participation', 'temporal_link', 'event_fact',
   'presence', 'possession', 'entity_state', 'relationship', 'disappearance',
   'belief', 'memory_policy', 'statement', 'carrier', 'binding', 'law',
-  'scene_event', 'reveal', 'thread', 'beat', 'text_anchor', 'source_link', 'suggestion',
+  'scene_event', 'reveal', 'thread', 'beat', 'text_anchor', 'story_reference',
+  'source_link', 'suggestion',
 ] as const;
 
 const TABLES = {
@@ -30,6 +31,7 @@ const TABLES = {
   presence, possession, entity_state: entityState, relationship, disappearance,
   belief, memory_policy: memoryPolicy, statement, carrier, binding, law,
   scene_event: sceneEvent, reveal, thread, beat, text_anchor: textAnchor,
+  story_reference: storyReference,
   source_link: sourceLink, suggestion,
 } as const;
 

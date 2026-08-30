@@ -13,11 +13,22 @@ fortsættelsesplan ligger i `docs/ROADMAP.md`.
 
 - Roadmap og denne overdragelsesfil er oprettet.
 - `CLAUDE.md` kræver, at begge læses før nyt arbejde.
+- Tabellen `story_reference` og migration 0007 findes. Eksisterende grene får
+  samme kode for samme ophav, og nye mål indekseres i deres egen ændringslogtur.
+- Koderne dækker P/S/G/O/B, identiteter, events, fakta, afsløringer, scener og
+  plottråde.
+- Omdøbning bevarer koden; sletning efterlader den synligt brudt; fortryd
+  reparerer både mål og kode.
+- MCP kan slå koder op i de almindelige værktøjer og har `vis_referencer` samt
+  `vis_omtaler`.
+- Skrivebordet henter nu alle referencetyper. `@` åbner en filtreret menu, og
+  eksisterende markering-med-vælger viser kode og navn.
+- Person-, sted-, ting- og eventkort viser arbejdsreference og backlinks.
 
 ## I gang nu
 
-- Fastlæg den mindst mulige model for stabile, menneskelæselige arbejds-id'er,
-  som overlever omdøbning og forgrening.
+- Verificér hele skriveforløbet i en rigtig browser: skriv `@G1`, vælg målet,
+  gem, åbn kortet, og gå tilbage gennem backlinket til den samme passage.
 
 ## Beslutninger
 
@@ -28,18 +39,22 @@ fortsættelsesplan ligger i `docs/ROADMAP.md`.
 
 ## Verificering
 
-- Ikke kørt endnu for fase 9.
-- Sidste afsluttede fase havde 184 grønne prøver samt ren typecheck og build.
+- 190/190 prøver grønne.
+- Typecheck og produktionsbuild er rene. Vite gentager den kendte advarsel om
+  en JavaScript-chunk over 500 kB; det er ikke en buildfejl.
+- Migration 0007 er prøvet mod en kopi af den eksisterende database. Prøven
+  fandt og rettede migrationsjournalens fremskudte tidsstempler.
+- Browserprøven mangler endnu.
 
 ## Næste konkrete handling
 
-Undersøg migrations- og forgreningsmønstret, tilføj referencekoder uden at gøre
-dem afhængige af interne UUID'er, og skriv først prøverne for stabilitet gennem
-omdøbning og forgrening.
+Start appen på en isoleret fixture-database og udfør browserforløbet ovenfor.
+Ret den konkrete UX, udvid prøvecasene med synlige ankre, og afslut derefter
+dokumentation, commit og push.
 
 ## Åbne risici
 
-- Koder skal være entydige i det rigtige omfang uden at blive ændret ved branch.
-- Eksisterende ankre har ingen kode og skal fortsat kunne læses.
-- En reference i prose-JSON og en række i `text_anchor` må ikke kunne drive fra
-  hinanden uden en synlig brudt tilstand.
+- Eksisterende ankre har ingen kode i selve ProseMirror-mærket. Rækken i
+  `text_anchor` leverer koden ved læsning, men browserprøven skal bekræfte, at
+  klik og visning stadig virker.
+- `@`-menuens placering er endnu ikke prøvet tæt ved vinduets kanter.

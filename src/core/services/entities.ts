@@ -3,6 +3,7 @@ import type { Store } from '../../db/client';
 import {
   belief, binding, carrier, disappearance, entity, entityLeg, entityState, identity,
   memoryPolicy, participation, placeLink, possession, presence, relationship, statement,
+  storyReference, textAnchor,
 } from '../../db/schema';
 import type { Session } from '../changelog';
 import type { Context } from '../workbench';
@@ -284,6 +285,14 @@ export function mergeEntities(
     carrier as never, { objectEntityId: input.keepId });
   repoint(db.select().from(binding).where(eq(binding.valueEntityId, input.mergeId)).all(),
     binding as never, { valueEntityId: input.keepId });
+  repoint(db.select().from(textAnchor).where(and(
+    eq(textAnchor.targetKind, 'entity'), eq(textAnchor.targetId, input.mergeId),
+  )).all(), textAnchor as never, { targetId: input.keepId });
+  // Both visible codes remain valid aliases for the surviving entity. A writer
+  // may already have used either one in notes or conversation.
+  repoint(db.select().from(storyReference).where(and(
+    eq(storyReference.targetKind, 'entity'), eq(storyReference.targetId, input.mergeId),
+  )).all(), storyReference as never, { targetId: input.keepId });
 
   session.remove(entity, input.mergeId);
   return { moved };

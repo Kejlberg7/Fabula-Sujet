@@ -13,6 +13,7 @@
  *   knowledge  facts with slots, and what is believed, said and written down
  *   laws       what can and cannot happen here, plus research borrowed from reality
  *   narrative  branches, works, chapters, scenes, prose, and the bridge tables
+ *   references stable human addresses from prose into all the layers above
  *   history    the change log everything is written through
  *   findings   what the consistency engine reported, and what was dismissed
  *   state      which world, work and branch we are looking at right now
@@ -24,6 +25,7 @@ export * from './events';
 export * from './knowledge';
 export * from './laws';
 export * from './narrative';
+export * from './references';
 export * from './history';
 export * from './findings';
 export * from './state';
