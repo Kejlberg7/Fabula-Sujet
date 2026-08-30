@@ -15,12 +15,13 @@ lægge manuskriptforslag i margenen uden at røre prosaen. Kontinuitetslaget fø
 desuden genstande, relationer, identiteter, forsvindinger, setups og researchkilder,
 og kildehylden viser, hvad hver kilde faktisk holder oppe. Prosa og bibel er nu
 bundet sammen med stabile arbejdsreferencer, der kan skrives som `@G1` og vises
-som det naturlige navn på siden. Og en gennemlæsning af manuskriptet ved nu,
-hvilken version af hver scene den faktisk læste.
+som det naturlige navn på siden. En gennemlæsning af manuskriptet ved, hvilken
+version af hver scene den faktisk læste, og skrivebordet siger nu til, når et
+navn står i prosaen uden at hænge sammen med bibelen.
 
 ```bash
 npm install
-npm test                              # 212 prøver
+npm test                              # 222 prøver
 npm run fixtures -- ./fabula.db       # læg de fire prøvecases ind
 npm run build && npm run dev          # interfacet på http://localhost:4173
 npm run ask -- ./fabula.db hent_kontekst
@@ -378,12 +379,49 @@ Der er ingen knap til at starte en gennemlæsning i interfacet. Det er Claude, d
 læser prosaen; en tom læsning uden nogen til at skrive noterne ville kun være en
 dato.
 
+### Navne uden kobling
+
+Prosaen bruger navne. Bibelen har poster. De to falder fra hinanden hele tiden,
+fordi man skriver «Valdemar» uden at gå op i `@`-menuen først. Skrivebordet
+holder derfor øje med begge slags huller, og de er ikke det samme problem:
+
+```
+NÆVNT UDEN OMTALE
+  P7  Valdemar Sund   «Valdemar»            [Knyt her]
+
+INGEN POST SVARER TIL NAVNET
+  Marie Krag                    Opret som  [person] [sted] [genstand]
+```
+
+Det øverste er ét klik fra at være i orden: posten findes, forfatteren skrev bare
+navnet i stedet for at vælge det. Det nederste er en beslutning, ingen har taget
+endnu — en forbipasserende behøver ingen post, og programmet må ikke lade som om
+det ved, hvornår et navn er en person.
+
+Hverken det ene eller det andet kaldes en fejl, og intet af det skriver i
+prosaen. **Knyt her** lægger et mærke om de ord, der allerede står der; ordtallet
+rykker sig ikke. **Opret** laver posten og stopper — koden uddeles først, når
+turen lukker, så navnet flytter op i listen ovenfor og bliver knyttet med det
+rigtige nummer.
+
+Tavsheden er den halvdel, der er svær. Dansk skriver kun store bogstaver på
+navne, så et stort bogstav midt i en sætning er et godt spor — men et stort
+bogstav *først* i en sætning er ingenting, «Valdemars båd» er stadig Valdemar,
+og et efternavn, tre personer i bogen deler, peger ikke på nogen af dem. En liste,
+der melder alt det, bliver lukket den første dag. Hver af de tavsheder har sin
+egen prøve.
+
+MCP kan spørge om det samme med `vis_navne_uden_kobling`, og gennemgangspakken
+for en scene tager det med — men der findes ingen vej derfra til at sætte
+omtalen. Et mærke i manuskriptet er stadig kun forfatterens klik.
+
 ## Næste skridt
 
-**Fase 10, resten:** den versionsbundne gennemlæsning står. Tilbage står selve
-kontrollen: omtaler, der endnu ikke er knyttet, skal kunne foreslås som
-eksisterende eller nye poster, og de knyttede omtaler skal sammenholdes med tid,
-sted, viden, identitet, besiddelse og love. Resultatet lander i margenen og
+**Fase 10, resten:** den versionsbundne gennemlæsning står, og navnene uden
+kobling bliver fundet. Tilbage står selve kontrollen: de *knyttede* omtaler skal
+sammenholdes med tid, sted, viden, identitet, besiddelse, genstandstilstand og
+love — står en person i en scene, hun ikke kan have været i, eller nævnes en
+genstand, der på det tidspunkt lå et andet sted. Resultatet lander i margenen og
 ændrer aldrig prosaen af sig selv.
 
 **Kendt grænse:** en plottråd hører til én bog (`thread.work_id`), så et setup i

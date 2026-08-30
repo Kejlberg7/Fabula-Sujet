@@ -59,6 +59,8 @@ navn i en tabel eller et felt er også en fejl.
 | Forslag | `suggestion` | Kommentar fra manuskriptgennemgangen. Skrives kun ind af forfatteren selv |
 | Gennemlæsning | `review_run` | Én læsning af scene, kapitel, bog eller serie, bundet til de versioner den læste |
 | Gennemlæst scene | `review_scene` | Én scene, som én gennemlæsning fandt den — med `text_id` |
+| Navn uden kobling | `prose gap` | Et navn i prosaen, som ingen omtale i scenen peger på |
+| Ingen post svarer til navnet | `unknown name` | Et navn i prosaen, bibelen slet ikke kender |
 | Kildehylde | `sourceShelf` | Al research, og hvad hver kilde faktisk holder oppe |
 
 ## Regelkoder
@@ -109,6 +111,7 @@ Alt indenfor er engelsk.
 | Spørg | `vis_referencer` · `vis_omtaler` · `hvem_vidste_hvad` · `hvem_var_hvor` · `hvad_ved_laeseren` · `vis_verdenslinje` · `find` · `koer_tidsloesning` |
 | Gennemgang | `koer_gennemgang` · `vis_fund` · `afvis_fund` · `genaabn_fund` · `vis_regler` · `vis_scene_til_gennemgang` · `tilfoej_margennote` · `vis_margennoter` · `afgoer_margennote` |
 | Gennemlæsning | `start_gennemlaesning` · `afslut_gennemlaesning` · `vis_gennemlaesninger` |
+| Navne uden kobling | `vis_navne_uden_kobling` |
 | Grene | `vis_grene` · `opret_gren` · `sammenlign_grene` · `vaelg_hovedgren` · `arkiver_gren` · `genaabn_gren` · `flyt_scene` · `flyt_afsloering` |
 | Grebet | `vurder_afsloeringer` · `sammenlign_afsloeringer` |
 

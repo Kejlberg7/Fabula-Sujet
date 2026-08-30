@@ -4,8 +4,9 @@ Sidst opdateret: 30. august 2026
 
 ## Aktiv fase
 
-**Fase 10 — Prosaen kontrolleres mod bibelen.** I gang. Første snit — den
-versionsbundne gennemlæsning — er implementeret, prøvet og browserprøvet.
+**Fase 10 — Prosaen kontrolleres mod bibelen.** I gang. Første snit (den
+versionsbundne gennemlæsning) og andet snit (navne uden kobling) er
+implementeret, prøvet og browserprøvet.
 
 Fase 0–9 er færdige. Den aftalte videre plan ligger i `docs/ROADMAP.md`.
 
@@ -33,6 +34,33 @@ Fase 0–9 er færdige. Den aftalte videre plan ligger i `docs/ROADMAP.md`.
 - Havnen har en afsluttet gennemlæsning af første bind med margennoten hængt på
   sig. Den ligger efter omtalerne i indlæsningen, ellers ville prøvecasen blive
   født forældet.
+
+## Færdigt i fase 10, andet snit
+
+- `src/core/queries/proseGaps.ts` finder to slags huller pr. scene: en post,
+  prosaen navngiver uden at nogen omtale i scenen peger på den, og et navn,
+  bibelen slet ikke kender. De holdes adskilt, fordi de kræver hver sin handling.
+- Tavshedsreglerne er det egentlige arbejde: et stort bogstav først i en sætning
+  er ingenting (to store ord i træk er derimod et navn, for dansk skriver kun det
+  første ord stort), genitiv-s tælles med i navnet, en navnedel bruges kun når
+  hvert ord i navnet er stort («Den rejsende» giver ingen «Den»), og en navnedel,
+  to poster deler, bruges slet ikke — tre Krag'er peger ikke på nogen af dem.
+- En post, der allerede har en omtale i scenen, meldes ikke. Signalet er «intet
+  peger på den her», ikke «du glemte den femte forekomst».
+- MCP: `vis_navne_uden_kobling` på scene, kapitel, bog eller serie.
+  `vis_scene_til_gennemgang` tager hullerne med, så de opdages under læsningen.
+- API: `review.gaps`. `desk.get` bærer `gaps`, så skrivebordet ikke skal hente
+  en gang til.
+- UI: Ankre-fanen har «Nævnt uden omtale» med en Knyt her-knap og «Ingen post
+  svarer til navnet» med Opret som person/sted/genstand. Fanens tal er ankrene;
+  plusset er det, der venter.
+- `ProseHandle.anchorPhrase` sætter mærket om ord, der allerede står der. Det
+  ændrer ikke ét bogstav, og ordtallet rykker sig ikke.
+- Opret knytter ikke selv. Koden uddeles først, når turen lukker, så navnet
+  flytter op i den øverste liste og knyttes derfra med det rigtige nummer.
+- Havnen har fået én sætning mere i «Valdemar forklarer sig», hvor skibet Marie
+  Krag får sit navn. Skibet er en faktumværdi og ikke en post, så prøvecasen
+  viser nu begge slags huller.
 
 ## Færdigt i fase 9
 
@@ -82,7 +110,7 @@ intet at se og intet at klikke på.
 
 ## I gang nu
 
-- Ingen halv implementering står åben. Næste konkrete arbejde er andet snit af
+- Ingen halv implementering står åben. Næste konkrete arbejde er tredje snit af
   fase 10 nedenfor.
 
 ## Beslutninger
@@ -91,6 +119,9 @@ intet at se og intet at klikke på.
   læsning ikke skelnes fra en aktuel.
 - «Forældet» er en oplysning, ikke en spærring. Prosa gemmes, mens man skriver.
 - Interfacet starter ikke en gennemlæsning. Det er Claude, der læser prosaen.
+- Et hul er et spørgsmål, ikke en fejl. En forbipasserende behøver ingen post.
+- Panelet må pege på et navn; kun forfatterens klik må sætte mærket.
+- En navnedel, to poster deler, bruges ikke. Et gæt her er værre end tavshed.
 - En referencekode er et arbejdsredskab, ikke en del af bogens ordlyd.
 - Omdøbning af et mål må ikke omskrive prosa.
 - En slettet reference skal stå som brudt; den må ikke forsvinde tavst.
@@ -98,7 +129,7 @@ intet at se og intet at klikke på.
 
 ## Verificering
 
-- 212/212 prøver er grønne.
+- 222/222 prøver er grønne.
 - Typecheck og produktionsbuild er rene. Vite gentager den kendte advarsel om
   en JavaScript-chunk over 500 kB; det er ikke en buildfejl.
 - Migration 0007 er prøvet mod en kopi af den eksisterende database. Prøven
@@ -108,18 +139,23 @@ intet at se og intet at klikke på.
   «ingen af scenerne er skrevet om siden» til «1 af scenerne».
 - Browserprøven er grøn. Forslagmenuens placering er også kontrolleret visuelt
   i den smalle trekolonnevisning.
+- Browserprøvet på den rigtige `fabula.db`: «Knyt her» flyttede P6 Mads Krag fra
+  «nævnt uden omtale» op i ankrene uden at ændre ordtallet, og «Marie Krag» blev
+  oprettet som genstand, fik G2 og blev knyttet i næste klik.
+- `vis_navne_uden_kobling` på hele serien melder fire scener og ingen støj.
 
 ## Næste konkrete handling
 
-Fase 10, andet snit: find det, der kun står i prosaen. En scenes tekst
-sammenholdes med de omtaler, den bærer — er der navngivet en person, et sted
-eller en genstand, som ingen omtale peger på, skal gennemlæsningen kunne
-foreslå enten en kobling til en eksisterende post eller en ny post. Forslaget
-lander i margenen som alt andet, og MCP får stadig ingen vej til at skrive prosa.
+Fase 10, tredje snit: sammenhold de *knyttede* omtaler med det, motoren allerede
+ved. En omtale af en person i en scene har et tidspunkt og et sted, og deraf
+følger spørgsmålene: var hun der, havde han den genstand på sig, var genstanden i
+den tilstand, kunne synsvinkelpersonen vide det, kendte hun navnet, tillader en
+lov det. Reglerne findes i `src/core/rules/`; det, der mangler, er at lade en
+omtale i prosaen tælle som en påstand, de kan prøves imod.
 
-Derefter tredje snit: sammenhold de knyttede omtaler med tilstedeværelse,
-besiddelse, genstandstilstand, POV-viden, identitet, navnekendskab, love og
-kronologi.
+Samme disciplin som resten af motoren: meld kun det, der ikke kan arrangeres
+anderledes, spørg lovlaget først, og læg fundet i margenen. MCP får stadig ingen
+vej til at skrive prosa.
 
 ## Åbne risici
 

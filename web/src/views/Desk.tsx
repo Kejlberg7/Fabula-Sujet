@@ -83,6 +83,48 @@ export function Desk({
     }
   }, [sceneId, notify, reload, onChanged]);
 
+  /**
+   * Knytter et navn, der allerede står i prosaen, til den post, det hører til.
+   *
+   * Panelet kan pege; knappen er forfatterens ja. Det eneste, der sker, er at
+   * ordene får et mærke — ikke ét bogstav i manuskriptet bliver et andet.
+   */
+  const linkGap = useCallback(async (gap: {
+    targetKind: string; targetId: string; code: string; label: string;
+    group: string; href: string | null; phrase: string;
+  }) => {
+    const result = await prose.current?.anchorPhrase(gap.phrase, {
+      kind: gap.targetKind as AnchorTarget['kind'], id: gap.targetId,
+      code: gap.code, label: gap.label, group: gap.group, href: gap.href,
+    });
+    if (result !== 'ok') {
+      notify({
+        text: `«${gap.phrase}» står ikke længere frit i teksten, så der er ikke noget at knytte.`,
+        bad: true,
+      });
+    }
+  }, [notify]);
+
+  /**
+   * Opretter posten, men knytter den ikke.
+   *
+   * Koden uddeles først, når turen lukker, så omtalen ville skulle sættes i
+   * blinde. Navnet flytter i stedet op i listen ovenfor, hvor det kan knyttes
+   * med det rigtige P- eller S-nummer.
+   */
+  const createFromProse = useCallback(async (
+    name: string, kind: 'person' | 'place' | 'object',
+  ) => {
+    try {
+      await call('entity.create', { name, kind });
+      notify({ text: `«${name}» er oprettet. Knyt den nu, hvor den står i teksten.` });
+      reload();
+      onChanged();
+    } catch (error) {
+      notify({ text: error instanceof Error ? error.message : String(error), bad: true });
+    }
+  }, [notify, reload, onChanged]);
+
   const prune = useCallback((markIds: string[]) => {
     if (!sceneId) return;
     void call('anchor.prune', { sceneId, markIds }).then((r) => {
@@ -271,6 +313,12 @@ export function Desk({
           </button>
           <button aria-current={tab === 'anchors'} onClick={() => setTab('anchors')}>
             Ankre<span className="count">{desk.anchors.length}</span>
+            {/* Tallet er ankrene. Plusset er det, der venter på at blive knyttet. */}
+            {desk.gaps.unlinked.length + desk.gaps.unknown.length > 0 && (
+              <span className="count">
+                +{desk.gaps.unlinked.length + desk.gaps.unknown.length}
+              </span>
+            )}
           </button>
           <button aria-current={tab === 'margin'} onClick={() => setTab('margin')}>
             Margen<span className="count">{desk.suggestions.filter((s) => s.status === 'open').length}</span>
@@ -333,7 +381,8 @@ export function Desk({
 
         {tab === 'anchors' && (
           <div className="panel-body">
-            {desk.anchors.length === 0 && (
+            {desk.anchors.length === 0
+              && desk.gaps.unlinked.length === 0 && desk.gaps.unknown.length === 0 && (
               <p className="empty">
                 Ingen ankre endnu. Markér en passage i teksten og knyt den til det, den udtrykker.
               </p>
@@ -349,6 +398,55 @@ export function Desk({
                 {a.href && <a className="small" href={`#${a.href}`}>Åbn kortet →</a>}
               </div>
             ))}
+
+            {desk.gaps.unlinked.length > 0 && (
+              <>
+                <h4 className="panel-head">Nævnt uden omtale</h4>
+                {desk.gaps.unlinked.map((g) => (
+                  <div key={`${g.targetKind}:${g.targetId}`} className="know">
+                    <div className="dim small">
+                      <span className="reference-code">{g.code}</span>
+                      {g.label}
+                      {g.count > 1 && <span className="chip quiet">{g.count} steder</span>}
+                    </div>
+                    <div className="excerpt">«{g.phrase}»</div>
+                    <div className="margin-actions">
+                      <button className="btn" onClick={() => void linkGap(g)}>
+                        Knyt her
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
+
+            {desk.gaps.unknown.length > 0 && (
+              <>
+                <h4 className="panel-head">Ingen post svarer til navnet</h4>
+                {/* Ikke en fejl. En forbipasserende behøver ingen post; det er
+                    forfatteren, der afgør, hvornår et navn er en person. */}
+                {desk.gaps.unknown.map((u) => (
+                  <div key={u.phrase} className="know">
+                    <div>
+                      {u.phrase}
+                      {u.count > 1 && <span className="chip quiet">{u.count} steder</span>}
+                    </div>
+                    <div className="margin-actions">
+                      <span className="dim small">Opret som</span>
+                      <button className="btn" onClick={() => void createFromProse(u.phrase, 'person')}>
+                        person
+                      </button>
+                      <button className="btn" onClick={() => void createFromProse(u.phrase, 'place')}>
+                        sted
+                      </button>
+                      <button className="btn" onClick={() => void createFromProse(u.phrase, 'object')}>
+                        genstand
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
           </div>
         )}
 

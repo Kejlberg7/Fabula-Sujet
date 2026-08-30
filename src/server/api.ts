@@ -13,6 +13,7 @@ import { bandView } from '../core/queries/band';
 import { compareTwists, twistReadings } from '../core/queries/dramaturgy';
 import { readBindings } from '../core/queries/bindings';
 import { manuscriptPacket } from '../core/queries/manuscript';
+import { proseGaps } from '../core/queries/proseGaps';
 import { sourceShelf } from '../core/queries/sources';
 import { knowledgeTrack } from '../core/queries/track';
 import { whoKnewWhat } from '../core/queries/knowledge';
@@ -710,6 +711,10 @@ export function createApi(store: Store) {
       scenesInScope(store, ctx(), input),
 
     'review.runs': (input: { limit?: number }) => reviewRuns(store, ctx(), input ?? {}),
+
+    /** Names standing in the prose that no mention answers for. Reads only. */
+    'review.gaps': (input: { kind: ScopeKind; id: string }) =>
+      proseGaps(store, ctx(), input),
 
     'review.start': (input: { kind: ScopeKind; id: string }) =>
       bench.run({ actor, summary: 'Start gennemlæsning' }, (session, c) =>

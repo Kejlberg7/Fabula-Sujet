@@ -3,6 +3,7 @@ import { openFindings, review } from '../../core/review';
 import { RULES } from '../../core/rules';
 import { dismissFinding, revokeDismissal } from '../../core/services/findings';
 import { manuscriptPacket } from '../../core/queries/manuscript';
+import { proseGaps } from '../../core/queries/proseGaps';
 import { createSuggestion, decideSuggestion, suggestionsFor } from '../../core/services/suggestions';
 import {
   currentText, finishReviewRun, reviewRuns, startReviewRun, type ScopeKind,
@@ -159,6 +160,17 @@ export const reviewTools: ToolDef[] = [
           + (s.stale ? '\n      (skrevet til en tidligere version af scenen)' : '')).join('\n')
         : '  (ingen)';
       const version = currentText(tools.store, ctx, sc.id);
+      // Navne, prosaen bruger, som bibelen ikke svarer for. Det står her, fordi
+      // det er her, man opdager det: mens man læser scenen, ikke bagefter.
+      const found = proseGaps(tools.store, ctx, { kind: 'scene', id: sc.id })[0];
+      const gaps = [
+        ...(found?.unlinked ?? []).map((u) =>
+          `  · ${u.code} ${u.label} — står som «${u.phrase}»`
+          + (u.count > 1 ? ` ${u.count} gange` : '')),
+        ...(found?.unknown ?? []).map((u) =>
+          `  · «${u.phrase}» — ingen post svarer til navnet`
+          + (u.count > 1 ? ` (${u.count} steder)` : '')),
+      ];
       return [
         `${packet.scene.chapterTitle} · ${packet.scene.title ?? '(uden titel)'}`,
         `POV: ${packet.pov?.name ?? '(ingen)'}${packet.pov?.legLabel ? ` · ${packet.pov.legLabel}` : ''}`,
@@ -171,6 +183,9 @@ export const reviewTools: ToolDef[] = [
         '', 'KILDEHENVISNINGER (kun vist, ikke læst)', sources,
         '', 'ANKRE I PROSAEN (mærke-id, som en note kan hænges på)', anchors,
         '', 'MARGINNOTER', notes,
+        ...(gaps.length > 0
+          ? ['', 'NAVNE UDEN KOBLING (kun forfatteren kan sætte omtalen)', ...gaps]
+          : []),
         '', 'Skriv kun margennoter. Ret aldrig prosaen som en del af gennemgangen.',
       ].join('\n');
     },
@@ -324,6 +339,51 @@ export const reviewTools: ToolDef[] = [
         run.summary ? `  «${run.summary}»` : '',
         `  ${run.id}`,
       ].filter(Boolean).join('\n')).join('\n\n');
+    },
+  }),
+
+  defineTool({
+    name: 'vis_navne_uden_kobling',
+    title: 'Vis navne uden kobling',
+    description:
+      'Finder navne, der står i prosaen uden at hænge sammen med bibelen. To slags, og de '
+      + 'er ikke det samme problem: en person, et sted eller en genstand, der har en post, '
+      + 'men som ingen omtale i scenen peger på — den er ét klik fra at være knyttet — og '
+      + 'et navn, ingen post svarer til, som er en beslutning, forfatteren ikke har taget '
+      + 'endnu. Ingen af delene er en fejl, og der findes ingen vej herfra til at skrive i '
+      + 'prosaen: en omtale sættes kun af forfatteren selv i editoren. Skriv i stedet en '
+      + 'margennote om det, der er værd at tage stilling til.',
+    inputSchema: {
+      omfang: z.enum(['scene', 'kapitel', 'bog', 'serie']),
+      hvad: z.string().describe('Scenen, kapitlet, bogen eller serien — id eller navn'),
+    },
+    run: (args, tools) => {
+      const ctx = tools.bench.context();
+      const kind = SCOPE[args.omfang]!;
+      const id = kind === 'scene' ? resolveScene(tools.store, ctx, args.hvad).id
+        : kind === 'chapter' ? resolveChapter(tools.store, ctx, args.hvad).id
+          : kind === 'work' ? resolveWork(tools.store, ctx, args.hvad).id
+            : resolveSeries(tools.store, ctx, args.hvad).id;
+      const gaps = proseGaps(tools.store, ctx, { kind, id });
+      if (gaps.length === 0) {
+        return `Hvert navn i prosaen i ${SCOPE_DA[kind]} har en omtale, der peger på det.`;
+      }
+      const blocks = gaps.map((g) => [
+        `${g.workTitle} · ${g.chapterTitle} · ${g.title ?? '(uden titel)'}`
+        + `  (${count(g.linked, 'omtale', 'omtaler')} i forvejen)`,
+        ...g.unlinked.map((u) =>
+          `  uden kobling: ${u.code} ${u.label} — står som «${u.phrase}»`
+          + (u.count > 1 ? ` ${u.count} gange` : '')),
+        ...(g.unknown.length > 0
+          ? [`  ingen post: ${g.unknown.map((u) =>
+            `«${u.phrase}»${u.count > 1 ? ` (${u.count})` : ''}`).join(', ')}`]
+          : []),
+        `  ${g.sceneId}`,
+      ].join('\n'));
+      return [
+        `${count(gaps.length, 'scene', 'scener')} har navne uden kobling.`,
+        ...blocks,
+      ].join('\n\n');
     },
   }),
 

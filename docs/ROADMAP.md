@@ -35,14 +35,14 @@ Prosaen og bibelen bindes rigtigt sammen.
 
 ## Fase 10 — Prosaen kontrolleres mod bibelen
 
-**Status: i gang.** Den versionsbundne gennemlæsning er implementeret og
-browserprøvet 30. august 2026. Resten står nedenfor.
+**Status: i gang.** Den versionsbundne gennemlæsning og navnene uden kobling er
+implementeret og browserprøvet 30. august 2026. Resten står nedenfor.
 
 - ~~Gennemgå scene, kapitel, bog eller serie.~~
 - ~~En gennemgang husker hvilken tekstversion den gælder og bliver markeret som
   forældet, når scenen ændres.~~
-- Find personer, steder, genstande og events, der kun findes i prosaen.
-- Foreslå kobling til en eksisterende post eller oprettelse af en ny.
+- ~~Find personer, steder, genstande og events, der kun findes i prosaen.~~
+- ~~Foreslå kobling til en eksisterende post eller oprettelse af en ny.~~
 - Sammenlign omtaler med tilstedeværelse, besiddelse, genstandstilstand,
   POV-viden, identitet, navnekendskab, love og kronologi.
 - Forslag lander i margenen og ændrer aldrig prosa uden forfatterens klik.

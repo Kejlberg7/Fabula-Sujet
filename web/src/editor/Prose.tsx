@@ -30,6 +30,18 @@ export interface ProseHandle {
     text: string,
     commit: (doc: unknown, markdown: string) => Promise<void>,
   ): Promise<'ok' | 'missing'>;
+
+  /**
+   * Turn words already standing in the prose into a mention.
+   *
+   * The panel beside the text may notice that a name has no mention, but it may
+   * not act on it -- this runs because the writer pressed the button, and it
+   * only ever adds a mark. Not one letter of the manuscript changes.
+   *
+   * Returns `missing` when the words are no longer there, or are already inside
+   * another mention: better to say so than to mark the wrong sentence.
+   */
+  anchorPhrase(phrase: string, target: AnchorTarget): Promise<'ok' | 'missing'>;
 }
 
 /**
@@ -281,7 +293,35 @@ export function Prose({
       // og en oprydning her ville lægge sig som en tom tur oven på gemningen.
       return 'ok';
     },
-  }), [editor]);
+
+    async anchorPhrase(phrase, target) {
+      if (!editor || !phrase) return 'missing';
+      let hit: { from: number; to: number } | undefined;
+      editor.state.doc.descendants((node, pos) => {
+        if (hit) return false;
+        if (!node.isText || !node.text) return true;
+        // Et ord, der allerede ligger i en omtale, er ikke ledigt.
+        if (node.marks.some((m) => m.type.name === 'anchor')) return false;
+        const at = node.text.indexOf(phrase);
+        if (at === -1) return true;
+        hit = { from: pos + at, to: pos + at + phrase.length };
+        return false;
+      });
+      if (!hit) return 'missing';
+
+      const markId = crypto.randomUUID();
+      editor.chain().focus().setTextSelection(hit)
+        .setMark('anchor', {
+          markId, kind: target.kind, label: target.label,
+          code: target.code, targetId: target.id,
+        })
+        .setTextSelection(hit.to)
+        .run();
+      await onAnchor(target, markId, phrase);
+      void flush(editor);
+      return 'ok';
+    },
+  }), [editor, onAnchor, flush]);
 
   // Leaving the scene, or the page, must not cost the last sentence.
   useEffect(() => () => {

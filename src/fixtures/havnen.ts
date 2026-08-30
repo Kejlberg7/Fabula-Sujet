@@ -524,6 +524,10 @@ export function loadHavnen(store: Store): {
             title: 'Valdemar forklarer sig', event: inquest, pov: valdemar,
             reveals: [{ factId: scuttled.factId, strength: 'implied' }],
             prose: [
+              // Skibet har et navn i prosaen og ingen post i bibelen. Det er
+              // det, «ingen post svarer til navnet» er til for at opdage.
+              'Retsskriveren skrev skibets navn øverst på siden: Marie Krag. '
+              + 'Han så på bogstaverne og lod være med at læse dem.',
               'Han sagde sandheden om vejret, og han sagde den grundigt, for den kostede ham ingenting. Kulingen havde lagt sig ved firetiden. Det stod i journalen, og enhver kunne slå det op.',
               'Om alt det andet sagde han, at han ikke havde været om bord. Det var også sandt. Han havde regnet med, at de to sætninger ville stå ved siden af hinanden og se ens ud.',
             ],

@@ -6,6 +6,7 @@ import {
 } from '../../db/schema';
 import type { Context } from '../workbench';
 import { referenceCatalog } from './references';
+import { proseGaps, type UnknownName, type UnlinkedName } from './proseGaps';
 import { lawsLifting } from '../laws/consult';
 import { personalTimeOf, whoKnewWhat, type KnowledgeItem } from './knowledge';
 import { whatReaderKnows, type ReaderFact } from './reader';
@@ -98,6 +99,14 @@ export interface DeskResult {
     excerpt: string | null;
     broken: boolean;
   }[];
+  /**
+   * Names the prose uses that no mention in this scene answers for.
+   *
+   * It sits beside the anchors because that is where it gets fixed: the writer
+   * marks the words and picks the target, exactly as they would have while
+   * writing. The panel can point; only the click in the editor may write.
+   */
+  gaps: { unlinked: UnlinkedName[]; unknown: UnknownName[] };
   leaks: Leak[];
   /**
    * What would have been reported, had a law not allowed it. Kept apart rather
@@ -373,6 +382,10 @@ export function sceneDesk(store: Store, ctx: Context, query: { sceneId: string }
         broken: addressed ? !addressed.exists : fallback === a.targetId,
       };
     }),
+    gaps: (() => {
+      const found = proseGaps(store, ctx, { kind: 'scene', id: query.sceneId })[0];
+      return { unlinked: found?.unlinked ?? [], unknown: found?.unknown ?? [] };
+    })(),
     leaks: leaks.filter((l) => !l.lifted),
     lifted: leaks.filter((l) => l.lifted),
   };
