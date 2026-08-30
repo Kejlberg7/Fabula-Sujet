@@ -4,14 +4,37 @@ Sidst opdateret: 30. august 2026
 
 ## Aktiv fase
 
-**Fase 10 — Prosaen kontrolleres mod bibelen.** Næste aktive fase; endnu ikke
-implementeret. Fase 9 er færdig og verificeret.
+**Fase 10 — Prosaen kontrolleres mod bibelen.** I gang. Første snit — den
+versionsbundne gennemlæsning — er implementeret, prøvet og browserprøvet.
 
-Fase 0–9 er færdige. Fase 9 begyndte med plan/status i `424e4bc` og fik sit
-første gennemtestede referencecheckpoint i `8ce4e26`. Den aftalte videre plan
-ligger i `docs/ROADMAP.md`.
+Fase 0–9 er færdige. Den aftalte videre plan ligger i `docs/ROADMAP.md`.
 
-## Færdigt i denne fase
+## Færdigt i fase 10 indtil nu
+
+- `review_run` og `review_scene` findes, migration 0008 er skrevet og prøvet mod
+  en kopi af den rigtige database. Journalens tidsstempel blev sat til
+  1790000004000: migratoren springer alt over, der er ældre end det sidst kørte,
+  så en genereret nutidsdato ville have gjort migrationen usynlig.
+- En gennemlæsning åbnes på scene, kapitel, bog eller serie og skriver ned,
+  hvilken `scene_text`-version hver scene stod i. Serien læses bind for bind i
+  læserækkefølge.
+- `suggestion` har `run_id` og `text_id`. Stemplet læses ved oprettelsen, ikke
+  af den, der kalder: en note handler om det, der står i scenen, når den skrives.
+- `suggestionsFor` giver `stale`. Mærket er en oplysning, ikke en lås — prosa
+  gemmes, mens man skriver, så en lås ville lukke hele margenen.
+- MCP: `start_gennemlaesning`, `afslut_gennemlaesning`, `vis_gennemlaesninger`.
+  `tilfoej_margennote` tager `gennemlaesning_id`. `vis_scene_til_gennemgang`
+  viser versionen, og både den og `vis_margennoter` skriver, når en note er
+  skrevet til en tidligere version.
+- API: `review.scope`, `review.runs`, `review.start`, `review.finish`.
+- UI: Gennemgangen har en Gennemlæsninger-sektion, og margennoter får mærket
+  «tidligere version». Der er med vilje ingen knap til at starte en læsning —
+  det er Claude, der læser.
+- Havnen har en afsluttet gennemlæsning af første bind med margennoten hængt på
+  sig. Den ligger efter omtalerne i indlæsningen, ellers ville prøvecasen blive
+  født forældet.
+
+## Færdigt i fase 9
 
 - Roadmap og denne overdragelsesfil er oprettet.
 - `CLAUDE.md` kræver, at begge læses før nyt arbejde.
@@ -59,11 +82,15 @@ intet at se og intet at klikke på.
 
 ## I gang nu
 
-- Ingen halv implementering står åben. Næste konkrete arbejde er første snit af
+- Ingen halv implementering står åben. Næste konkrete arbejde er andet snit af
   fase 10 nedenfor.
 
 ## Beslutninger
 
+- En gennemlæsning er bundet til den version, den læste. Uden det kan en gammel
+  læsning ikke skelnes fra en aktuel.
+- «Forældet» er en oplysning, ikke en spærring. Prosa gemmes, mens man skriver.
+- Interfacet starter ikke en gennemlæsning. Det er Claude, der læser prosaen.
 - En referencekode er et arbejdsredskab, ikke en del af bogens ordlyd.
 - Omdøbning af et mål må ikke omskrive prosa.
 - En slettet reference skal stå som brudt; den må ikke forsvinde tavst.
@@ -71,21 +98,28 @@ intet at se og intet at klikke på.
 
 ## Verificering
 
-- 199/199 prøver er grønne.
+- 212/212 prøver er grønne.
 - Typecheck og produktionsbuild er rene. Vite gentager den kendte advarsel om
   en JavaScript-chunk over 500 kB; det er ikke en buildfejl.
 - Migration 0007 er prøvet mod en kopi af den eksisterende database. Prøven
   fandt og rettede migrationsjournalens fremskudte tidsstempler.
+- Browserprøvet på en kopi af den rigtige database: en rettelse i «Vandet står
+  ind» giver margennoten mærket «tidligere version», og Gennemgangen skifter fra
+  «ingen af scenerne er skrevet om siden» til «1 af scenerne».
 - Browserprøven er grøn. Forslagmenuens placering er også kontrolleret visuelt
   i den smalle trekolonnevisning.
 
 ## Næste konkrete handling
 
-Begynd fase 10 med en versionsbundet gennemgangskørsel: en gennemgang skal kende
-den konkrete `scene_text`-version, omfatte scene/kapitel/bog/serie og kunne
-markere sine margennoter som forældede efter næste prosagemning. Derefter kan
-koblingsforslag og kontinuitetstjek bygges ovenpå uden at give MCP en vej til at
-skrive prosa.
+Fase 10, andet snit: find det, der kun står i prosaen. En scenes tekst
+sammenholdes med de omtaler, den bærer — er der navngivet en person, et sted
+eller en genstand, som ingen omtale peger på, skal gennemlæsningen kunne
+foreslå enten en kobling til en eksisterende post eller en ny post. Forslaget
+lander i margenen som alt andet, og MCP får stadig ingen vej til at skrive prosa.
+
+Derefter tredje snit: sammenhold de knyttede omtaler med tilstedeværelse,
+besiddelse, genstandstilstand, POV-viden, identitet, navnekendskab, love og
+kronologi.
 
 ## Åbne risici
 

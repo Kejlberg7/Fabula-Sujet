@@ -6,7 +6,7 @@ og hvornår de **fortælles**.
 
 ## Status
 
-**Fase 0 til 9 er færdige.** Datamodellen, tidsløseren, ændringsloggen og
+**Fase 0 til 9 er færdige, og fase 10 er begyndt.** Datamodellen, tidsløseren, ændringsloggen og
 MCP-serveren står; oven på dem et interface med værkvælger, tidslinje, lister og
 historik, et skrivebord hvor prosaen bliver til med bibelen åben ved siden af —
 og en motor, der siger fra, når noget ikke kan lade sig gøre. Fortællelaget
@@ -15,11 +15,12 @@ lægge manuskriptforslag i margenen uden at røre prosaen. Kontinuitetslaget fø
 desuden genstande, relationer, identiteter, forsvindinger, setups og researchkilder,
 og kildehylden viser, hvad hver kilde faktisk holder oppe. Prosa og bibel er nu
 bundet sammen med stabile arbejdsreferencer, der kan skrives som `@G1` og vises
-som det naturlige navn på siden.
+som det naturlige navn på siden. Og en gennemlæsning af manuskriptet ved nu,
+hvilken version af hver scene den faktisk læste.
 
 ```bash
 npm install
-npm test                              # 199 prøver
+npm test                              # 212 prøver
 npm run fixtures -- ./fabula.db       # læg de fire prøvecases ind
 npm run build && npm run dev          # interfacet på http://localhost:4173
 npm run ask -- ./fabula.db hent_kontekst
@@ -340,12 +341,50 @@ afviser at gemme en tekst, der ikke indeholder den foreslåede formulering, så 
 gemning kan ikke rejse ind under en notes navn. Er passagen skrevet om, siden
 noten blev lagt, siger den det frem for at gætte, hvor sætningen sad.
 
+### Gennemlæsningen
+
+En gennemgang er motoren, der regner. En **gennemlæsning** er nogen, der læser.
+De to hører sammen i den samme skærm, fordi de svarer på det samme spørgsmål —
+hvad er der set efter — men på hver sin akse.
+
+En gennemlæsning åbnes på en scene, et kapitel, en bog eller en hel serie, og
+den skriver ned, præcis hvilken version af prosaen hver scene stod i:
+
+```
+Gennemlæsning af serien «Krag» er åbnet. (id: 9yvh59ba2nw8pkhq)
+16 scener.
+
+    1. Saltet · Aftalen · Sundvej, september — 42 ord, version pytn1182dxnw6p0r
+    2. Saltet · Aftalen · Ingeborg tæller ugerne — 58 ord, version 3rn1x22p9s9zdgq3
+    3. Saltet · Natten ved Fyret · Vandet står ind — 58 ord, version svsg9rhftkrgevy3
+   …
+   16. Tidevandet · Sundvej, tres år efter · Ellen bliver stående — 65 ord
+```
+
+Det er ikke bogholderi. Uden versionen kan en læsning fra i går ikke skelnes fra
+en, der handler om det, der står nu — og en margennote om et afsnit, der siden er
+skrevet om, ser ud som om den stadig gælder. Hver note bærer derfor den version,
+den blev skrevet til, og siger **tidligere version**, når scenen er gemt igen.
+
+Mærket er en oplysning, ikke en lås. Prosa gemmes, mens du skriver, så en note er
+forældet et minut efter den blev skrevet; at nægte at handle på den ville lukke
+hele margenen. Det, mærket ændrer, er hvad noten påstår om sig selv.
+
+Oversigten siger det samme om hele læsningen: *ni scener, én margennote, én af
+scenerne er skrevet om siden.* Er alle scener skrevet om, siger læsningen ikke
+længere noget om bogen, og så skal den ikke stå som om den gør.
+
+Der er ingen knap til at starte en gennemlæsning i interfacet. Det er Claude, der
+læser prosaen; en tom læsning uden nogen til at skrive noterne ville kun være en
+dato.
+
 ## Næste skridt
 
-**Fase 10:** gennemgå prosaen mod bibelen. Omtaler, der endnu ikke er knyttet,
-skal kunne foreslås som eksisterende eller nye poster, og de knyttede omtaler
-skal sammenholdes med tid, sted, viden, identitet, besiddelse og love. Resultatet
-lander i margenen og ændrer aldrig prosaen af sig selv.
+**Fase 10, resten:** den versionsbundne gennemlæsning står. Tilbage står selve
+kontrollen: omtaler, der endnu ikke er knyttet, skal kunne foreslås som
+eksisterende eller nye poster, og de knyttede omtaler skal sammenholdes med tid,
+sted, viden, identitet, besiddelse og love. Resultatet lander i margenen og
+ændrer aldrig prosaen af sig selv.
 
 **Kendt grænse:** en plottråd hører til én bog (`thread.work_id`), så et setup i
 bind et og en indfrielse i bind to kan ikke skrives som én tråd. Hver bog må have

@@ -383,6 +383,12 @@ export function Desk({
                   {note.status !== 'open' && (
                     <span className="dim small">{note.status === 'accepted' ? 'fulgt' : 'afvist'}</span>
                   )}
+                  {/*
+                    Ikke en advarsel. Noten er skrevet om en tidligere version af
+                    scenen, og det er alt, mærket siger — den kan stadig være
+                    god, og den kan stadig skrives ind.
+                  */}
+                  {note.stale && <span className="chip quiet">tidligere version</span>}
                 </div>
                 <p>{note.message}</p>
                 {note.proposedText && (

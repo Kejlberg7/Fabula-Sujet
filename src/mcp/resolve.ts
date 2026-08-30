@@ -2,7 +2,8 @@ import { eq } from 'drizzle-orm';
 import type { SQLiteTable } from 'drizzle-orm/sqlite-core';
 import type { Store } from '../db/client';
 import {
-  branch, chapter, entity, event, fact, identity, realm, reveal, scene, source, thread, work, world,
+  branch, chapter, entity, event, fact, identity, realm, reveal, scene, series, source, thread,
+  work, world,
 } from '../db/schema';
 import type { Context } from '../core/workbench';
 import { referenceByCode } from '../core/queries/references';
@@ -102,6 +103,12 @@ export function resolveRealm(store: Store, ctx: Context, needle: string) {
 
 export function resolveWork(store: Store, ctx: Context, needle: string) {
   return pick(rowsIn(store, work, work.branchId as never, ctx.branchId), needle, (r) => r.title, 'værk');
+}
+
+/** A series belongs to the world, not to a branch: the volumes branch, the shelf does not. */
+export function resolveSeries(store: Store, ctx: Context, needle: string) {
+  const rows = store.db.select().from(series).where(eq(series.worldId, ctx.worldId)).all();
+  return pick(rows, needle, (r) => r.name, 'serie');
 }
 
 export function resolveChapter(store: Store, ctx: Context, needle: string) {

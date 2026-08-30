@@ -34,6 +34,9 @@ import { openFindings, review } from '../core/review';
 import { RULES } from '../core/rules';
 import { dismissFinding, revokeDismissal } from '../core/services/findings';
 import {
+  finishReviewRun, reviewRuns, scenesInScope, startReviewRun, type ScopeKind,
+} from '../core/services/reviews';
+import {
   applySuggestion, createSuggestion, decideSuggestion, suggestionsFor,
 } from '../core/services/suggestions';
 import { solveTime } from '../core/solve';
@@ -692,9 +695,29 @@ export function createApi(store: Store) {
     'suggestion.create': (input: {
       sceneId: string; markId?: string;
       kind: 'continuity' | 'craft' | 'pacing' | 'research';
-      message: string; proposedText?: string; sourceId?: string;
+      message: string; proposedText?: string; sourceId?: string; runId?: string;
     }) => bench.run({ actor, summary: 'Tilføj margennote' }, (session, c) =>
-      ({ id: createSuggestion(session, c, input) })),
+      ({ id: createSuggestion(session, c, input, store) })),
+
+    /**
+     * The read-through: a review bound to the prose it actually read.
+     *
+     * Reading and commenting only. A run records which version of every scene
+     * it saw, so a months-old reading cannot pass itself off as being about
+     * what stands there now.
+     */
+    'review.scope': (input: { kind: ScopeKind; id: string }) =>
+      scenesInScope(store, ctx(), input),
+
+    'review.runs': (input: { limit?: number }) => reviewRuns(store, ctx(), input ?? {}),
+
+    'review.start': (input: { kind: ScopeKind; id: string }) =>
+      bench.run({ actor, summary: 'Start gennemlæsning' }, (session, c) =>
+        startReviewRun(session, c, store, input)),
+
+    'review.finish': (input: { id: string; summary?: string }) =>
+      bench.run({ actor, summary: 'Afslut gennemlæsning' }, (session, c) =>
+        ({ finished: finishReviewRun(session, c, store, input) })),
 
     'suggestion.decide': (input: {
       id: string; status: 'open' | 'accepted' | 'rejected';

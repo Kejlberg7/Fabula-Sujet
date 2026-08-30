@@ -1,10 +1,20 @@
 import { and, eq } from 'drizzle-orm';
 import type { Store } from '../../db/client';
-import { suggestion } from '../../db/schema';
+import { sceneText, suggestion } from '../../db/schema';
 import type { Session } from '../changelog';
 import type { Context } from '../workbench';
 import { saveSceneText } from './narrative';
+import { currentText } from './reviews';
 
+/**
+ * A note is stamped with the prose version it was written about.
+ *
+ * Without that stamp a remark about a paragraph keeps looking current long
+ * after the paragraph was rewritten, and the writer has to remember which
+ * advice was given about which draft. The stamp is read at creation, not
+ * passed in: a note is about what stands in the scene when it is written, and
+ * nothing else may claim otherwise.
+ */
 export function createSuggestion(
   session: Session,
   ctx: Context,
@@ -15,7 +25,9 @@ export function createSuggestion(
     message: string;
     proposedText?: string;
     sourceId?: string;
+    runId?: string;
   },
+  store: Store,
 ): string {
   if (!input.message.trim()) throw new Error('En margennote skal sige noget.');
   return session.insert(suggestion, {
@@ -23,6 +35,8 @@ export function createSuggestion(
     kind: input.kind, message: input.message.trim(),
     proposedText: input.proposedText?.trim() || null,
     sourceId: input.sourceId ?? null, status: 'open', createdAt: new Date(),
+    runId: input.runId ?? null,
+    textId: currentText(store, ctx, input.sceneId)?.id ?? null,
   })['id'] as string;
 }
 
@@ -98,14 +112,33 @@ export function applySuggestion(
   return { sceneId: row.sceneId, textId };
 }
 
+/**
+ * `stale` says the scene has been saved again since the note was written.
+ *
+ * It is a caveat, not a lock. Prose saves as you type, so almost every note is
+ * stale within a minute of being written, and refusing to act on one would
+ * leave the whole margin dead. What it changes is what the note claims: it is
+ * a remark about words that no longer stand exactly like that, and it says so
+ * rather than presenting itself as current. Notes older than the version stamp
+ * report `stale: false` -- unknown is not the same as unchanged, and guessing
+ * would be worse than saying nothing.
+ */
 export function suggestionsFor(
   store: Store,
   ctx: Context,
   input: { sceneId?: string; status?: 'open' | 'accepted' | 'rejected' },
 ) {
+  const standing = new Map(store.db.select().from(sceneText)
+    .where(eq(sceneText.branchId, ctx.branchId)).all()
+    .filter((row) => row.isCurrent)
+    .map((row) => [row.sceneId, row.id]));
   return store.db.select().from(suggestion)
     .where(eq(suggestion.branchId, ctx.branchId)).all()
     .filter((s) => !input.sceneId || s.sceneId === input.sceneId)
     .filter((s) => !input.status || s.status === input.status)
-    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+    .map((s) => ({
+      ...s,
+      stale: s.textId != null && standing.get(s.sceneId) !== s.textId,
+    }));
 }

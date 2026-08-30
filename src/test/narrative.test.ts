@@ -101,7 +101,7 @@ describe('Fortællelaget', () => {
       noteId = createSuggestion(s, ctx, {
         sceneId: sc.id, kind: 'continuity', message: 'Tjek telefonens forbindelse.',
         proposedText: 'Der var ingen tone.',
-      });
+      }, w.store);
     });
     const packet = manuscriptPacket(w.store, ctx, sc.id);
     assert.ok(packet.laws.some((item) => item.statement.includes('Telefoner')));

@@ -57,6 +57,57 @@ export const dismissal = sqliteTable('dismissal', {
 }));
 
 /**
+ * One pass of the manuscript review, bound to the prose it actually read.
+ *
+ * A read-through is only worth keeping if you can tell later what it looked at.
+ * A note about a paragraph that has since been rewritten is not wrong -- it is
+ * stale, which is a different thing and has to look different. So the run
+ * records the exact `scene_text` version of every scene in its scope, and every
+ * note carries the version it was written against.
+ *
+ * The scope is scene, chapter, work or series. A series is included because a
+ * saga's second volume is reviewed against what the reader brought with them
+ * from the first, and that cannot be seen one book at a time.
+ */
+export const reviewRun = sqliteTable('review_run', {
+  id: pk(),
+  branchId: branchId(),
+  scopeKind: text('scope_kind', {
+    enum: ['scene', 'chapter', 'work', 'series'],
+  }).notNull(),
+  scopeId: text('scope_id').notNull(),
+  /** What the scope was called when it was read. Titles change; this does not. */
+  scopeLabel: text('scope_label').notNull(),
+  createdAt: createdAt(),
+  finishedAt: integer('finished_at', { mode: 'timestamp_ms' }),
+  /** What the reviewer said when they closed it. */
+  summary: text('summary'),
+}, (t) => ({
+  byBranch: index('review_run_branch_idx').on(t.branchId, t.createdAt),
+}));
+
+/**
+ * One scene as one run found it.
+ *
+ * `text_id` is the whole point: it pins the run to a version rather than to a
+ * scene. Null means the scene had no prose yet, which is worth recording --
+ * a read-through that skipped a scene and one that found it empty are not the
+ * same report.
+ */
+export const reviewScene = sqliteTable('review_scene', {
+  id: pk(),
+  branchId: branchId(),
+  runId: text('run_id').notNull().references(() => reviewRun.id),
+  sceneId: text('scene_id').notNull(),
+  textId: text('text_id'),
+  /** Reading order within the run, so a report can be read as one pass. */
+  position: integer('position').notNull(),
+}, (t) => ({
+  byRun: index('review_scene_run_idx').on(t.runId, t.position),
+  uniqueScene: unique('review_scene_unique').on(t.runId, t.sceneId),
+}));
+
+/**
  * A suggestion from the manuscript review -- a continuity remark, or an idea for
  * what would serve the reader better given what the reader already knows.
  *
@@ -74,6 +125,17 @@ export const suggestion = sqliteTable('suggestion', {
   /** The concrete wording offered, if any. Inert until accepted. */
   proposedText: text('proposed_text'),
   sourceId: text('source_id'),
+  /** The read-through that wrote the note, when it came from one. */
+  runId: text('run_id'),
+  /**
+   * The prose version the note was written about.
+   *
+   * When the scene is saved again the note is stale: still readable, still the
+   * writer's to keep or drop, but no longer about what stands there now. It is
+   * never cleared and never re-pointed -- a note that quietly became current
+   * again would be a note about words nobody read.
+   */
+  textId: text('text_id'),
   status: text('status', {
     enum: ['open', 'accepted', 'rejected'],
   }).notNull().default('open'),

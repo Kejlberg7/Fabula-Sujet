@@ -52,6 +52,11 @@ decisions, verification already run, and the next concrete action.
   Grebet siger, om det er noget værd — og en karakter kan hverken diskuteres
   eller handles på. En aflæsning nævner altid de scener, den kommer af, og tier,
   når der ikke er noget at regne på. Se `src/core/queries/dramaturgy.ts`.
+- **A read-through is bound to the version it read.** `review_run` records the
+  exact `scene_text` of every scene in its scope, and every margin note carries
+  the version it was written about. A note whose scene has been saved since is
+  *stale*, not wrong -- it is marked, never blocked, because prose saves as you
+  type and a lock would close the whole margin.
 - **Only report what cannot be arranged otherwise.** A vague date can be placed
   anywhere in its interval; if any placement is consistent, there is nothing
   wrong — the writer has not decided yet. Every rule in `src/core/rules/` proves
@@ -63,7 +68,7 @@ Node 20 (`.nvmrc`). The shell may default to an older nvm version — check
 `node -v` before running anything.
 
 ```bash
-npm test                            # 199 prøver
+npm test                            # 212 prøver
 npm run fixtures -- ./fabula.db     # Memento, Predestination, Inception, Havnen
 npm run build && npm run dev        # interface on :4173
 npm run ask -- ./fabula.db hent_kontekst

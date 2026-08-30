@@ -4,8 +4,22 @@ import { RULES } from '../../core/rules';
 import { dismissFinding, revokeDismissal } from '../../core/services/findings';
 import { manuscriptPacket } from '../../core/queries/manuscript';
 import { createSuggestion, decideSuggestion, suggestionsFor } from '../../core/services/suggestions';
+import {
+  currentText, finishReviewRun, reviewRuns, startReviewRun, type ScopeKind,
+} from '../../core/services/reviews';
 import { defineTool, write, type ToolDef } from '../kit';
-import { resolveScene } from '../resolve';
+import { resolveChapter, resolveScene, resolveSeries, resolveWork } from '../resolve';
+
+const SCOPE: Record<string, ScopeKind> = {
+  scene: 'scene', kapitel: 'chapter', bog: 'work', serie: 'series',
+};
+
+const SCOPE_DA: Record<ScopeKind, string> = {
+  scene: 'scenen', chapter: 'kapitlet', work: 'bogen', series: 'serien',
+};
+
+/** «1 note», «2 noter». Et tal med den forkerte endelse læses som en fejl. */
+const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
 const MARK: Record<string, string> = { error: '✗', warning: '!', note: '·' };
 
@@ -137,13 +151,21 @@ export const reviewTools: ToolDef[] = [
         ? packet.anchors.map((a) =>
           `  · ${a.markId} — ${a.targetLabel}${a.excerpt ? `: «${a.excerpt}»` : ''}`).join('\n')
         : '  (ingen — så kan et tekstforslag ikke placeres)';
+      // En note, der blev skrevet til en tidligere version, er ikke forkert —
+      // den handler bare ikke om de ord, der står her nu. Det skal kunne ses.
       const notes = packet.suggestions.length
-        ? packet.suggestions.map((s) => `  · [${s.status}/${s.kind}] ${s.message}`).join('\n')
+        ? packet.suggestions.map((s) =>
+          `  · [${s.status}/${s.kind}] ${s.message}`
+          + (s.stale ? '\n      (skrevet til en tidligere version af scenen)' : '')).join('\n')
         : '  (ingen)';
+      const version = currentText(tools.store, ctx, sc.id);
       return [
         `${packet.scene.chapterTitle} · ${packet.scene.title ?? '(uden titel)'}`,
         `POV: ${packet.pov?.name ?? '(ingen)'}${packet.pov?.legLabel ? ` · ${packet.pov.legLabel}` : ''}`,
         `Lag: ${packet.scene.realmName ?? '(ikke valgt)'}`,
+        version
+          ? `Version: ${version.id} · ${version.wordCount ?? 0} ord`
+          : 'Version: (ingen prosa gemt endnu)',
         '', 'PROSA', packet.prose.markdown ?? '(ingen prosa)',
         '', 'GÆLDENDE LOVE', laws,
         '', 'KILDEHENVISNINGER (kun vist, ikke læst)', sources,
@@ -170,6 +192,8 @@ export const reviewTools: ToolDef[] = [
       maerke_id: z.string().optional(),
       foreslaaet_tekst: z.string().optional(),
       kilde_id: z.string().optional(),
+      gennemlaesning_id: z.string().optional()
+        .describe('Den gennemlæsning, noten hører til, hvis den kommer fra en'),
     },
     run: (args, tools) => {
       const { value } = write(tools, 'Tilføj margennote', (session, ctx) =>
@@ -177,7 +201,8 @@ export const reviewTools: ToolDef[] = [
           sceneId: resolveScene(tools.store, ctx, args.scene).id,
           kind: args.slags, message: args.besked, markId: args.maerke_id,
           proposedText: args.foreslaaet_tekst, sourceId: args.kilde_id,
-        }));
+          runId: args.gennemlaesning_id,
+        }, tools.store));
       return `Margennoten er lagt ind uden at ændre prosaen. (id: ${value})`;
     },
   }),
@@ -195,7 +220,10 @@ export const reviewTools: ToolDef[] = [
       const sceneId = args.scene ? resolveScene(tools.store, ctx, args.scene).id : undefined;
       const rows = suggestionsFor(tools.store, ctx, { sceneId, status: args.status });
       return rows.length
-        ? rows.map((s) => `[${s.status}/${s.kind}] ${s.message}${s.proposedText ? `\n  forslag: ${s.proposedText}` : ''}\n  ${s.id}`).join('\n\n')
+        ? rows.map((s) => `[${s.status}/${s.kind}] ${s.message}`
+          + (s.proposedText ? `\n  forslag: ${s.proposedText}` : '')
+          + (s.stale ? '\n  (skrevet til en tidligere version af scenen)' : '')
+          + `\n  ${s.id}`).join('\n\n')
         : 'Der er ingen margennoter med det filter.';
     },
   }),
@@ -216,6 +244,86 @@ export const reviewTools: ToolDef[] = [
       return args.status === 'accepted' ? 'Margennoten er markeret som fulgt; prosaen er urørt.'
         : args.status === 'rejected' ? 'Margennoten er afvist; prosaen er urørt.'
           : 'Margennoten er åbnet igen.';
+    },
+  }),
+
+  defineTool({
+    name: 'start_gennemlaesning',
+    title: 'Start en gennemlæsning',
+    description:
+      'Åbner en gennemlæsning af en scene, et kapitel, en bog eller en hel serie, og skriver '
+      + 'ned præcis hvilken version af prosaen hver scene stod i. Uden det kan en gammel '
+      + 'læsning ikke skelnes fra en, der handler om det, der står nu. Noter, du skriver '
+      + 'undervejs, skal have gennemlaesning_id med, så de hører til den samme læsning. '
+      + 'Gennemlæsningen skriver aldrig i prosaen.',
+    inputSchema: {
+      omfang: z.enum(['scene', 'kapitel', 'bog', 'serie']),
+      hvad: z.string().describe('Scenen, kapitlet, bogen eller serien — id eller navn'),
+    },
+    run: (args, tools) => {
+      const ctx = tools.bench.context();
+      const kind = SCOPE[args.omfang]!;
+      const id = kind === 'scene' ? resolveScene(tools.store, ctx, args.hvad).id
+        : kind === 'chapter' ? resolveChapter(tools.store, ctx, args.hvad).id
+          : kind === 'work' ? resolveWork(tools.store, ctx, args.hvad).id
+            : resolveSeries(tools.store, ctx, args.hvad).id;
+      const { value } = write(tools, 'Start gennemlæsning', (session, c) =>
+        startReviewRun(session, c, tools.store, { kind, id }));
+      const lines = value.scenes.map((sc) =>
+        `  ${String(sc.position).padStart(3)}. ${sc.workTitle} · ${sc.chapterTitle} · `
+        + `${sc.title ?? '(uden titel)'}`
+        + (sc.textId ? ` — ${sc.wordCount ?? 0} ord, version ${sc.textId}` : ' — ingen prosa endnu'));
+      const empty = value.scenes.filter((sc) => sc.textId == null).length;
+      return [
+        `Gennemlæsning af ${SCOPE_DA[kind]} «${value.scopeLabel}» er åbnet. (id: ${value.runId})`,
+        `${count(value.scenes.length, 'scene', 'scener')}`
+        + `${empty ? `, hvoraf ${empty} endnu ikke har prosa` : ''}.`,
+        '', ...lines,
+        '',
+        'Læs dem med vis_scene_til_gennemgang og kommentér med tilfoej_margennote. '
+        + 'Afslut med afslut_gennemlaesning, når du har været hele vejen igennem.',
+      ].join('\n');
+    },
+  }),
+
+  defineTool({
+    name: 'afslut_gennemlaesning',
+    title: 'Afslut en gennemlæsning',
+    description:
+      'Lukker gennemlæsningen og gemmer, hvad den samlet set kom frem til. Læsningen bliver '
+      + 'stående med de versioner, den gjaldt.',
+    inputSchema: { id: z.string(), opsummering: z.string().optional() },
+    run: (args, tools) => {
+      write(tools, 'Afslut gennemlæsning', (session, ctx) =>
+        finishReviewRun(session, ctx, tools.store, { id: args.id, summary: args.opsummering }));
+      return 'Gennemlæsningen er afsluttet.';
+    },
+  }),
+
+  defineTool({
+    name: 'vis_gennemlaesninger',
+    title: 'Vis gennemlæsninger',
+    description:
+      'Hvad der er blevet læst igennem, hvornår, og hvor meget af prosaen der er skrevet om '
+      + 'siden. En læsning, hvis scener alle er skrevet om, siger ikke længere noget om bogen.',
+    inputSchema: { antal: z.number().int().positive().optional() },
+    run: (args, tools) => {
+      const ctx = tools.bench.context();
+      const runs = reviewRuns(tools.store, ctx, { limit: args.antal });
+      if (runs.length === 0) return 'Der er ikke læst noget igennem endnu.';
+      return runs.map((run) => [
+        `${SCOPE_DA[run.scopeKind]} «${run.scopeLabel}» — ${run.createdAt.toLocaleDateString('da-DK')}`
+        + (run.finishedAt ? '' : '  (stadig åben)'),
+        `  ${count(run.scenes, 'scene', 'scener')}, `
+        + `${count(run.notes, 'note', 'noter')} `
+        + `(${run.openNotes === 1 ? '1 åben' : `${run.openNotes} åbne`})`,
+        run.rewritten > 0
+          ? `  ${run.rewritten} af scenerne er skrevet om siden — `
+            + 'så meget af læsningen er forældet'
+          : '  ingen af scenerne er skrevet om siden',
+        run.summary ? `  «${run.summary}»` : '',
+        `  ${run.id}`,
+      ].filter(Boolean).join('\n')).join('\n\n');
     },
   }),
 

@@ -15,6 +15,7 @@ import {
   linkSceneToEvent, saveSceneText,
 } from '../core/services/narrative';
 import { createSuggestion } from '../core/services/suggestions';
+import { finishReviewRun, startReviewRun } from '../core/services/reviews';
 import { createSeries, createWorld, createWork } from '../core/services/world';
 import { Workbench } from '../core/workbench';
 import { markdownOf, paragraphs, type Passage } from './prose';
@@ -68,6 +69,10 @@ export function loadHavnen(store: Store): {
   let seriesId = '';
   let firstWorkId = '';
   let secondWorkId = '';
+  // Gennemlæsningen nedenfor ligger uden for indlæsningsturen, så de to skal
+  // med ud af den.
+  let sinkingScene = '';
+  let weatherSourceId = '';
 
   const at = (text: string) => parseInstant(text).earliest;
 
@@ -719,17 +724,18 @@ export function loadHavnen(store: Store): {
      * med scenen, og det er den markering -- ikke et opslag i filen --
      * gennemgangen melder på.
      */
-    const sinkingScene = first.get('Vandet står ind');
-    if (!sinkingScene) throw new Error('Prøvecasen mangler scenen «Vandet står ind».');
+    const found = first.get('Vandet står ind');
+    if (!found) throw new Error('Prøvecasen mangler scenen «Vandet står ind».');
+    sinkingScene = found;
 
-    const weather = createSource(s, ctx, {
+    weatherSourceId = createSource(s, ctx, {
       title: 'Vejrarkiv for Kattegat, november 1893',
       kind: 'article',
       url: 'https://eksempel.dk/vejrarkiv/1893-11',
       note: 'Afskrift fra havnefogedens journal. Kuling fra nordvest natten til den 14.',
     });
     linkSource(s, ctx, {
-      sourceId: weather, targetKind: 'scene', targetId: sinkingScene,
+      sourceId: weatherSourceId, targetKind: 'scene', targetId: sinkingScene,
       relation: 'conflicts',
       note: 'Scenen siger, at der ingen storm var. Arkivet siger kuling.',
       quote: 'Kuling af nordvest, aftagende mod morgenstunden.',
@@ -753,16 +759,6 @@ export function loadHavnen(store: Store): {
       note: 'Fundet i avisarkivet. Ved endnu ikke, hvad den skal bruges til.',
     });
 
-    createSuggestion(s, ctx, {
-      sceneId: sinkingScene,
-      markId: WEATHER_MARK,
-      kind: 'research',
-      sourceId: weather,
-      message: 'Vejrarkivet noterer kuling den aften. Enten skal Mads tage fejl med vilje — '
-        + 'og så skal det stå, at han tager fejl — eller også skal sætningen om vejret gå.',
-      proposedText: 'Der var storm, og alligevel var det ikke stormen. Det var det, han nåede '
-        + 'at tænke, mens vandet kom: at det måtte være noget, nogen havde gjort.',
-    });
   });
 
   placeMentions(store, ctx, [
@@ -772,6 +768,39 @@ export function loadHavnen(store: Store): {
     { scene: 'Ingeborg tæller ugerne', phrase: 'Mads', kind: 'entity', name: 'Mads Krag' },
     { scene: 'Ellen bliver stående', phrase: 'Karen', kind: 'entity', name: 'Karen Krag' },
   ]);
+
+  /*
+   * En afsluttet gennemlæsning af første bind.
+   *
+   * Den ligger sidst, og det er ikke tilfældigt: en læsning skriver ned,
+   * hvilken version af hver scene den så, og omtalerne ovenfor gemmer prosaen
+   * igen. Læste den før dem, ville prøvecasen blive født forældet.
+   *
+   * Læsningen og noten står i én tur her, fordi det er én handling i en
+   * prøvecase. I virkeligheden strækker en gennemlæsning sig over mange.
+   */
+  inTurn(store, {
+    branchId: ctx.branchId, actor: { kind: 'system' },
+    summary: 'Gennemlæsning af Krag: Saltet',
+  }, (s) => {
+    const run = startReviewRun(s, ctx, store, { kind: 'work', id: firstWorkId });
+    createSuggestion(s, ctx, {
+      sceneId: sinkingScene,
+      markId: WEATHER_MARK,
+      kind: 'research',
+      sourceId: weatherSourceId,
+      runId: run.runId,
+      message: 'Vejrarkivet noterer kuling den aften. Enten skal Mads tage fejl med vilje — '
+        + 'og så skal det stå, at han tager fejl — eller også skal sætningen om vejret gå.',
+      proposedText: 'Der var storm, og alligevel var det ikke stormen. Det var det, han nåede '
+        + 'at tænke, mens vandet kom: at det måtte være noget, nogen havde gjort.',
+    }, store);
+    finishReviewRun(s, ctx, store, {
+      id: run.runId,
+      summary: 'Første bind hænger sammen. Ét sted strider prosaen mod en kilde, '
+        + 'og det er markeret i margenen.',
+    });
+  });
 
   bench.setActive({ worldId: created.worldId, workId: firstWorkId });
   return { worldId: created.worldId, seriesId, firstWorkId, secondWorkId };

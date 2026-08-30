@@ -126,7 +126,7 @@ describe('Margennoten og det udtrykkelige ja', () => {
       sceneId, markId: 'maerke-1', kind: 'craft',
       message: 'To sætninger står bedre end én her.',
       proposedText: after_,
-    }));
+    }, store));
 
   it('rører ikke prosaen, når noten skrives', () => {
     assert.equal(currentText()?.markdown, before);
@@ -167,7 +167,7 @@ describe('Margennoten og det udtrykkelige ja', () => {
     const bare = inTurn(store, { branchId: ctx.branchId, actor, summary: 'Note' }, (s) =>
       createSuggestion(s, ctx, {
         sceneId, kind: 'pacing', message: 'Scenen slutter et slag for sent.',
-      }));
+      }, store));
 
     assert.throws(() => inTurn(store, {
       branchId: ctx.branchId, actor, summary: 'Skriv ind',

@@ -7,6 +7,12 @@ const SEVERITY_DA: Record<string, string> = {
   error: 'fejl', warning: 'advarsel', note: 'bemærkning',
 };
 
+const SCOPE_DA: Record<string, string> = {
+  scene: 'Scene', chapter: 'Kapitel', work: 'Bog', series: 'Serie',
+};
+
+const WHEN = new Intl.DateTimeFormat('da-DK', { dateStyle: 'long' });
+
 /**
  * What the engine believes is wrong.
  *
@@ -27,6 +33,7 @@ export function Findings({
   const [reason, setReason] = useState('');
 
   const { data: standing } = useQuery('review.list', undefined, [nonce, own]);
+  const { data: runs } = useQuery('review.runs', {}, [nonce, own]);
   const { data: rules } = useQuery('review.rules', undefined, []);
   const findings = report?.findings ?? standing ?? [];
   const titleOf = (code: string) =>
@@ -172,6 +179,44 @@ export function Findings({
           )}
         </article>
       ))}
+
+      {/*
+        Gennemlæsningerne står her, fordi de svarer på det samme spørgsmål som
+        fundene ovenfor -- hvad er der set efter -- men på den anden akse:
+        motoren regner, læsningen læser. Der er ingen knap til at starte en:
+        det er Claude, der læser prosaen, og en tom læsning uden nogen til at
+        skrive noterne ville kun være en dato.
+      */}
+      <h3 className="section">Gennemlæsninger</h3>
+      {(runs ?? []).length === 0 ? (
+        <p className="empty">
+          Der er ikke læst noget igennem endnu. Bed Claude om at læse en scene,
+          et kapitel, en bog eller hele serien igennem.
+        </p>
+      ) : (
+        (runs ?? []).map((run) => (
+          <article key={run.id} className="finding">
+            <header>
+              <span className="chip quiet">{SCOPE_DA[run.scopeKind] ?? run.scopeKind}</span>
+              <strong>{run.scopeLabel}</strong>
+              {!run.finishedAt && <span className="chip disc">stadig åben</span>}
+              <span className="spacer" />
+              <span className="dim small">{WHEN.format(new Date(run.createdAt))}</span>
+            </header>
+            <p>
+              {run.scenes} scener · {run.notes} margennoter
+              {run.openNotes > 0 && ` (${run.openNotes} åbne)`}
+            </p>
+            <p className="dim">
+              {run.rewritten === 0
+                ? 'Ingen af scenerne er skrevet om siden.'
+                : `${run.rewritten} af scenerne er skrevet om siden — så meget af `
+                  + 'læsningen handler om ord, der ikke står der længere.'}
+            </p>
+            {run.summary && <p className="reason">«{run.summary}»</p>}
+          </article>
+        ))
+      )}
 
       {aside.length > 0 && (
         <>
