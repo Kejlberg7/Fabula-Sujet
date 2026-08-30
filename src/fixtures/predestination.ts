@@ -13,6 +13,7 @@ import {
 import { createWorld, createWork } from '../core/services/world';
 import { Workbench } from '../core/workbench';
 import { markdownOf, paragraphs, type Passage } from './prose';
+import { placeMentions } from './mentions';
 
 const YEAR = Math.round(365.2425 * SECONDS.DAY);
 const DAY = SECONDS.DAY;
@@ -502,6 +503,12 @@ export function loadPredestination(store: Store): { worldId: string; workId: str
       summary: 'Den anden side af baren afslører, at fortælleren og lytteren er samme liv.',
     });
   });
+
+  placeMentions(store, ctx, [
+    { scene: 'Jane, atten år', phrase: 'børnehjemmet', kind: 'entity', name: 'Børnehjemmet' },
+    { scene: 'Robertson kommer på besøg', phrase: 'Robertson', kind: 'entity', name: 'Robertson' },
+    { scene: 'Bomben', phrase: 'gaden', kind: 'entity', name: 'Gaden i New York' },
+  ]);
 
   bench.setActive({ worldId: created.worldId, workId });
   return { worldId: created.worldId, workId };

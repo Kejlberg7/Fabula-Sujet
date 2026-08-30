@@ -19,7 +19,7 @@ som det naturlige navn på siden.
 
 ```bash
 npm install
-npm test                              # 194 prøver
+npm test                              # 199 prøver
 npm run fixtures -- ./fabula.db       # læg de fire prøvecases ind
 npm run build && npm run dev          # interfacet på http://localhost:4173
 npm run ask -- ./fabula.db hent_kontekst
@@ -76,6 +76,12 @@ adresseres på den måde. Klik på omtalen for at åbne kortet; kortets backlink
 fører tilbage til den præcise passage. Man kan også markere en eksisterende
 passage og vælge et mål. Ankret hænger på et mærke-id i dokumentet, aldrig på en
 tegnposition — positioner overlever ikke den næste rettelse.
+
+Alle fire prøvecases har omtaler i prosaen, så funktionen kan ses i brug frem
+for kun læses om: `@G1` er Ingeborgs brev i Havnen, `@S1` er Fyret, og de tre
+film har hver deres. Prøvecasene indlæses i en tom database — `npm run fixtures`
+opretter verdenerne forfra, så en database, der allerede har dem, får dem én
+gang til.
 
 Koden er et arbejdsredskab, ikke en del af bogens ordlyd. En omdøbning ændrer
 derfor ikke forfatterens ord, og en slettet reference står som brudt frem for at

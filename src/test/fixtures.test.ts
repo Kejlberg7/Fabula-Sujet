@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { openStore, type Store } from '../db/client';
 import {
   beat, chapter, entity, entityLeg, event, identity, sceneEvent, scene, sceneText,
-  textAnchor, thread,
+  storyReference, textAnchor, thread,
 } from '../db/schema';
 import { whoKnewWhat } from '../core/queries/knowledge';
 import { whoWasWhere, worldline } from '../core/queries/presence';
@@ -20,6 +20,26 @@ import { realm } from '../db/schema';
  * axis, and a model that can hold all three can hold most things. These tests
  * check the axis, not the plot.
  */
+
+/** Every work reference the prose itself carries -- P1, S1, G1 and the rest. */
+function mentionedCodes(doc: unknown): string[] {
+  const found: string[] = [];
+  const walk = (node: unknown) => {
+    if (!node || typeof node !== 'object') return;
+    const n = node as {
+      marks?: { type?: string; attrs?: Record<string, unknown> }[];
+      content?: unknown[];
+    };
+    for (const mark of n.marks ?? []) {
+      if (mark.type === 'anchor' && typeof mark.attrs?.['code'] === 'string') {
+        found.push(mark.attrs['code']);
+      }
+    }
+    for (const child of n.content ?? []) walk(child);
+  };
+  walk(doc);
+  return found;
+}
 
 describe('Memento — fortællerorden mod kronologi', () => {
   const store = openStore(':memory:');
@@ -313,6 +333,23 @@ describe('Prøvecasene har vægt nok til at bevise noget', () => {
         for (const text of written) {
           assert.ok((text.wordCount ?? 0) >= 30,
             `sceneteksten ${text.id} er for tynd (${text.wordCount ?? 0} ord)`);
+        }
+      });
+
+      it('peger fra prosaen tilbage på bibelen', () => {
+        // Fase 9 kunne sætte omtaler, men ingen prøvecase indeholdt en. Så stod
+        // funktionen der usynligt: den, der åbnede appen, kunne ikke se, hvad
+        // @-menuen egentlig laver, og havde intet at klikke på.
+        const codes = store.db.select().from(sceneText)
+          .where(eq(sceneText.branchId, ctx.branchId)).all()
+          .filter((text) => text.isCurrent)
+          .filter((text) => scenes.some((sc) => sc.id === text.sceneId))
+          .flatMap((text) => mentionedCodes(text.doc));
+        assert.ok(codes.length > 0, 'ingen omtale i prosaen — så kan @-menuen ikke ses i brug');
+        for (const code of codes) {
+          assert.ok(store.db.select().from(storyReference).where(and(
+            eq(storyReference.branchId, ctx.branchId), eq(storyReference.code, code),
+          )).get(), `omtalen ${code} peger på en kode, der ikke findes på grenen`);
         }
       });
 

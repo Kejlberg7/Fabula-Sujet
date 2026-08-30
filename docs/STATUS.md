@@ -37,6 +37,26 @@ ligger i `docs/ROADMAP.md`.
   navigationscallback. Backlinkets fremhævelse venter nu også på, at editorens
   dokument faktisk er monteret.
 
+## Efterslæt til fase 9 — omtalerne i prøvecasene
+
+Fase 9 blev prøvet på en isoleret database, og prøvecasene fik aldrig en eneste
+omtale med. Åbnede man appen, var feltet tomt: funktionen fandtes, men der var
+intet at se og intet at klikke på.
+
+- `src/fixtures/mentions.ts` sætter omtalerne i en tur for sig efter
+  indlæsningen. Det er nødvendigt: en kode uddeles først, når turen, der
+  skabte målet, lukker, så under indlæsningen findes den ikke endnu.
+- Samme gennemløb stempler koden på de ankre, indlæsningen allerede havde lavet.
+  Dermed er den åbne risiko om «ældre mærker uden kode» væk i prøvecasene.
+- Femten omtaler fordelt på alle fire prøvecases, med person, sted og genstand
+  repræsenteret. Havnen har `@G1` «Ingeborgs brev» og `@S1` «Fyret».
+- Vægtprøven har fået en prøve mere pr. bog: prosaen skal pege tilbage på
+  bibelen med mindst én kode, og hver kode skal findes på grenen. Det er den
+  prøve, der manglede, da fase 9 blev afsluttet.
+- Browserprøvet på den rigtige `fabula.db`: `@G1` viser «G1 · Ingeborgs brev ·
+  Genstande», valget bliver til en omtale i prosaen, og backlinket fra
+  genstandskortet fører til «Han spørger sin mor» i Tidevandet.
+
 ## I gang nu
 
 - Ingen halv implementering står åben. Næste konkrete arbejde er første snit af
@@ -51,7 +71,7 @@ ligger i `docs/ROADMAP.md`.
 
 ## Verificering
 
-- 194/194 prøver er grønne.
+- 199/199 prøver er grønne.
 - Typecheck og produktionsbuild er rene. Vite gentager den kendte advarsel om
   en JavaScript-chunk over 500 kB; det er ikke en buildfejl.
 - Migration 0007 er prøvet mod en kopi af den eksisterende database. Prøven
@@ -69,8 +89,11 @@ skrive prosa.
 
 ## Åbne risici
 
-- Ældre ProseMirror-mærker har stadig ingen kode i selve dokumentet. Det er
-  bagudkompatibelt: `text_anchor` leverer E8 i sidepanelet, og det ældre anker
-  kan fortsat åbnes derfra. Nye ankre gemmer både kode og mål i mærket.
+- Prøvecasene indlæses altid i en tom database. Der er ingen vej til at hente
+  nye eksempler ind i en database, man selv har arbejdet i, uden at få
+  verdenerne dobbelt. Det var præcis den fælde, efterslættet ovenfor faldt i.
+- Ældre ProseMirror-mærker uden kode kan stadig findes i en database, der er
+  ældre end omtale-turen. Det er bagudkompatibelt: `text_anchor` leverer målet
+  i sidepanelet, og ankret kan fortsat åbnes derfra.
 - Identiteter åbner ejerens personkort, mens afsløringer åbner
   alternativvisningen. Egne detailkort til de to typer hører til fase 16.

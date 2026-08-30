@@ -18,6 +18,7 @@ import { createSource, linkSource } from '../core/services/laws';
 import { createWorld, createWork } from '../core/services/world';
 import { Workbench } from '../core/workbench';
 import { markdownOf, paragraphs, type Passage } from './prose';
+import { placeMentions } from './mentions';
 
 const DAY = SECONDS.DAY;
 const HOUR = SECONDS.HOUR;
@@ -761,6 +762,17 @@ export function loadMemento(store: Store): { worldId: string; workId: string } {
       summary: 'Sammys fortælling og Leonards eget tab glider sammen.',
     });
   });
+
+  // Omtalerne sættes efter indlæsningen, fordi arbejdsreferencerne først findes,
+  // når turen er lukket. De ligger før grenen nedenfor, så varianten arver dem.
+  placeMentions(store, ctx, [
+    { scene: 'Natalie kommer forbi', phrase: 'Natalie', kind: 'entity', name: 'Natalie' },
+    { scene: 'Han vågner hos Natalie', phrase: 'fotografiet på natbordet', kind: 'entity',
+      name: 'Polaroid af Natalie' },
+    { scene: 'Nålen', phrase: 'den sidste linje', kind: 'entity', name: 'Tatoveringen på brystet' },
+    { scene: 'Natten, i glimt', phrase: 'Et badeværelsesvindue', kind: 'entity',
+      name: 'Leonards hus' },
+  ]);
 
   // One visible alternative makes phase 6 testable immediately. It is a real
   // branch, not special fixture UI: Teddy's name is hinted in the opening and

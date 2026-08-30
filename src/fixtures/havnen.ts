@@ -18,6 +18,7 @@ import { createSuggestion } from '../core/services/suggestions';
 import { createSeries, createWorld, createWork } from '../core/services/world';
 import { Workbench } from '../core/workbench';
 import { markdownOf, paragraphs, type Passage } from './prose';
+import { placeMentions } from './mentions';
 
 /**
  * Et fast mærke-id i prøvecasen.
@@ -763,6 +764,14 @@ export function loadHavnen(store: Store): {
         + 'at tænke, mens vandet kom: at det måtte være noget, nogen havde gjort.',
     });
   });
+
+  placeMentions(store, ctx, [
+    { scene: 'Han spørger sin mor', phrase: 'brevet', kind: 'entity', name: 'Ingeborgs brev' },
+    { scene: 'Båden ved Fyret', phrase: 'Fyret', kind: 'entity', name: 'Fyret' },
+    { scene: 'Sundvej, september', phrase: 'Valdemar', kind: 'entity', name: 'Valdemar Sund' },
+    { scene: 'Ingeborg tæller ugerne', phrase: 'Mads', kind: 'entity', name: 'Mads Krag' },
+    { scene: 'Ellen bliver stående', phrase: 'Karen', kind: 'entity', name: 'Karen Krag' },
+  ]);
 
   bench.setActive({ worldId: created.worldId, workId: firstWorkId });
   return { worldId: created.worldId, seriesId, firstWorkId, secondWorkId };

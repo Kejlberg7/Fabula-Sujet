@@ -13,6 +13,7 @@ import { createRealm, createWorld, createWork, defaultTimeSystemOf } from '../co
 import { Workbench } from '../core/workbench';
 import { updateRow } from '../core/services/generic';
 import { markdownOf, paragraphs, type Passage } from './prose';
+import { placeMentions } from './mentions';
 
 const INCEPTION_PROSE: Record<string, string[]> = {
   'Yusuf ved rattet': [
@@ -463,6 +464,12 @@ export function loadInception(store: Store): { worldId: string; workId: string; 
       summary: 'Sparket forplanter sig helt til kysten og trækker dem op.',
     });
   });
+
+  placeMentions(store, ctx, [
+    { scene: 'Yusuf ved rattet', phrase: 'varevognen', kind: 'entity', name: 'Varevognen' },
+    { scene: 'Han lader hende blive', phrase: 'Mal', kind: 'entity', name: 'Mal' },
+    { scene: 'De venter', phrase: 'Cobb', kind: 'entity', name: 'Cobb' },
+  ]);
 
   bench.setActive({ worldId: created.worldId, workId });
   return { worldId: created.worldId, workId, realmIds };
