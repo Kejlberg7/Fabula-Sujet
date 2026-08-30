@@ -6,7 +6,7 @@ og hvornår de **fortælles**.
 
 ## Status
 
-**Fase 0 til 6 er færdige.** Datamodellen, tidsløseren, ændringsloggen og
+**Fase 0 til 7 er færdige.** Datamodellen, tidsløseren, ændringsloggen og
 MCP-serveren står; oven på dem et interface med værkvælger, tidslinje, lister og
 historik, et skrivebord hvor prosaen bliver til med bibelen åben ved siden af —
 og en motor, der siger fra, når noget ikke kan lade sig gøre. Fortællelaget
@@ -16,7 +16,7 @@ desuden genstande, relationer, identiteter, forsvindinger, setups og researchkil
 
 ```bash
 npm install
-npm test                              # 139 prøver
+npm test                              # 151 prøver
 npm run fixtures -- ./fabula.db       # læg Memento, Predestination og Inception ind
 npm run build && npm run dev          # interfacet på http://localhost:4173
 npm run ask -- ./fabula.db hent_kontekst
@@ -41,6 +41,7 @@ lander i den samme log, som Claude skriver til.
 | **Kapitler** | Bogen i læserækkefølge, med hvert events kronologiske plads ved siden af |
 | **Båndet** | De to akser mod hinanden, en tråd for hver gang bogen fortæller noget |
 | **Skrivebordet** | Manuskriptet, og ved siden af det hvad synsvinklen ved her og hvad læseren ved |
+| **Grebet** | Hvor godt afsløringerne virker, læst på otte akser med scenerne som begrundelse |
 | **Gennemgangen** | Det, der ikke kan lade sig gøre — og det, du har lagt til side, med din grund |
 | **Historik** | Hvem ændrede hvad, og rul tilbage til et hvilket som helst punkt |
 
@@ -241,10 +242,42 @@ så en flytning er ét fortryd væk.
 Prøvecasen for Memento har en variant med i forvejen — «Teddy afsløres tidligere»
 — så der er noget at sammenligne fra første kørsel.
 
+### Grebet
+
+Alt andet i programmet svarer på, om noget **kan lade sig gøre**. Det her svarer
+på, om det er **noget værd**. Otte akser, hver regnet ud af noget, du allerede
+har skrevet ned:
+
+| Akse | Spørger |
+|---|---|
+| Overraskelse | Hvor sent lander det, og hvor meget var varslet først |
+| Retfærdighed | Lå sporene på siden, før det blev sagt |
+| Efterrationalisering | Lå de der *uskiltet* — den slags læseren vender tilbage til |
+| Timing | Hvor sidder den, og hvor meget bog er der tilbage bagefter |
+| Konsekvens | Sker der noget, fordi den falder |
+| Vildledning | Står der en troværdig forkert forklaring i vejen |
+| Forberedelse | Hvor langt er der fra setup til indfrielse |
+| Informationskontrol | Hvem vidste det før læseren, og fortalte de scenen |
+
+**Der gives ingen karakter.** «7,4 ud af 10» kan hverken diskuteres eller
+handles på; en aflæsning, der peger på de scener, den kommer af, kan begge dele.
+En akse tier, når der ikke er noget at regne på.
+
+```
+✓ Retfærdighed   1 scene bærer sporet, før det bliver sagt — første gang i scene 12.
+                 12. NATALIE SER PÅ HAM
+? Konsekvens     Der sker 6 scener efter afsløringen, men ingen af dem er
+                 registreret som en indfrielse. 1 person ved det — ændrer det noget?
+✓ Vildledning    Der står en troværdig forkert forklaring i vejen: Natalie lyver om det.
+```
+
+Og det er her fase 6 betaler sig: «twistet i kapitel 8» mod «twistet i kapitel
+12» kan ikke afgøres i luften, men med begge rækkefølger lagt på hver sin gren
+viser **Mod en anden gren**, hvilke akser der flytter sig — og det er selve
+argumentet for at vælge den ene.
+
 ## Næste skridt
 
-**Fase 7: hvor godt sidder grebet?** Det, du spurgte om undervejs — at kunne se
-«hvor god» en afsløring er, snarere end blot om den er mulig. Materialet ligger
-der allerede: afstanden mellem hvornår læseren får noget og hvornår personen har
-det, hvor længe et setup hænger uindfriet, og hvor meget en gren flytter på den
-afstand i forhold til en anden.
+**Fase 8: kilderne og manuskriptgennemgangen.** Research kan gemmes og vises,
+men ikke læses endnu. Og gennemgangen af selve prosaen — den, der kommenterer i
+margenen og aldrig retter uden et ja — mangler stadig.

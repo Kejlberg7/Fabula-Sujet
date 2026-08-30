@@ -13,6 +13,7 @@ import { historyTools } from './tools/history';
 import { queryTools } from './tools/queries';
 import { reviewTools } from './tools/review';
 import { branchTools } from './tools/branches';
+import { dramaturgyTools } from './tools/dramaturgy';
 
 export const allTools: ToolDef[] = [
   ...worldTools,
@@ -24,6 +25,7 @@ export const allTools: ToolDef[] = [
   ...branchTools,
   ...queryTools,
   ...reviewTools,
+  ...dramaturgyTools,
 ];
 
 const INSTRUCTIONS = `
@@ -43,6 +45,9 @@ Nogle vaner, der gør modellen brugbar frem for larmende:
   LÆSEREN gør (opret_afsloering). Afstanden mellem dem er hele fortællegrebet.
 • Når forfatteren vil prøve en anden rækkefølge, brug opret_gren før flyt_scene eller
   flyt_afsloering. Sammenlign bagefter; en gren flettes aldrig skjult ind i en anden.
+• vurder_afsloeringer svarer på, om et greb er noget værd — ikke om det er muligt. Giv aldrig
+  aflæsningen som et tal; videregiv aksen og de scener, den kommer af. Er to rækkefølger på tale,
+  så læg dem på hver sin gren og brug sammenlign_afsloeringer frem for at gætte.
 • Brug registrer_tilstand til værdier, der udelukker hinanden inden for en kategori, og sæt kategori
   på relationer, når deres tilstande skal kontrolleres. Registrer setups og payoffs på en plottråd.
 • Kilder gemmes og vises kun. Læs aldrig en fil på programmets vegne; markér blot den relation,

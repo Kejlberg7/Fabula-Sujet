@@ -63,7 +63,7 @@ a { color: var(--story); }
 
 /* ---------- top bar ---------- */
 .topbar {
-  display: flex; align-items: center; gap: 14px;
+  display: flex; align-items: center; gap: 14px; min-width: 0; flex-wrap: wrap;
   padding: 10px 16px; border-bottom: 1px solid var(--line);
   background: var(--surface);
 }
@@ -83,14 +83,23 @@ select:hover, .btn:hover { border-color: var(--story); }
 .btn:disabled { opacity: 0.4; cursor: default; border-color: var(--line); }
 .btn.primary { background: var(--story-wash); border-color: var(--story); color: var(--story); font-weight: 500; }
 .search input { cursor: text; width: 200px; }
-.picker { display: flex; align-items: center; gap: 6px; }
+/*
+ * Vælgerne skal kunne krympe.
+ *
+ * Uden det her sætter det længste grennavn bredden på hele programmet: en flex-
+ * boks vil som udgangspunkt ikke blive smallere end sit indhold, så topbjælken
+ * voksede ud over vinduet, og alt nedenunder fik en vandret rullebjælke. Det
+ * dukkede først op, da grene fik «· hovedspor» hængt på navnet.
+ */
+.picker { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.picker select { min-width: 11ch; max-width: 24ch; text-overflow: ellipsis; }
 .picker label {
   font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em;
   text-transform: uppercase; color: var(--muted);
 }
 
 /* ---------- layout ---------- */
-.body { display: grid; grid-template-columns: 178px 1fr; min-height: 0; }
+.body { display: grid; grid-template-columns: 178px minmax(0, 1fr); min-height: 0; }
 .nav {
   border-right: 1px solid var(--line); background: var(--surface);
   padding: 12px 8px; overflow-y: auto;
@@ -682,3 +691,45 @@ h3.section {
   font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
   color: var(--muted); margin: 26px 0 10px;
 }
+
+/* ---------------------------------------------------------------------------
+ * Fase 7: grebet.
+ *
+ * Every reading carries the scenes it came from, so the scene chips are the
+ * point rather than the decoration. Verdicts are marked on the left edge in the
+ * same three weights the review uses, and nothing here is a number.
+ * ------------------------------------------------------------------------- */
+
+.twist {
+  border: 1px solid var(--line); border-radius: 4px;
+  background: var(--surface); padding: 14px 16px; margin-bottom: 16px;
+}
+.twist > header {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  gap: 16px; margin-bottom: 10px;
+}
+.twist h3 { margin: 0 0 2px; font-size: 15px; }
+.twist > header p { margin: 0; }
+
+.beats { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.beat {
+  display: inline-flex; align-items: baseline; gap: 5px;
+  font-size: 11px; color: var(--muted);
+  border: 1px solid var(--line); border-radius: 3px; padding: 2px 7px;
+}
+.beat .num { font-family: var(--mono); font-style: normal; color: var(--disc); }
+
+.axis {
+  border-left: 2px solid var(--line-2);
+  padding: 6px 0 6px 12px; margin: 8px 0;
+}
+.axis.staerk { border-left-color: var(--ok); }
+.axis.se_efter { border-left-color: var(--disc); }
+.axis.tynd { border-left-color: var(--alert); }
+.axis-head { display: flex; align-items: baseline; gap: 8px; }
+.axis-head .mark { font-family: var(--mono); color: var(--muted); width: 10px; }
+.axis p { margin: 3px 0 0; color: var(--ink-2); font-size: 13px; }
+.scene-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+
+.shape-pair p { margin: 2px 0; color: var(--ink-2); font-size: 13px; }
+.twist.shift { border-left: 3px solid var(--disc); }

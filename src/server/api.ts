@@ -10,6 +10,7 @@ import {
   history, markCheckpoint, redoLast, rollbackTo, undoLast, type Actor,
 } from '../core/changelog';
 import { bandView } from '../core/queries/band';
+import { compareTwists, twistReadings } from '../core/queries/dramaturgy';
 import { readBindings } from '../core/queries/bindings';
 import { manuscriptPacket } from '../core/queries/manuscript';
 import { knowledgeTrack } from '../core/queries/track';
@@ -35,8 +36,7 @@ import { solveTime } from '../core/solve';
 import { formatInstant, formatSpan } from '../core/time/gregorian';
 import { Workbench } from '../core/workbench';
 import {
-  branchWorkspace, compareBranches, createBranchFromHistory, moveChapter, moveReveal,
-  moveScene, setBranchArchived, setDefaultBranch,
+  branchWorkspace, compareBranches, createBranchFromHistory, lineageRoot, moveChapter, moveReveal, moveScene, setBranchArchived, setDefaultBranch, workInBranch,
 } from '../core/branches';
 
 /**
@@ -826,6 +826,32 @@ export function createApi(store: Store) {
     'review.undismiss': (input: { fingerprint: string }) =>
       bench.run({ actor, summary: 'Tag afvisning tilbage' }, (session, c) =>
         ({ revoked: revokeDismissal(session, c, store, input) })),
+
+    /**
+     * How well the reveals actually work -- the craft question, not the
+     * possibility question. No score: each reading names the scenes it came
+     * from, because that is the part a writer can act on.
+     */
+    'twist.list': (input: { workId?: string }) => {
+      const c = ctx();
+      const workId = input.workId ?? c.workId;
+      if (!workId) return [];
+      return twistReadings(store, c, { workId });
+    },
+
+    /** The same reveals read on two branches: which axes moved, and how. */
+    'twist.compare': (input: { otherBranchId: string; workId?: string }) => {
+      const c = ctx();
+      const workId = input.workId ?? c.workId;
+      if (!workId) return [];
+      const otherWorkId = workInBranch(store, workId, input.otherBranchId);
+      if (!otherWorkId) throw new Error('Bogen findes ikke på den anden gren.');
+      return compareTwists(store, {
+        here: c, hereWorkId: workId,
+        there: { ...c, branchId: input.otherBranchId }, thereWorkId: otherWorkId,
+        lineage: (table, id) => lineageRoot(store, table, id),
+      });
+    },
 
     'solve': () => {
       const report = solveTime(store, ctx());

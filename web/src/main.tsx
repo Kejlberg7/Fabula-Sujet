@@ -16,11 +16,12 @@ import { Findings } from './views/Findings';
 import { History } from './views/History';
 import { Continuity } from './views/Continuity';
 import { Alternatives } from './views/Alternatives';
+import { Twists } from './views/Twists';
 
 export type View =
   | 'overblik' | 'tidslinje' | 'personer' | 'steder' | 'ting'
   | 'events' | 'fakta' | 'love' | 'kontinuitet' | 'kapitler' | 'baand' | 'skrivebord'
-  | 'alternativer' | 'gennemgang' | 'historik';
+  | 'alternativer' | 'grebet' | 'gennemgang' | 'historik';
 
 export interface Notice { text: string; bad?: boolean }
 
@@ -218,6 +219,7 @@ function App() {
           {item('baand', 'Båndet')}
           {item('skrivebord', 'Skrivebordet')}
           {item('alternativer', 'Alternativer')}
+          {item('grebet', 'Grebet')}
           <h3>Arbejdet</h3>
           {item('gennemgang', 'Gennemgangen',
             findings?.filter((f) => f.dismissedReason == null).length || undefined)}
@@ -243,6 +245,7 @@ function App() {
           {view === 'alternativer' && (
             <Alternatives nonce={dataNonce} notify={notify} onChanged={bump} />
           )}
+          {view === 'grebet' && <Twists nonce={dataNonce} />}
           {view === 'gennemgang' && (
             <Findings nonce={dataNonce} notify={notify} onChanged={bump} />
           )}
