@@ -51,13 +51,13 @@ describe('Genstandskontinuitet', () => {
     const w = world();
     build(w, (s) => {
       const door = createEntity(s, w.ctx, { name: 'Døren', kind: 'object' });
-      recordEntityState(s, w.ctx, {
+      recordEntityState(s, w.store, w.ctx, {
         entityId: door, category: 'lås', value: 'låst', fromTime: T, toTime: T + DAY,
       });
-      recordEntityState(s, w.ctx, {
+      recordEntityState(s, w.store, w.ctx, {
         entityId: door, category: 'lås', value: 'åben', fromTime: T + DAY, toTime: T + 2 * DAY,
       });
-      recordEntityState(s, w.ctx, {
+      recordEntityState(s, w.store, w.ctx, {
         entityId: door, category: 'lås', value: 'låst', fromTime: T + DAY + 1, toTime: T + 2 * DAY,
       });
     });

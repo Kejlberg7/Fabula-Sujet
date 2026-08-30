@@ -169,11 +169,11 @@ export function loadInception(store: Store): { worldId: string; workId: string; 
       fromTime: epoch - MIN, toTime: epoch + 11 * MIN,
       note: 'Toppen bliver hos Cobb gennem alle lagene.',
     });
-    recordEntityState(s, ctx, {
+    recordEntityState(s, store, ctx, {
       entityId: totem, category: 'virkelighedstest', value: 'ikke aflæst',
       fromTime: epoch - MIN, toTime: epoch + 10 * MIN,
     });
-    recordEntityState(s, ctx, {
+    recordEntityState(s, store, ctx, {
       entityId: totem, category: 'virkelighedstest', value: 'sat i gang',
       fromTime: epoch + 10 * MIN, toTime: epoch + 11 * MIN,
       note: 'Slutningen giver ikke et sikkert svar på, om den standser.',

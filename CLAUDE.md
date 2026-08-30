@@ -25,6 +25,9 @@ Story bible and manuscript workbench. See `README.md` for what it is and
   first; an `ability` naming its rule code switches it off. A warning the writer
   has already written an exception for is noise, and noise gets the tool
   switched off within a week.
+- **En serie læses i rækkefølge.** Læseren af bind to har læst bind et, så
+  `whatReaderKnows` tæller tidligere bøger i den samme serie med. En anden serie
+  i den samme verden arver ingenting.
 - **Vurderinger får aldrig et tal.** Gennemgangen siger, om noget er muligt;
   Grebet siger, om det er noget værd — og en karakter kan hverken diskuteres
   eller handles på. En aflæsning nævner altid de scener, den kommer af, og tier,
@@ -40,8 +43,8 @@ Node 20 (`.nvmrc`). The shell may default to an older nvm version — check
 `node -v` before running anything.
 
 ```bash
-npm test                            # 151 prøver
-npm run fixtures -- ./fabula.db     # Memento, Predestination, Inception
+npm test                            # 157 prøver
+npm run fixtures -- ./fabula.db     # Memento, Predestination, Inception, Havnen
 npm run build && npm run dev        # interface on :4173
 npm run ask -- ./fabula.db hent_kontekst
 ```

@@ -120,8 +120,21 @@ export function recordPossession(
   })['id'] as string;
 }
 
+/**
+ * A state that holds until something replaces it.
+ *
+ * A category means the values inside it are mutually exclusive -- that is the
+ * whole reason the column exists, and the continuity rule checks it. So writing
+ * a new value closes the open one before it, rather than leaving the writer to
+ * remember. Saying "he is alive from 1866" and later "he is dead from 1901"
+ * is how a person thinks about it, and it should not produce a contradiction.
+ *
+ * Only an open-ended earlier state is closed, and only when the new one is
+ * placed in time. A state that already has an end was deliberate, and a state
+ * with no beginning cannot be ordered against anything.
+ */
 export function recordEntityState(
-  session: Session, ctx: Context,
+  session: Session, store: Store, ctx: Context,
   input: {
     entityId: string; category: string; value: string;
     fromTime?: number; toTime?: number; note?: string;
@@ -130,9 +143,21 @@ export function recordEntityState(
   if (!input.category.trim() || !input.value.trim()) {
     throw new Error('En tilstand skal have både kategori og værdi.');
   }
+  const category = input.category.trim();
+  if (input.fromTime != null) {
+    const open = store.db.select().from(entityState).where(and(
+      eq(entityState.entityId, input.entityId),
+      eq(entityState.branchId, ctx.branchId),
+      eq(entityState.category, category),
+    )).all().filter((row) =>
+      row.toTime == null && row.fromTime != null && row.fromTime < input.fromTime!);
+    for (const row of open) {
+      session.update(entityState, row.id, { toTime: input.fromTime });
+    }
+  }
   return session.insert(entityState, {
     branchId: ctx.branchId, entityId: input.entityId,
-    category: input.category.trim(), value: input.value.trim(),
+    category, value: input.value.trim(),
     fromTime: input.fromTime ?? null, toTime: input.toTime ?? null,
     note: input.note ?? null,
   })['id'] as string;

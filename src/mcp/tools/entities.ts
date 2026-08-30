@@ -73,7 +73,7 @@ export const entityTools: ToolDef[] = [
     },
     run: (args, tools) => {
       const { value } = write(tools, `Tilstand: ${args.entitet} er ${args.vaerdi}`, (session, ctx) =>
-        recordEntityState(session, ctx, {
+        recordEntityState(session, tools.store, ctx, {
           entityId: resolveEntity(tools.store, ctx, args.entitet).id,
           category: args.kategori, value: args.vaerdi,
           fromTime: asInstant(args.fra, 'earliest'), toTime: asInstant(args.til, 'latest'),

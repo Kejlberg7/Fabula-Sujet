@@ -733,3 +733,30 @@ h3.section {
 
 .shape-pair p { margin: 2px 0; color: var(--ink-2); font-size: 13px; }
 .twist.shift { border-left: 3px solid var(--disc); }
+
+/*
+ * Skrivebordet ved smalle vinduer.
+ *
+ * Tre spalter kræver plads, og uden det her blev manuskriptet klemt ned til en
+ * håndfuld pixels, så prosaen stod med ét ord per linje. Læsebredden er ikke
+ * pynt på den skærm — den er det, spalten findes for — så det er sidepanelet og
+ * scenelisten, der viger først.
+ */
+@media (max-width: 1180px) {
+  .desk { grid-template-columns: 180px minmax(0, 1fr); }
+  .desk-panel {
+    grid-column: 1 / -1;
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+}
+
+@media (max-width: 860px) {
+  .desk { grid-template-columns: minmax(0, 1fr); }
+  .desk-scenes {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+    max-height: 30vh;
+  }
+  .prose-surface { font-size: 17px; }
+}

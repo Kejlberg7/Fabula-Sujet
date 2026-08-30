@@ -16,7 +16,7 @@ desuden genstande, relationer, identiteter, forsvindinger, setups og researchkil
 
 ```bash
 npm install
-npm test                              # 151 prøver
+npm test                              # 157 prøver
 npm run fixtures -- ./fabula.db       # læg Memento, Predestination og Inception ind
 npm run build && npm run dev          # interfacet på http://localhost:4173
 npm run ask -- ./fabula.db hent_kontekst
@@ -277,6 +277,10 @@ viser **Mod en anden gren**, hvilke akser der flytter sig — og det er selve
 argumentet for at vælge den ene.
 
 ## Næste skridt
+
+**Kendt grænse:** en plottråd hører til én bog (`thread.work_id`), så et setup i
+bind et og en indfrielse i bind to kan ikke skrives som én tråd. Hver bog må have
+sin egen. Det er værd at rette, hvis serier bliver den normale arbejdsform.
 
 **Fase 8: kilderne og manuskriptgennemgangen.** Research kan gemmes og vises,
 men ikke læses endnu. Og gennemgangen af selve prosaen — den, der kommenterer i

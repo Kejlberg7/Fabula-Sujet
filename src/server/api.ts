@@ -639,7 +639,7 @@ export function createApi(store: Store) {
       entityId: string; category: string; value: string;
       fromTime?: number; toTime?: number; note?: string;
     }) => bench.run({ actor, summary: `Tilstand: ${input.value}` }, (session, c) =>
-      ({ id: recordEntityState(session, c, input) })),
+      ({ id: recordEntityState(session, store, c, input) })),
 
     'continuity.relationship.create': (input: {
       fromEntityId: string; toEntityId: string; kind: string; category?: string;

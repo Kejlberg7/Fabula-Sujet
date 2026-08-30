@@ -294,19 +294,19 @@ export function loadMemento(store: Store): { worldId: string; workId: string } {
       summary: 'Den centrale anklage skrevet permanent på Leonards krop; i modsætning til en note kan den hverken mistes, gemmes væk eller uden videre rettes.',
     });
 
-    recordEntityState(s, ctx, {
+    recordEntityState(s, store, ctx, {
       entityId: tattoo, category: 'tekst', value: 'ufuldstændig',
       fromTime: assault, toTime: bwStart + 4 * DAY + 14 * HOUR,
     });
-    recordEntityState(s, ctx, {
+    recordEntityState(s, store, ctx, {
       entityId: tattoo, category: 'tekst', value: 'færdig',
       fromTime: bwStart + 4 * DAY + 14 * HOUR,
     });
-    recordEntityState(s, ctx, {
+    recordEntityState(s, store, ctx, {
       entityId: polaroidTeddy, category: 'bagside', value: 'blank',
       fromTime: colourStart, toTime: colourStart + 17 * HOUR,
     });
-    recordEntityState(s, ctx, {
+    recordEntityState(s, store, ctx, {
       entityId: polaroidTeddy, category: 'bagside', value: 'advarsel skrevet',
       fromTime: colourStart + 17 * HOUR,
     });

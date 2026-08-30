@@ -8,7 +8,7 @@
  * world a thing is true in.
  */
 import { openStore } from '../src/db/client';
-import { loadInception, loadMemento, loadPredestination } from '../src/fixtures';
+import { loadHavnen, loadInception, loadMemento, loadPredestination } from '../src/fixtures';
 
 const target = process.argv[2] ?? './fabula.db';
 const store = openStore(target);
@@ -16,6 +16,7 @@ const store = openStore(target);
 const memento = loadMemento(store);
 const predestination = loadPredestination(store);
 const inception = loadInception(store);
+const havnen = loadHavnen(store);
 
 /**
  * Tælles pr. gren, ikke pr. verden.
@@ -40,6 +41,7 @@ const branchCount = (worldId: string) =>
 
 for (const [name, world] of [
   ['Memento', memento], ['Predestination', predestination], ['Inception', inception],
+  ['Havnen', havnen],
 ] as const) {
   const branchId = mainBranchOf(world.worldId);
   const branches = branchCount(world.worldId);

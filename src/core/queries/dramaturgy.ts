@@ -4,6 +4,7 @@ import {
   beat, belief, carrier, chapter, entity, eventFact, fact, factSlot, reveal, scene,
   sceneEvent, statement, thread,
 } from '../../db/schema';
+import { whatReaderKnows } from './reader';
 import type { Context } from '../workbench';
 
 /**
@@ -43,6 +44,8 @@ export interface ScenePoint {
   order: number;
   chapterPosition: number;
   chapterTitle: string;
+  /** Carried on the point so the axes never have to look a scene up again. */
+  povEntityId: string | null;
 }
 
 export interface Reading {
@@ -63,6 +66,8 @@ export interface TwistReport {
   /** Everything the reader is given about it, in reading order. */
   beats: (ScenePoint & { strength: string; slotName: string | null })[];
   totalScenes: number;
+  /** Set when the reader already had this from an earlier book in the series. */
+  carriedIn: string | null;
   readings: Reading[];
   /** A sentence assembled from the readings above -- never a score. */
   shape: string;
@@ -102,6 +107,7 @@ function readingOrder(store: Store, ctx: Context, workId: string): ScenePoint[] 
         order: out.length + 1,
         chapterPosition: ch.position,
         chapterTitle: ch.title,
+        povEntityId: sc.povEntityId,
       });
     }
   }
@@ -159,6 +165,19 @@ export function twistReadings(
   const slotNames = new Map(db.select().from(factSlot)
     .where(eq(factSlot.branchId, ctx.branchId)).all().map((s) => [s.id, s.name]));
 
+  /**
+   * What the reader walks in already holding.
+   *
+   * In a series that is everything the earlier books told them. A fact they
+   * have carried across a volume boundary cannot be a surprise here, however
+   * the scenes are arranged, and reading it as one would be the single most
+   * misleading thing this file could do.
+   */
+  const carried = new Map(
+    whatReaderKnows(store, ctx, { workId: query.workId, throughChapterPosition: 0 })
+      .map((f) => [f.factId, f.fromEarlierWork]),
+  );
+
   const reports: TwistReport[] = [];
   for (const [factId, rows] of byFact) {
     const known = facts.get(factId);
@@ -207,7 +226,14 @@ export function twistReadings(
     ) => readings.push({ axis, title: AXIS_TITLE[axis], verdict, message, scenes });
 
     // ------------------------------------------------------------ overraskelse
-    if (disclosure) {
+    const carriedIn = carried.get(factId) ?? null;
+    if (carriedIn) {
+      add('overraskelse', 'staerk',
+        `Læseren har det med fra «${carriedIn}». Det, der sker her, er ikke en afsløring for `
+        + 'læseren, men afstanden mellem det, læseren ved, og det personerne ved — '
+        + 'og den afstand er hele grebet i en efterfølger.',
+        disclosure ? [disclosure] : []);
+    } else if (disclosure) {
       const flaggedCount = flagged.length;
       add(
         'overraskelse',
@@ -229,7 +255,7 @@ export function twistReadings(
     }
 
     // ----------------------------------------------------------- retfærdighed
-    if (disclosure) {
+    if (disclosure && !carriedIn) {
       const clues = [...flagged, ...unflagged].sort((a, b) => a.order - b.order);
       if (clues.length === 0) {
         add('retfaerdighed', 'tynd',
@@ -245,7 +271,9 @@ export function twistReadings(
     }
 
     // ------------------------------------------------- efterrationalisering
-    if (disclosure && unflagged.length > 0) {
+    if (carriedIn) {
+      // Intet at efterrationalisere: læseren vidste det, før bogen begyndte.
+    } else if (disclosure && unflagged.length > 0) {
       add('efterrationalisering', 'staerk',
         `${unflagged.length} ${unflagged.length === 1 ? 'scene viser' : 'scener viser'} det, uden at bogen `
         + 'gør opmærksom på det. Det er dem, læseren vender tilbage til bagefter.',
@@ -356,10 +384,12 @@ export function twistReadings(
         .filter((b) => b.strength !== 'unaware');
       const povEarly: ScenePoint[] = [];
       for (const holder of knowers) {
+        // Synsvinklen står allerede på punktet. Et opslag her ville koste én
+        // forespørgsel per scene per vidende per faktum — på en bog i rigtig
+        // længde bliver det til tusinder for én sideindlæsning.
         for (const point of order) {
           if (point.order >= disclosure.order) continue;
-          const sc = db.select().from(scene).where(eq(scene.id, point.id)).get();
-          if (sc?.povEntityId === holder.entityId && !povEarly.some((p) => p.id === point.id)) {
+          if (point.povEntityId === holder.entityId && !povEarly.some((p) => p.id === point.id)) {
             povEarly.push(point);
           }
         }
@@ -396,7 +426,10 @@ export function twistReadings(
      * It says nothing the readings do not already say.
      */
     const worries = readings.filter((r) => r.verdict !== 'staerk');
-    const shape = disclosure
+    const shape = carriedIn
+      ? `Læseren har det med fra «${carriedIn}»${
+          worries.length === 0 ? '.' : ` — ${worries.length} ting at se efter.`}`
+      : disclosure
       ? `${whereabouts(disclosure.order, total)}${
           readings.some((r) => r.axis === 'retfaerdighed' && r.verdict === 'staerk')
             ? ', og forberedt' : ', men uforberedt'}${
@@ -410,6 +443,7 @@ export function twistReadings(
       disclosure,
       beats,
       totalScenes: total,
+      carriedIn,
       readings,
       shape: shape.charAt(0).toUpperCase() + shape.slice(1),
     });

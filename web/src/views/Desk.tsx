@@ -271,7 +271,13 @@ export function Desk({
               <div key={f.factId} className={known.has(f.factId) ? 'know' : 'know ahead'}>
                 <div>{f.summary}</div>
                 <div className="dim small">
-                  kap. {f.firstChapter} · {REVEAL_DA[f.strength] ?? f.strength}
+                  {/* En læser af bind to har bind et med sig, og det skal stå,
+                      hvorfra — ellers ligner et kapitelnummer fra en anden bog
+                      et nummer i denne. */}
+                  {f.fromEarlierWork
+                    ? `fra «${f.fromEarlierWork}», kap. ${f.firstChapter}`
+                    : `kap. ${f.firstChapter}`}
+                  {' · '}{REVEAL_DA[f.strength] ?? f.strength}
                   {f.slots.length > 0 && ` · kun ${f.slots.join(', ')}`}
                   {!f.complete && ' · ikke hele vejen'}
                   {desk.pov && !known.has(f.factId) && ` · ${desk.pov.name} ved det ikke`}

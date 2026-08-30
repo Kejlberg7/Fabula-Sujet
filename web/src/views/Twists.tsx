@@ -51,10 +51,13 @@ export function Twists({ nonce }: { nonce: number }) {
               <h3>{twist.summary}</h3>
               <p className="dim">{twist.shape}</p>
             </div>
-            <span className={twist.disclosure ? 'chip story' : 'chip quiet'}>
-              {twist.disclosure
-                ? `scene ${twist.disclosure.order} af ${twist.totalScenes}`
-                : 'aldrig sagt'}
+            <span className={twist.carriedIn ? 'chip disc'
+              : twist.disclosure ? 'chip story' : 'chip quiet'}>
+              {twist.carriedIn
+                ? `med fra «${twist.carriedIn}»`
+                : twist.disclosure
+                  ? `scene ${twist.disclosure.order} af ${twist.totalScenes}`
+                  : 'aldrig sagt'}
             </span>
           </header>
 
