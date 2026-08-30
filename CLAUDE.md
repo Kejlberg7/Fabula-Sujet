@@ -15,7 +15,13 @@ Story bible and manuscript workbench. See `README.md` for what it is and
   the time solver's bounds, and the `finding` rows the review writes. A
   *dismissal* is a person deciding something, so that goes through the log.
 - **The bible is data, the prose is the writer's.** The model may be changed
-  freely; scene text is never written or altered without an explicit yes.
+  freely; scene text is never written or altered without an explicit yes. A
+  margin note may propose a wording, but only the writer clicking it in the
+  editor writes it: `applySuggestion` is on the interface's API and has no MCP
+  tool. Prose and note go in one turn, so one undo takes back both.
+- **A source is stored and shown, never read.** No PDF, article or photographed
+  page is opened to guess what it says. What the rules act on is the writer's own
+  marking -- supports, context, or possible contradiction.
 - **Vague time stays vague.** Never invent a date the writer has not decided.
   Events get intervals and links, and the solver narrows them.
 - **Memory retention only governs experience.** A person's memory policy may
@@ -43,7 +49,7 @@ Node 20 (`.nvmrc`). The shell may default to an older nvm version — check
 `node -v` before running anything.
 
 ```bash
-npm test                            # 157 prøver
+npm test                            # 184 prøver
 npm run fixtures -- ./fabula.db     # Memento, Predestination, Inception, Havnen
 npm run build && npm run dev        # interface on :4173
 npm run ask -- ./fabula.db hent_kontekst

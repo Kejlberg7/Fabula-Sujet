@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { call } from '../client';
 import { useQuery } from '../store';
 import { formatInstant, MODE_DA, SOURCE_DA, STRENGTH_DA } from '../format';
-import { Prose, type AnchorTarget } from '../editor/Prose';
+import { Prose, type AnchorTarget, type ProseHandle } from '../editor/Prose';
 import type { Notice } from '../main';
 
 const NARRATION_DA: Record<string, string> = {
@@ -23,6 +23,9 @@ const LEAK_DA: Record<string, string> = {
 const SUGGESTION_DA: Record<string, string> = {
   continuity: 'sammenhæng', craft: 'fortælling', pacing: 'tempo', research: 'research',
 };
+const RELATION_DA: Record<string, string> = {
+  supports: 'støtter', context: 'kontekst', conflicts: 'mulig modstrid',
+};
 
 /**
  * The writing desk.
@@ -39,6 +42,7 @@ export function Desk({
   const { data: scenes } = useQuery('scene.list', {}, [nonce]);
   const [sceneId, setSceneId] = useState<string | null>(null);
   const [tab, setTab] = useState<'pov' | 'reader' | 'anchors' | 'margin'>('pov');
+  const prose = useRef<ProseHandle>(null);
 
   useEffect(() => {
     if (!scenes?.length) return;
@@ -101,6 +105,35 @@ export function Desk({
           ? 'Markeret som fulgt. Prosaen er ikke ændret.'
           : status === 'rejected' ? 'Margennoten er afvist.' : 'Margennoten er åbnet igen.',
       });
+      reload();
+      onChanged();
+    } catch (error) {
+      notify({ text: error instanceof Error ? error.message : String(error), bad: true });
+    }
+  }, [notify, reload, onChanged]);
+
+  /**
+   * Det udtrykkelige ja.
+   *
+   * Klikket er selve tilsagnet, og derfor sker udskiftningen i editoren, hvor
+   * forfatteren ser sætningen lande. Prosa og note gemmes i den samme tur, så
+   * ét fortryd tager begge dele tilbage.
+   */
+  const applySuggestion = useCallback(async (
+    id: string, markId: string, text: string,
+  ) => {
+    try {
+      const result = await prose.current?.applyProposal(markId, text, async (doc, markdown) => {
+        await call('suggestion.apply', { id, doc, markdown });
+      });
+      if (result === 'missing') {
+        notify({
+          text: 'Passagen findes ikke længere i teksten, så formuleringen kan ikke placeres.',
+          bad: true,
+        });
+        return;
+      }
+      notify({ text: 'Formuleringen er skrevet ind. Fortryd tager både tekst og note tilbage.' });
       reload();
       onChanged();
     } catch (error) {
@@ -189,6 +222,7 @@ export function Desk({
 
         <Prose
           key={sceneId}
+          ref={prose}
           sceneId={sceneId}
           initialDoc={desk.prose.doc}
           targets={targets}
@@ -306,6 +340,22 @@ export function Desk({
 
         {tab === 'margin' && (
           <div className="panel-body">
+            {desk.sources.length > 0 && (
+              <>
+                <h4 className="panel-head">Kilder til scenen</h4>
+                {desk.sources.map((src) => (
+                  <div key={`${src.id}-${src.backs.id}`} className="know">
+                    <div>{src.title}</div>
+                    <div className="dim small">
+                      {RELATION_DA[src.backs.relation] ?? src.backs.relation}
+                      {src.backs.label && ` · ${src.backs.label}`}
+                    </div>
+                    {src.backs.quote && <div className="excerpt">«{src.backs.quote}»</div>}
+                  </div>
+                ))}
+                <h4 className="panel-head">Margennoter</h4>
+              </>
+            )}
             {desk.suggestions.length === 0 && (
               <p className="empty">
                 Ingen margennoter. Bed Claude gennemgå scenen; kommentarerne lander her uden at
@@ -323,11 +373,29 @@ export function Desk({
                 <p>{note.message}</p>
                 {note.proposedText && (
                   <div className="proposed">
-                    <span className="dim small">Foreslået formulering — ikke anvendt</span>
+                    <span className="dim small">
+                      {note.appliedAt
+                        ? 'Foreslået formulering — skrevet ind'
+                        : note.markId
+                          ? 'Foreslået formulering — ikke anvendt'
+                          : 'Foreslået formulering — uden anker, så den kan ikke placeres'}
+                    </span>
                     <div>«{note.proposedText}»</div>
                   </div>
                 )}
                 <div className="margin-actions">
+                  {/* Klikket her ER tilsagnet. Derfor står knappen kun, hvor den
+                      kan holde: en formulering med et anker, der ikke allerede
+                      er skrevet ind. */}
+                  {note.proposedText && note.markId && !note.appliedAt && (
+                    <button
+                      className="btn primary"
+                      onClick={() =>
+                        void applySuggestion(note.id, note.markId!, note.proposedText!)}
+                    >
+                      Skriv den ind
+                    </button>
+                  )}
                   {note.status === 'open' ? (
                     <>
                       <button className="btn" onClick={() => void decideSuggestion(note.id, 'accepted')}>

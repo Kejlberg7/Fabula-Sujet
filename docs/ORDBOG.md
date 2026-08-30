@@ -55,7 +55,8 @@ navn i en tabel eller et felt er også en fejl.
 | Nedslag | `checkpoint` | Navngivet punkt at rulle tilbage til eller forgrene fra |
 | Fund | `finding` | Noget konsistensmotoren mener er galt |
 | Afvisning | `dismissal` | «Det er meningen — han lyver.» Permanent, med begrundelse |
-| Forslag | `suggestion` | Kommentar fra manuskriptgennemgangen. Anvendes aldrig af sig selv |
+| Forslag | `suggestion` | Kommentar fra manuskriptgennemgangen. Skrives kun ind af forfatteren selv |
+| Kildehylde | `sourceShelf` | Al research, og hvad hver kilde faktisk holder oppe |
 
 ## Regelkoder
 
@@ -99,7 +100,7 @@ Alt indenfor er engelsk.
 | Entiteter | `opret_entitet` · `opret_identitet` · `opret_ben` · `registrer_hukommelse` · `registrer_tilstedevaerelse` · `registrer_besiddelse` · `registrer_tilstand` · `opret_relation` · `registrer_forsvinding` · `opret_rejseforbindelse` · `flet_entiteter` |
 | Events | `opret_event` · `tilfoej_tidsbaand` · `tilfoej_deltager` · `knyt_event_til_faktum` |
 | Viden | `registrer_faktum` · `registrer_overbevisning` · `registrer_udsagn` · `knyt_faktum_til_baerer` |
-| Love og kilder | `opret_lov` · `opret_kilde` · `knyt_kilde` |
+| Love og kilder | `opret_lov` · `opret_kilde` · `knyt_kilde` · `vis_kilder` |
 | Fortælling | `opret_plottraad` · `tilfoej_slag` · `opret_kapitel` · `opret_scene` · `knyt_scene_til_event` · `opret_afsloering` · `gem_scenetekst` · `vis_kapitler` · `saet_tekstanker` · `vis_skrivebord` · `vis_baand` |
 | Ret og fjern | `opdater` · `slet` · `fortryd` · `gentag` · `saet_nedslag` · `rul_tilbage_til` · `historik` · `vis_aendringer` |
 | Spørg | `hvem_vidste_hvad` · `hvem_var_hvor` · `hvad_ved_laeseren` · `vis_verdenslinje` · `find` · `koer_tidsloesning` |

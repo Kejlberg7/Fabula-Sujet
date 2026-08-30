@@ -1,14 +1,16 @@
 /**
- * Loads the three prøvecases into a database you can then talk to.
+ * Loads the four prøvecases into a database you can then talk to.
  *
  *   npm run fixtures -- ./fabula.db
  *
- * Each film presses on a different axis: Memento on narrative order and
- * knowledge that expires, Predestination on personal time, Inception on which
- * world a thing is true in.
+ * Each presses on a different axis: Memento on narrative order and knowledge
+ * that expires, Predestination on personal time, Inception on which world a
+ * thing is true in -- and Havnen, which is ours, on the ordinary case none of
+ * the three touch: a series of two books, three generations and an ensemble.
  */
 import { openStore } from '../src/db/client';
 import { loadHavnen, loadInception, loadMemento, loadPredestination } from '../src/fixtures';
+import { Workbench } from '../src/core/workbench';
 
 const target = process.argv[2] ?? './fabula.db';
 const store = openStore(target);
@@ -55,5 +57,10 @@ for (const [name, world] of [
 
 const last = store.sqlite.prepare('select count(*) as n from "change"').get() as { n: number };
 console.log(`\n${last.n} ændringer i loggen. Alt kan fortrydes.`);
-console.log(`Databasen ligger i ${target}. Den aktive verden er Inception.`);
+// Den sidst indlæste prøvecase sætter den aktive verden. At skrive navnet
+// fast her ville betyde, at linjen begyndte at lyve, næste gang der kom en til.
+const active = new Workbench(store).context();
+const activeName = store.sqlite.prepare('select name from "world" where id = ?')
+  .get(active.worldId) as { name: string } | undefined;
+console.log(`Databasen ligger i ${target}. Den aktive verden er ${activeName?.name ?? '(ingen)'}.`);
 store.close();

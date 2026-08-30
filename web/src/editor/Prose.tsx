@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  useCallback, useEffect, useImperativeHandle, useRef, useState, type RefObject,
+} from 'react';
 import { EditorContent, useEditor, type Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { Anchor, markIdsIn } from './anchor';
@@ -13,6 +15,44 @@ export interface AnchorTarget {
 
 export type SaveState = 'clean' | 'dirty' | 'saving' | 'saved' | 'failed';
 
+export interface ProseHandle {
+  /**
+   * Write an accepted wording into one anchored passage.
+   *
+   * Returns `missing` when the mark is no longer in the document -- the passage
+   * has been rewritten or cut since the note was made, and there is nothing to
+   * replace. Better to say so than to guess where the sentence used to be.
+   */
+  applyProposal(
+    markId: string,
+    text: string,
+    commit: (doc: unknown, markdown: string) => Promise<void>,
+  ): Promise<'ok' | 'missing'>;
+}
+
+/**
+ * Where an anchor sits in the document right now.
+ *
+ * ProseMirror moves marks with their text, so this is a lookup and never a
+ * stored offset: the passage may have drifted a thousand characters since the
+ * note was written, and it will still be found.
+ */
+function rangeOfMark(editor: Editor, markId: string): { from: number; to: number } | null {
+  let from = -1;
+  let to = -1;
+  editor.state.doc.descendants((node, pos) => {
+    if (!node.isText) return true;
+    const carries = node.marks.some((m) =>
+      m.type.name === 'anchor' && m.attrs['markId'] === markId);
+    if (carries) {
+      if (from < 0) from = pos;
+      to = pos + node.nodeSize;
+    }
+    return true;
+  });
+  return from < 0 ? null : { from, to };
+}
+
 /**
  * The manuscript, and the one place the writer's own words live.
  *
@@ -22,7 +62,7 @@ export type SaveState = 'clean' | 'dirty' | 'saving' | 'saved' | 'failed';
  * here: the bible is data Claude may work in freely, the prose is the writer's.
  */
 export function Prose({
-  sceneId, initialDoc, targets, onSave, onAnchor, onAnchorsPruned,
+  sceneId, initialDoc, targets, onSave, onAnchor, onAnchorsPruned, ref,
 }: {
   sceneId: string;
   initialDoc: unknown;
@@ -30,6 +70,7 @@ export function Prose({
   onSave: (doc: unknown, markdown: string) => Promise<void>;
   onAnchor: (target: AnchorTarget, markId: string, excerpt: string) => Promise<void>;
   onAnchorsPruned: (markIds: string[]) => void;
+  ref?: RefObject<ProseHandle | null>;
 }) {
   const [state, setState] = useState<SaveState>('clean');
   const [words, setWords] = useState(0);
@@ -78,6 +119,64 @@ export function Prose({
   useEffect(() => {
     if (editor) setWords(countWords(toMarkdown(editor.getJSON())));
   }, [editor]);
+
+  /**
+   * Følg med, når prosaen skifter under editoren.
+   *
+   * Et fortryd henter en tidligere version af scenen tilbage, og uden det her
+   * bliver editoren stående med den tekst, der lige er taget tilbage — og
+   * gemmer den ind igen ved næste tastetryk. Så var fortryd ingenting værd.
+   *
+   * Kun når der ikke er noget uskrevet: den, der sidder og skriver, skal aldrig
+   * få sine egne ord skiftet ud under hænderne.
+   */
+  useEffect(() => {
+    if (!editor || state === 'dirty' || state === 'saving') return;
+    const incoming = initialDoc as object | null;
+    if (!incoming) return;
+    if (toMarkdown(incoming) === toMarkdown(editor.getJSON())) return;
+    editor.commands.setContent(incoming, { emitUpdate: false });
+    setWords(countWords(toMarkdown(incoming)));
+    setState('clean');
+  }, [editor, initialDoc, state]);
+
+  useImperativeHandle(ref, () => ({
+    async applyProposal(markId, text, commit) {
+      if (!editor) return 'missing';
+      const range = rangeOfMark(editor, markId);
+      if (!range) return 'missing';
+
+      // Behold mærkerne fra passagens begyndelse, ankeret iblandt: en ny
+      // formulering af den samme sætning er stadig det samme anker, og et
+      // anker, der forsvinder her, ville blive ryddet ved næste gemning.
+      const { state } = editor;
+      const marks = state.doc.resolve(range.from + 1).marks();
+      const wording = text.replace(/\s+/g, ' ').trim();
+      editor.view.dispatch(
+        state.tr.replaceWith(range.from, range.to, state.schema.text(wording, marks)),
+      );
+
+      // Udskiftningen udløste den almindelige autogemning. Den ville lægge
+      // prosaen ind i sin egen tur, og så ville fortryd kun tage halvdelen.
+      window.clearTimeout(timer.current);
+      pending.current = null;
+
+      const doc = editor.getJSON();
+      const markdown = toMarkdown(doc);
+      setWords(countWords(markdown));
+      setState('saving');
+      try {
+        await commit(doc, markdown);
+      } catch (error) {
+        setState('failed');
+        throw error;
+      }
+      setState('saved');
+      // Ankeret er beholdt med vilje ovenfor, så der er intet at rydde op --
+      // og en oprydning her ville lægge sig som en tom tur oven på gemningen.
+      return 'ok';
+    },
+  }), [editor]);
 
   // Leaving the scene, or the page, must not cost the last sentence.
   useEffect(() => () => {

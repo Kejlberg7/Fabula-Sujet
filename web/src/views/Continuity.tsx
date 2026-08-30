@@ -185,29 +185,45 @@ export function Continuity({
       )}
 
       {data && tab === 'sources' && (
-        <div className="continuity-grid">
-          {data.sources.map((item) => (
-            <article className="continuity-card source-card" key={item.id}>
-              <span className="chip quiet">{item.kind}</span>
-              <h3>{item.url ? <a href={item.url} target="_blank" rel="noreferrer">{item.title}</a> : item.title}</h3>
-              {item.filePath && <p className="mono dim">{item.filePath}</p>}
-              <div>{edit('source', item.id, 'note', item.note, true)}</div>
-              <h4>Henviser til</h4>
-              {item.links.map((link) => (
-                <div className={`source-link ${link.relation}`} key={link.id}>
-                  <span className="chip quiet">{RELATION_DA[link.relation] ?? link.relation}</span>
-                  <strong>{link.targetName}</strong>
-                  {link.note && <span>{link.note}</span>}
-                  <button className="icon-delete" aria-label="Slet kildehenvisningen"
-                    onClick={() => void remove('source_link', link.id, 'kildehenvisningen')}>×</button>
-                </div>
-              ))}
-              {item.links.length === 0 && <p className="dim small">Ikke knyttet til noget endnu.</p>}
-              <button className="btn" onClick={() => void remove('source', item.id, `kilden «${item.title}»`)}>Slet kilde</button>
-            </article>
-          ))}
-          {data.sources.length === 0 && <p className="empty">Ingen researchkilder endnu.</p>}
-        </div>
+        <>
+          <p className="lede small">
+            Kilden gemmes og vises — den bliver aldrig læst maskinelt. Hylden er sorteret efter de
+            to spørgsmål, den er til for: hvad har du markeret som en mulig modstrid, og hvad blev
+            gemt og aldrig knyttet til noget.
+          </p>
+          <div className="continuity-grid">
+            {data.sources.map((item) => (
+              <article className="continuity-card source-card" key={item.id}>
+                <span className="chip quiet">{item.kind}</span>
+                {item.conflicts > 0 && <span className="chip alert">mulig modstrid</span>}
+                {item.unused && <span className="chip disc">bakker ikke noget op</span>}
+                <h3>{item.url ? <a href={item.url} target="_blank" rel="noreferrer">{item.title}</a> : item.title}</h3>
+                {item.filePath && <p className="mono dim">{item.filePath}</p>}
+                <div>{edit('source', item.id, 'note', item.note, true)}</div>
+                <h4>Henviser til</h4>
+                {item.backs.map((link) => (
+                  <div className={`source-link ${link.relation}`} key={link.id}>
+                    <span className="chip quiet">{RELATION_DA[link.relation] ?? link.relation}</span>
+                    {/* Et manglende navn betyder, at rækken er slettet, siden
+                        henvisningen blev lavet. Det skal stå, ikke skjules. */}
+                    <strong>{link.label ?? 'peger på noget, der er slettet'}</strong>
+                    {link.note && <span>{link.note}</span>}
+                    <button className="icon-delete" aria-label="Slet kildehenvisningen"
+                      onClick={() => void remove('source_link', link.id, 'kildehenvisningen')}>×</button>
+                  </div>
+                ))}
+                {item.unused && (
+                  <p className="dim small">
+                    Ikke knyttet til noget endnu. Sig til Claude, hvad den understøtter,
+                    giver kontekst til eller muligvis modsiger.
+                  </p>
+                )}
+                <button className="btn" onClick={() => void remove('source', item.id, `kilden «${item.title}»`)}>Slet kilde</button>
+              </article>
+            ))}
+            {data.sources.length === 0 && <p className="empty">Ingen researchkilder endnu.</p>}
+          </div>
+        </>
       )}
     </div>
   );

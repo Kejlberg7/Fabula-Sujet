@@ -3,7 +3,7 @@ import type { Store } from '../db/client';
 import {
   beat, belief, branch, change, chapter, disappearance, entity, entityLeg, entityState,
   event, eventFact, fact, identity, law, memoryPolicy, participation, possession, presence,
-  realm, relationship, scene, sceneEvent, sceneText, series, source, sourceLink, temporalLink,
+  realm, relationship, scene, sceneEvent, sceneText, series, temporalLink,
   textAnchor, thread, work, world,
 } from '../db/schema';
 import {
@@ -13,6 +13,7 @@ import { bandView } from '../core/queries/band';
 import { compareTwists, twistReadings } from '../core/queries/dramaturgy';
 import { readBindings } from '../core/queries/bindings';
 import { manuscriptPacket } from '../core/queries/manuscript';
+import { sourceShelf } from '../core/queries/sources';
 import { knowledgeTrack } from '../core/queries/track';
 import { whoKnewWhat } from '../core/queries/knowledge';
 import { whoWasWhere, worldline } from '../core/queries/presence';
@@ -31,7 +32,9 @@ import { createSource, linkSource } from '../core/services/laws';
 import { openFindings, review } from '../core/review';
 import { RULES } from '../core/rules';
 import { dismissFinding, revokeDismissal } from '../core/services/findings';
-import { createSuggestion, decideSuggestion, suggestionsFor } from '../core/services/suggestions';
+import {
+  applySuggestion, createSuggestion, decideSuggestion, suggestionsFor,
+} from '../core/services/suggestions';
 import { solveTime } from '../core/solve';
 import { formatInstant, formatSpan } from '../core/time/gregorian';
 import { Workbench } from '../core/workbench';
@@ -242,29 +245,19 @@ export function createApi(store: Store) {
         .where(eq(disappearance.branchId, c.branchId)).all();
       const lines = db.select().from(thread).where(eq(thread.branchId, c.branchId)).all()
         .filter((row) => !c.workId || row.workId === c.workId);
-      const sources = db.select().from(source).where(eq(source.worldId, c.worldId)).all();
-      const sourceLinks = db.select().from(sourceLink).where(eq(sourceLink.branchId, c.branchId)).all();
+      const shelf = sourceShelf(store, c);
 
       const when = (from: number | null, to: number | null) => {
         if (from == null && to == null) return 'hele tiden';
         if (from != null && to != null) return `${formatInstant(from, 'day')} – ${formatInstant(to, 'day')}`;
         return from != null ? `fra ${formatInstant(from, 'day')}` : `til ${formatInstant(to!, 'day')}`;
       };
-      const targetName = (kind: string, id: string) => {
-        if (kind === 'entity') return entityNames.get(id) ?? id;
-        if (kind === 'event') return eventNames.get(id) ?? id;
-        if (kind === 'scene') return sceneNames.get(id) ?? id;
-        if (kind === 'work') return db.select().from(work).where(eq(work.id, id)).get()?.title ?? id;
-        if (kind === 'fact') return db.select().from(fact).where(eq(fact.id, id)).get()?.summary ?? id;
-        if (kind === 'law') return db.select().from(law).where(eq(law.id, id)).get()?.statement ?? id;
-        return id;
-      };
 
       return {
         stats: {
           states: states.length, possessions: held.length, relationships: relations.length,
           identities: identities.length, disappearances: absences.length,
-          threads: lines.length, sources: sources.length,
+          threads: lines.length, sources: shelf.length,
         },
         objects: allEntities.filter((row) => row.kind === 'object').map((row) => ({
           id: row.id, name: row.name, summary: row.summary,
@@ -301,12 +294,10 @@ export function createApi(store: Store) {
               ...item, sceneName: item.sceneId ? sceneNames.get(item.sceneId) ?? '(ukendt)' : null,
             })),
         })),
-        sources: sources.map((item) => ({
-          ...item,
-          links: sourceLinks.filter((link) => link.sourceId === item.id).map((link) => ({
-            ...link, targetName: targetName(link.targetKind, link.targetId),
-          })),
-        })),
+        // Hylden er den samme her og i gennemgangspakken. Da den fandtes to
+        // steder, kunne de to steder svare forskelligt på, hvad en henvisning
+        // peger på — og et opslag, der siger et id, er ikke et svar.
+        sources: shelf,
       };
     },
 
@@ -678,6 +669,9 @@ export function createApi(store: Store) {
     }) => bench.run({ actor, summary: 'Knyt kilde' }, (session, c) =>
       ({ id: linkSource(session, c, input) })),
 
+    /** Everything saved as research, and what each item is actually holding up. */
+    'source.shelf': () => sourceShelf(store, ctx()),
+
     /**
      * The writing desk: one scene, its prose, and the two answers that stop a
      * draft -- what the viewpoint character knows here, and what the reader
@@ -700,6 +694,18 @@ export function createApi(store: Store) {
       id: string; status: 'open' | 'accepted' | 'rejected';
     }) => bench.run({ actor, summary: 'Afgør margennote' }, (session, c) =>
       ({ updated: decideSuggestion(session, c, store, input) })),
+
+    /**
+     * The yes, and the only way a proposed wording reaches the manuscript.
+     *
+     * Deliberately here and not among the MCP tools: the editor sends the
+     * document it already put the sentence into, so the writer has seen the
+     * change before this is called. Prose and stamp go in one turn, so a single
+     * undo takes back both.
+     */
+    'suggestion.apply': (input: { id: string; doc: unknown; markdown: string }) =>
+      bench.run({ actor, summary: 'Skriv margennote ind' }, (session, c) =>
+        applySuggestion(session, c, store, input)),
 
     /** Every scene in reading order, for walking the book from the desk. */
     'scene.list': (input: { workId?: string }) => {

@@ -43,6 +43,13 @@
       "when": 1790000002000,
       "tag": "0005_brave_red_hulk",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1788099811682,
+      "tag": "0006_suggestion_applied_at",
+      "breakpoints": true
     }
   ]
 }

@@ -1,4 +1,4 @@
-import { and, desc, eq, getTableName, gt, isNull, sql } from 'drizzle-orm';
+import { and, desc, eq, exists, getTableName, gt, isNull, sql } from 'drizzle-orm';
 import type { SQLiteTable } from 'drizzle-orm/sqlite-core';
 import type { Db, Store } from '../db/client';
 import { change, checkpoint, turn } from '../db/schema';
@@ -295,8 +295,19 @@ export function undoTurn(store: Store, turnId: string, actor: Actor): string {
 /** Undoes the newest turn that has not been undone. Returns null when there is none. */
 export function undoLast(store: Store, branchId: string, actor: Actor): string | null {
   const { db } = store;
+  /**
+   * Spring ture over, der ikke ændrede noget.
+   *
+   * Flere skrivninger er tomme, når der intet var at gøre -- oprydningen af
+   * forladte tekstankre er den almindelige. En sådan tur ville sluge et klik på
+   * Fortryd: brugeren beder om at få det sidste tilbage og får at vide, at det
+   * er fortrudt, uden at noget som helst skiftede.
+   */
   const last = db.select().from(turn)
-    .where(and(eq(turn.branchId, branchId), isNull(turn.undoneAt), eq(turn.kind, 'edit')))
+    .where(and(
+      eq(turn.branchId, branchId), isNull(turn.undoneAt), eq(turn.kind, 'edit'),
+      exists(db.select({ one: sql`1` }).from(change).where(eq(change.turnId, turn.id))),
+    ))
     .orderBy(desc(turn.startedAt)).limit(1).get();
   if (!last) return null;
   return undoTurn(store, last.id, actor);

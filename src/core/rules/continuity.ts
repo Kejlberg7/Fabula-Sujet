@@ -3,6 +3,7 @@ import {
   beat, chapter, disappearance, entityState, identity, participation, relationship,
   scene, source, sourceLink, thread,
 } from '../../db/schema';
+import { labelForTarget } from '../queries/sources';
 import { fingerprint, type Finding, type Rule, type Snapshot } from './kit';
 
 interface Interval { from: number; to: number }
@@ -255,6 +256,11 @@ export const disappearanceRule: Rule = {
   },
 };
 
+const TARGET_DA: Record<string, string> = {
+  fact: 'faktummet', law: 'loven', event: 'eventet',
+  entity: 'personen', scene: 'scenen', work: 'bogen',
+};
+
 export const sourceConflict: Rule = {
   code: 'source_conflict',
   title: 'Modstrid med kilde',
@@ -264,14 +270,20 @@ export const sourceConflict: Rule = {
     return snap.store.db.select().from(sourceLink)
       .where(eq(sourceLink.branchId, snap.ctx.branchId)).all()
       .filter((row) => row.relation === 'conflicts')
-      .map((row): Finding => ({
+      .map((row): Finding => {
+        // Uden navnet på det, kilden strider mod, er noten ubrugelig: «en mulig
+        // modstrid med fact» fortæller ikke, hvilket faktum man skal se på.
+        const target = labelForTarget(snap.store, row.targetKind, row.targetId);
+        return {
         ruleCode: 'source_conflict', severity: 'note',
         message: `Kilden «${sources.get(row.sourceId)?.title ?? 'Ukendt kilde'}» er markeret som en mulig `
-          + `modstrid med ${row.targetKind}${row.note ? `: ${row.note}` : '.'} `
+          + `modstrid med ${TARGET_DA[row.targetKind]} «${target ?? row.targetId}»`
+          + `${row.note ? `: ${row.note}` : '.'} `
           + 'Programmet har ikke læst eller fortolket kildens indhold.',
         subjects: { rows: [row.id, row.targetId] },
         fingerprint: fingerprint('source_conflict', row.id),
-      }));
+        };
+      });
   },
 };
 

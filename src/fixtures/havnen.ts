@@ -9,14 +9,25 @@ import { addParticipation, createEvent, linkEventFact } from '../core/services/e
 import {
   attachFactToCarrier, createFact, recordBelief, recordStatement,
 } from '../core/services/knowledge';
-import { createLaw } from '../core/services/laws';
+import { createLaw, createSource, linkSource } from '../core/services/laws';
 import {
-  createBeat, createChapter, createReveal, createScene, createThread,
+  createBeat, createChapter, createReveal, createScene, createTextAnchor, createThread,
   linkSceneToEvent, saveSceneText,
 } from '../core/services/narrative';
+import { createSuggestion } from '../core/services/suggestions';
 import { createSeries, createWorld, createWork } from '../core/services/world';
 import { Workbench } from '../core/workbench';
-import { markdownOf, paragraphs } from './prose';
+import { markdownOf, paragraphs, type Passage } from './prose';
+
+/**
+ * Et fast mærke-id i prøvecasen.
+ *
+ * Ude i programmet laver editoren et tilfældigt id, når forfatteren markerer en
+ * passage. Her skal det være det samme hver gang, for margennoten længere nede
+ * peger på det -- og en note, der peger på et mærke, der ikke findes, kan ikke
+ * skrives ind, hvilket er præcis det, prøvecasen skal vise virker.
+ */
+const WEATHER_MARK = 'havnen-storm-1';
 
 const DAY = SECONDS.DAY;
 const HOUR = SECONDS.HOUR;
@@ -81,31 +92,68 @@ export function loadHavnen(store: Store): {
       summary: 'Født 1870. Holder gården sammen, og tier om hvorfor hun kan.',
     });
     const mads = createEntity(s, ctx, {
-      name: 'Mads Krag', kind: 'person', summary: 'Født 1866. Skipper. Forsvinder i 1901.',
+      name: 'Mads Krag', kind: 'person',
+      summary: 'Født 1866. Skipper på «Marie Krag» og gift med Ingeborg. Siger ja til '
+        + 'en aftale, han fortryder samme nat, og går i vandet ved Fyret i 1901 — '
+        + 'otte år efter det, han sagde ja til.',
     });
     const valdemar = createEntity(s, ctx, {
-      name: 'Valdemar Sund', kind: 'person', summary: 'Født 1865. Reder. Ejer det halve af havnen.',
+      name: 'Valdemar Sund', kind: 'person',
+      summary: 'Født 1865. Reder, ejer det halve af havnen og lyver aldrig direkte. '
+        + 'Han siger sandt om vejret ved søforhøret og lader resten stå ved siden af, '
+        + 'og det er hele hans metode gennem begge bøger.',
     });
     const lind = createEntity(s, ctx, {
       name: 'Doktor Lind', kind: 'person',
-      summary: 'Født 1858. Ser det hele og husker under halvdelen.',
+      summary: 'Født 1858. Distriktslæge, til stede ved næsten alt hvad der sker, og '
+        + 'med en hukommelse der slipper efter et halvt år. Han er prøven på, at '
+        + 'det at have været til stede ikke er det samme som at vide det bagefter.',
     });
     const karen = createEntity(s, ctx, {
-      name: 'Karen Krag', kind: 'person', summary: 'Født 1895. Broen mellem de to bøger.',
+      name: 'Karen Krag', kind: 'person',
+      summary: 'Født 1895. Vokser op som Mads Krags datter og er det ikke. Hun er '
+        + 'broen mellem de to bøger: alt hvad bog et gemmer, går gennem hende for at '
+        + 'nå frem til bog to, og hun siger ingenting nogen af stederne.',
     });
     const jens = createEntity(s, ctx, {
-      name: 'Jens Krag', kind: 'person', summary: 'Født 1928. Karens søn. Bog to er hans.',
+      name: 'Jens Krag', kind: 'person',
+      summary: 'Født 1928. Karens søn, murer, og den der river panelet ned i 1952. '
+        + 'Bog to er hans: han leder efter noget, læseren allerede fik at vide i '
+        + 'bog et, og det er hele afstanden mellem de to bind.',
     });
     const ellen = createEntity(s, ctx, {
-      name: 'Ellen Sund', kind: 'person', summary: 'Født 1930. Valdemars barnebarn.',
+      name: 'Ellen Sund', kind: 'person',
+      summary: 'Født 1930. Valdemars barnebarn og arving til den halve havn. Hun ved '
+        + 'mindre om sin egen familie end den mand, der kommer og spørger, og opdager '
+        + 'det midt i samtalen på kajen.',
     });
 
     // ----------------------------------------------------------------- steder
-    const farm = createEntity(s, ctx, { name: 'Krag-gården', kind: 'place' });
-    const harbour = createEntity(s, ctx, { name: 'Havnen', kind: 'place' });
-    const sundvej = createEntity(s, ctx, { name: 'Sundvej 4', kind: 'place' });
-    const town = createEntity(s, ctx, { name: 'Købstaden', kind: 'place' });
-    const light = createEntity(s, ctx, { name: 'Fyret', kind: 'place' });
+    const farm = createEntity(s, ctx, {
+      name: 'Krag-gården', kind: 'place',
+      summary: 'Fire tønder land oven for havnen, arvet og aldrig helt betalt. '
+        + 'Det er her brevet ligger bag panelet i tres år.',
+    });
+    const harbour = createEntity(s, ctx, {
+      name: 'Havnen', kind: 'place',
+      summary: 'Bassin, pakhuse og en kran. Halvdelen står i familien Sunds navn, '
+        + 'og hvem der ejer den anden halvdel, skifter gennem begge bøger.',
+    });
+    const sundvej = createEntity(s, ctx, {
+      name: 'Sundvej 4', kind: 'place',
+      summary: 'Valdemar Sunds hus ved indsejlingen. Kontor i stueetagen, '
+        + 'og den stue hvor aftalen bliver indgået i september 1893.',
+    });
+    const town = createEntity(s, ctx, {
+      name: 'Købstaden', kind: 'place',
+      summary: 'Herredsretten, arkivet og avisen ligger her. Alt hvad der bliver '
+        + 'sagt officielt om skibet, bliver sagt inden for de fire gader.',
+    });
+    const light = createEntity(s, ctx, {
+      name: 'Fyret', kind: 'place',
+      summary: 'Halvanden sømil ude. «Marie Krag» går ned her i 1893, og otte år '
+        + 'senere driver Mads Krags båd ind under det med årerne på plads.',
+    });
 
     // Et kort med rigtige afstande. Rejsetiden er en hård grænse, så
     // køreplanen nedenfor bliver prøvet af, hver gang gennemgangen kører.
@@ -344,7 +392,9 @@ export function loadHavnen(store: Store): {
     // kun til sig selv, i det brev barnebarnet finder.
     const paper = createEntity(s, ctx, {
       name: 'Ingeborgs brev', kind: 'object',
-      summary: 'Skrevet 1901, gemt bag panelet, fundet 1952.',
+      summary: 'Skrevet i 1901, samme efterår Mads forsvinder, og gemt bag panelet '
+        + 'i stuen. Fundet af Jens i 1952. Det er den eneste bærer, der får noget '
+        + 'fra bog et helt frem til bog to uden at gå gennem et menneske.',
     });
     attachFactToCarrier(s, ctx, {
       objectEntityId: paper, factId: scuttled.factId,
@@ -374,7 +424,9 @@ export function loadHavnen(store: Store): {
       pov: string;
       mode?: 'dramatised' | 'mentioned' | 'implied';
       reveals?: { factId: string; slotId?: string; strength: 'hinted' | 'implied' | 'stated' | 'confirmed' }[];
-      prose?: string[];
+      prose?: Passage[];
+      /** Passager, der er knyttet til noget i biblen — og som en note kan hænges på. */
+      anchors?: { markId: string; targetKind: 'event' | 'fact' | 'entity'; targetId: string; excerpt: string }[];
     }
     interface ChapterSpec { title: string; summary: string; scenes: SceneSpec[] }
 
@@ -405,6 +457,12 @@ export function loadHavnen(store: Store): {
               sceneId, doc: paragraphs(...spec.prose), markdown: markdownOf(...spec.prose),
             });
           }
+          for (const tie of spec.anchors ?? []) {
+            createTextAnchor(s, ctx, {
+              sceneId, markId: tie.markId, targetKind: tie.targetKind,
+              targetId: tie.targetId, excerpt: tie.excerpt,
+            });
+          }
         });
       });
       return madeScenes;
@@ -423,7 +481,13 @@ export function loadHavnen(store: Store): {
               'Mads sagde ja, fordi der ikke var noget at sige nej med. Bagefter gik han hjem ad den lange vej og var alligevel fremme for tidligt.',
             ],
           },
-          { title: 'Ingeborg tæller ugerne', event: meeting, pov: ingeborg, mode: 'mentioned' },
+          {
+            title: 'Ingeborg tæller ugerne', event: meeting, pov: ingeborg, mode: 'mentioned',
+            prose: [
+              'Hun talte dem om morgenen, mens gryden stod og varmede, og hun talte dem forfra, når hun kom til et tal, hun ikke kunne lide.',
+              'Mads kom hjem tidligere end aftalt og satte sig uden at tage frakken af. Hun spurgte ikke. Der var en slags spørgsmål, man kun kunne stille én gang, og hun ville gemme det.',
+            ],
+          },
         ],
       },
       {
@@ -433,8 +497,16 @@ export function loadHavnen(store: Store): {
           {
             title: 'Vandet står ind', event: sinking, pov: mads,
             prose: [
-              'Der var ingen storm. Det var det, han nåede at tænke: at der ingen storm var, og at det derfor måtte være noget, nogen havde gjort.',
+              {
+                text: 'Der var ingen storm. Det var det, han nåede at tænke: at der ingen storm var, og at det derfor måtte være noget, nogen havde gjort.',
+                mark: { id: WEATHER_MARK, kind: 'event', label: '«Marie Krag» går ned' },
+              },
+              'Vandet kom ikke over rælingen. Det kom nedefra, roligt og fra flere steder på én gang, og det var derfor, han vidste det, længe før nogen kunne have sagt det til ham.',
             ],
+            anchors: [{
+              markId: WEATHER_MARK, targetKind: 'event', targetId: sinking,
+              excerpt: 'Der var ingen storm.',
+            }],
           },
         ],
       },
@@ -442,10 +514,28 @@ export function loadHavnen(store: Store): {
         title: 'Søforhøret',
         summary: 'Der bliver sagt sandt om vejret og løjet om alt andet.',
         scenes: [
-          { title: 'Valdemar forklarer sig', event: inquest, pov: valdemar,
-            reveals: [{ factId: scuttled.factId, strength: 'implied' }] },
-          { title: 'Lind kan ikke huske det', event: inquest, pov: lind },
-          { title: 'Ingeborg siger ingenting', event: inquest, pov: ingeborg },
+          {
+            title: 'Valdemar forklarer sig', event: inquest, pov: valdemar,
+            reveals: [{ factId: scuttled.factId, strength: 'implied' }],
+            prose: [
+              'Han sagde sandheden om vejret, og han sagde den grundigt, for den kostede ham ingenting. Kulingen havde lagt sig ved firetiden. Det stod i journalen, og enhver kunne slå det op.',
+              'Om alt det andet sagde han, at han ikke havde været om bord. Det var også sandt. Han havde regnet med, at de to sætninger ville stå ved siden af hinanden og se ens ud.',
+            ],
+          },
+          {
+            title: 'Lind kan ikke huske det', event: inquest, pov: lind,
+            prose: [
+              'Han havde set noget den nat, det var han sikker på. Han kunne huske, at han havde været sikker. Selve synet var væk, som et navn man har haft på tungen og siden opgivet.',
+              'Retten spurgte igen, venligt, og han svarede det eneste, han kunne stå inde for: at han ikke vidste det. Bagefter blev han stående på trappen og ledte efter det, indtil det blev mørkt.',
+            ],
+          },
+          {
+            title: 'Ingeborg siger ingenting', event: inquest, pov: ingeborg,
+            prose: [
+              'Hun sad på den bageste bænk med hænderne i skødet og hørte Valdemar sige det, hun allerede vidste, på en måde, der gjorde det til noget andet.',
+              'Der var et øjeblik, hvor hun kunne have rejst sig. Hun mærkede det komme og mærkede det gå igen, og bagefter kunne hun ikke afgøre, om det var frygt eller regnskab, der havde holdt hende nede.',
+            ],
+          },
         ],
       },
       {
@@ -463,16 +553,28 @@ export function loadHavnen(store: Store): {
               'Da han var gået, satte hun kedlen over. Det var det eneste, hun kunne finde på at gøre, og hun gjorde det omhyggeligt.',
             ],
           },
-          { title: 'Karen kommer til verden', event: birth, pov: ingeborg,
-            reveals: [{ factId: paternity.factId, strength: 'hinted' }] },
+          {
+            title: 'Karen kommer til verden', event: birth, pov: ingeborg,
+            reveals: [{ factId: paternity.factId, strength: 'hinted' }],
+            prose: [
+              'Barnet kom om natten og skreg med det samme, og jordemoderen sagde, at det var et godt tegn. Ingeborg lå og så på loftsbrættet og tænkte på, hvor lidt et godt tegn dækker.',
+              'Om morgenen kom Valdemar med noget indsvøbt og blev stående i døren. Han sagde ikke andet end tillykke. Det var rigeligt, og de vidste det begge to.',
+            ],
+          },
         ],
       },
       {
         title: 'Årene',
         summary: 'Mads ror ud en morgen i november.',
         scenes: [
-          { title: 'Båden ved Fyret', event: vanishing, pov: ingeborg,
-            reveals: [{ factId: madsFate.factId, strength: 'stated' }] },
+          {
+            title: 'Båden ved Fyret', event: vanishing, pov: ingeborg,
+            reveals: [{ factId: madsFate.factId, strength: 'stated' }],
+            prose: [
+              'Båden lå og drev ind under Fyret med årerne på plads, og det var det, ingen kunne forklare: at årerne lå, som om nogen havde lagt dem ordentligt fra sig.',
+              'Hun gik derned, da de kom og hentede hende, og hun så på det længe. Så sagde hun, at det var hans båd, og gik hjem og gjorde det, der skulle gøres den dag.',
+            ],
+          },
         ],
       },
     ]);
@@ -491,27 +593,51 @@ export function loadHavnen(store: Store): {
               'Han læste det to gange og lagde det så fra sig, som om det kunne gå i stykker af at blive holdt.',
             ],
           },
-          { title: 'Han spørger sin mor', event: letter, pov: karen, mode: 'implied' },
+          {
+            title: 'Han spørger sin mor', event: letter, pov: karen, mode: 'implied',
+            prose: [
+              'Hun tørrede hænderne, før hun tog brevet, og hun tog det med begge hænder, som man tager imod noget, der er tungere end det ser ud.',
+              'Så sagde hun, at hendes mor havde haft en pæn håndskrift, og gav det tilbage. Jens ventede på resten. Der kom ikke mere den aften, og han forstod for sent, at det var svaret.',
+            ],
+          },
         ],
       },
       {
         title: 'Ellen',
         summary: 'Den anden families barnebarn ved mindre end han troede.',
         scenes: [
-          { title: 'På kajen', event: askingEllen, pov: jens },
-          { title: 'Ellen hører navnet', event: askingEllen, pov: ellen,
-            reveals: [{ factId: scuttled.factId, strength: 'implied' }] },
+          {
+            title: 'På kajen', event: askingEllen, pov: jens,
+            prose: [
+              'Han havde forberedt sig på en, der ville lyve, og stod nu over for en, der ikke vidste noget. Det var værre, for der var ingen steder at lægge det.',
+              'Hun spurgte, hvad han mente med sænket, og han hørte sin egen stemme forklare det alt for grundigt, som man gør, når man opdager, at man er den eneste i samtalen, der har noget at miste.',
+            ],
+          },
+          {
+            title: 'Ellen hører navnet', event: askingEllen, pov: ellen,
+            reveals: [{ factId: scuttled.factId, strength: 'implied' }],
+            prose: [
+              'Navnet på skibet havde hun hørt hele sin barndom, men altid som noget, der var sket ude i vejret, og aldrig som noget, nogen havde besluttet.',
+              'Hun blev stående, efter at han var gået, og kiggede ud over bassinet, hvor halvdelen af det hele stadig stod i familiens navn. Det var første gang, hun tænkte på, hvad den halvdel var betalt med.',
+            ],
+          },
         ],
       },
       {
         title: 'Protokollen',
         summary: 'Det, der blev sagt i 1893, står der endnu.',
         scenes: [
-          { title: 'Arkivet', event: archive, pov: jens,
+          {
+            title: 'Arkivet', event: archive, pov: jens,
             reveals: [{
               factId: scuttled.factId, slotId: scuttled.slotIds.get('bagmand'),
               strength: 'stated',
-            }] },
+            }],
+            prose: [
+              'Protokollen var indbundet i noget, der engang havde været blåt. Skriften var en skrivers, jævn og uden mening om noget, og netop derfor stod det, der stod, så tydeligt.',
+              'Han læste Valdemars forklaring to gange og fandt ikke en eneste løgn i den. Det var det, der gjorde ham kold: at man kan sige sandt hele vejen igennem og alligevel få hele rummet til at tro noget forkert.',
+            ],
+          },
         ],
       },
       {
@@ -526,10 +652,17 @@ export function loadHavnen(store: Store): {
             }],
             prose: [
               'Huset var det samme. Det var det værste ved det: at et hus kan stå og se ud, som om der ikke er sket noget i det.',
+              'Han sagde det midt i en sætning om noget andet, fordi han vidste, at han ikke kunne begynde på det med vilje. Bagefter var der meget stille, og stilheden var ikke overraskelse.',
             ],
           },
-          { title: 'Ellen bliver stående', event: reckoning, pov: ellen,
-            reveals: [{ factId: paternity.factId, strength: 'implied' }] },
+          {
+            title: 'Ellen bliver stående', event: reckoning, pov: ellen,
+            reveals: [{ factId: paternity.factId, strength: 'implied' }],
+            prose: [
+              'Hun kunne være gået. Hun regnede endda ud, hvor lang tid det ville tage at komme ud til bilen, og hun blev alligevel stående ved vinduet med ryggen til dem begge.',
+              'Det var regnestykket om Karen, hun ikke kunne få til at gå op på den pæne måde. Årstallet passede, og ansigtet passede, og hun havde set det hver eneste jul uden at se det.',
+            ],
+          },
         ],
       },
     ]);
@@ -575,6 +708,59 @@ export function loadHavnen(store: Store): {
     createBeat(s, ctx, {
       threadId: thread2, kind: 'payoff', sceneId: second.get('Jens siger det'),
       summary: 'Det bliver sagt højt.',
+    });
+
+    /**
+     * Research, og den ene margennote den fører til.
+     *
+     * Kilderne gemmes og vises; ingen af dem bliver læst maskinelt. Den vigtige
+     * er vejrarkivet: forfatteren har selv markeret det som en mulig modstrid
+     * med scenen, og det er den markering -- ikke et opslag i filen --
+     * gennemgangen melder på.
+     */
+    const sinkingScene = first.get('Vandet står ind');
+    if (!sinkingScene) throw new Error('Prøvecasen mangler scenen «Vandet står ind».');
+
+    const weather = createSource(s, ctx, {
+      title: 'Vejrarkiv for Kattegat, november 1893',
+      kind: 'article',
+      url: 'https://eksempel.dk/vejrarkiv/1893-11',
+      note: 'Afskrift fra havnefogedens journal. Kuling fra nordvest natten til den 14.',
+    });
+    linkSource(s, ctx, {
+      sourceId: weather, targetKind: 'scene', targetId: sinkingScene,
+      relation: 'conflicts',
+      note: 'Scenen siger, at der ingen storm var. Arkivet siger kuling.',
+      quote: 'Kuling af nordvest, aftagende mod morgenstunden.',
+    });
+
+    const protocol = createSource(s, ctx, {
+      title: 'Søforhørsprotokol, Sundby herredsret',
+      kind: 'pdf',
+      filePath: 'research/soeforhoer-1893.pdf',
+      note: 'Fotograferede sider. Læses af mennesker, ikke af programmet.',
+    });
+    linkSource(s, ctx, {
+      sourceId: protocol, targetKind: 'event', targetId: inquest, relation: 'supports',
+    });
+
+    // Gemt og aldrig knyttet til noget. Hylden findes for at kunne vise den her.
+    createSource(s, ctx, {
+      title: 'Fotografi: kajen set fra nord, 1951',
+      kind: 'image',
+      filePath: 'research/kajen-1951.jpg',
+      note: 'Fundet i avisarkivet. Ved endnu ikke, hvad den skal bruges til.',
+    });
+
+    createSuggestion(s, ctx, {
+      sceneId: sinkingScene,
+      markId: WEATHER_MARK,
+      kind: 'research',
+      sourceId: weather,
+      message: 'Vejrarkivet noterer kuling den aften. Enten skal Mads tage fejl med vilje — '
+        + 'og så skal det stå, at han tager fejl — eller også skal sætningen om vejret gå.',
+      proposedText: 'Der var storm, og alligevel var det ikke stormen. Det var det, han nåede '
+        + 'at tænke, mens vandet kom: at det måtte være noget, nogen havde gjort.',
     });
   });
 

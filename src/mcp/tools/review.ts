@@ -121,9 +121,22 @@ export const reviewTools: ToolDef[] = [
       const laws = packet.laws.length
         ? packet.laws.map((l) => `  · [${l.hardness}] ${l.statement}`).join('\n')
         : '  (ingen)';
+      const relation: Record<string, string> = {
+        supports: 'støtter', context: 'kontekst', conflicts: 'mulig modstrid',
+      };
       const sources = packet.sources.length
-        ? packet.sources.map((s) => `  · ${s.title} (${s.kind})${s.url ? ` — ${s.url}` : ''}`).join('\n')
+        ? packet.sources.map((s) =>
+          `  · ${s.title} (${s.kind})${s.url ? ` — ${s.url}` : ''}`
+          + `\n      ${relation[s.backs.relation] ?? s.backs.relation}: `
+          + `${s.backs.kind} «${s.backs.label ?? 'væk'}»`
+          + (s.backs.quote ? `\n      «${s.backs.quote}»` : '')).join('\n')
         : '  (ingen)';
+      // Mærke-id'erne er ikke pynt: de er de eneste adresser i prosaen, en note
+      // kan hænges på, og dermed det eneste sted et tekstforslag kan skrives ind.
+      const anchors = packet.anchors.length
+        ? packet.anchors.map((a) =>
+          `  · ${a.markId} — ${a.targetLabel}${a.excerpt ? `: «${a.excerpt}»` : ''}`).join('\n')
+        : '  (ingen — så kan et tekstforslag ikke placeres)';
       const notes = packet.suggestions.length
         ? packet.suggestions.map((s) => `  · [${s.status}/${s.kind}] ${s.message}`).join('\n')
         : '  (ingen)';
@@ -134,6 +147,7 @@ export const reviewTools: ToolDef[] = [
         '', 'PROSA', packet.prose.markdown ?? '(ingen prosa)',
         '', 'GÆLDENDE LOVE', laws,
         '', 'KILDEHENVISNINGER (kun vist, ikke læst)', sources,
+        '', 'ANKRE I PROSAEN (mærke-id, som en note kan hænges på)', anchors,
         '', 'MARGINNOTER', notes,
         '', 'Skriv kun margennoter. Ret aldrig prosaen som en del af gennemgangen.',
       ].join('\n');
@@ -145,8 +159,10 @@ export const reviewTools: ToolDef[] = [
     title: 'Tilføj margennote',
     description:
       'Læg en kommentar eller et tekstforslag ved en scene. Forslaget er inert: værktøjet ændrer '
-      + 'aldrig prosaen. En foreslået formulering må først skrives ind gennem en særskilt handling, '
-      + 'efter at forfatteren udtrykkeligt har sagt ja.',
+      + 'aldrig prosaen. En foreslået formulering kan kun skrives ind af forfatteren selv, ved at '
+      + 'klikke den ind i editoren — der findes ingen vej fra dette værktøj til manuskriptet. '
+      + 'Angiv mærke_id fra et anker i scenen, når forslaget gælder en bestemt passage; uden det '
+      + 'kan formuleringen ikke placeres, og noten kan kun læses.',
     inputSchema: {
       scene: z.string(),
       slags: z.enum(['continuity', 'craft', 'pacing', 'research']),

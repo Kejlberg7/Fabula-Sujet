@@ -5,14 +5,37 @@
  * prose on the page to show what the desk does with it, and a few sentences of
  * our own do that job without borrowing anyone's.
  */
-export function paragraphs(...texts: string[]): unknown {
+export interface Anchored {
+  text: string;
+  /** The mark a text anchor -- and a margin note -- can address this passage by. */
+  mark: { id: string; kind: 'event' | 'fact' | 'entity'; label: string };
+}
+
+export type Passage = string | Anchored;
+
+const textOf = (passage: Passage): string =>
+  (typeof passage === 'string' ? passage : passage.text);
+
+export function paragraphs(...texts: Passage[]): unknown {
   return {
     type: 'doc',
-    content: texts.map((text) => ({
+    content: texts.map((passage) => ({
       type: 'paragraph',
-      content: [{ type: 'text', text }],
+      content: [{
+        type: 'text',
+        text: textOf(passage),
+        ...(typeof passage === 'string' ? {} : {
+          marks: [{
+            type: 'anchor',
+            attrs: {
+              markId: passage.mark.id, kind: passage.mark.kind, label: passage.mark.label,
+            },
+          }],
+        }),
+      }],
     })),
   };
 }
 
-export const markdownOf = (...texts: string[]): string => texts.join('\n\n');
+export const markdownOf = (...texts: Passage[]): string =>
+  texts.map(textOf).join('\n\n');

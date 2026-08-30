@@ -2,6 +2,7 @@ import { z } from 'zod';
 import {
   attachFactToCarrier, createFact, recordBelief, recordStatement, type SlotValue,
 } from '../../core/services/knowledge';
+import { sourceShelf } from '../../core/queries/sources';
 import { createLaw, createSource, linkSource } from '../../core/services/laws';
 import { rootRealmOf } from '../../core/services/world';
 import { slotsOf } from '../../core/queries/bindings';
@@ -269,6 +270,41 @@ export const knowledgeTools: ToolDef[] = [
           relation: args.relation, quote: args.citat, note: args.note,
         }));
       return `Kilden er knyttet til ${args.maal_slags} ${args.maal}. (id: ${value})`;
+    },
+  }),
+
+  defineTool({
+    name: 'vis_kilder',
+    title: 'Vis kildehylden',
+    description:
+      'Al research i verden, og hvad hver kilde faktisk holder oppe. De to spørgsmål hylden er '
+      + 'til for, står øverst: hvad har forfatteren markeret som en mulig modstrid, og hvad blev '
+      + 'gemt og aldrig knyttet til noget. Filerne læses ikke — kun titel, sti og forfatterens '
+      + 'egen markering vises.',
+    inputSchema: {
+      kun_ubrugte: z.boolean().optional().describe('Vis kun kilder, der ikke bakker noget op'),
+    },
+    run: (args, tools) => {
+      const ctx = tools.bench.context();
+      const shelf = sourceShelf(tools.store, ctx)
+        .filter((item) => !args.kun_ubrugte || item.unused);
+      if (shelf.length === 0) {
+        return args.kun_ubrugte
+          ? 'Hver kilde på hylden bakker noget op.'
+          : 'Der er ingen kilder i verden endnu.';
+      }
+      const relation = { supports: 'støtter', context: 'kontekst', conflicts: 'MULIG MODSTRID' };
+      return shelf.map((item) => {
+        const where = item.url ?? item.filePath;
+        const head = `${item.title} (${item.kind})${where ? ` — ${where}` : ''}`;
+        const body = item.unused
+          ? '  · bakker ikke noget op endnu'
+          : item.backs.map((link) =>
+            `  · ${relation[link.relation]}: ${link.targetKind} «${link.label ?? 'væk'}»`
+            + (link.label ? '' : ' — henvisningen peger på noget, der er slettet')
+            + (link.quote ? `\n      «${link.quote}»` : '')).join('\n');
+        return `${head}\n${body}\n  ${item.id}`;
+      }).join('\n\n');
     },
   }),
 ];

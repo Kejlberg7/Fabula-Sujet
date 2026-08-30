@@ -47,6 +47,23 @@ describe('ændringsloggen', () => {
     assert.equal(db.select().from(entity).all().length, 1, 'alle tre skal væk på én gang');
   });
 
+  it('lader en tur, der ikke ændrede noget, slippe forbi fortryd', () => {
+    // Oprydningen af forladte tekstankre skriver en tur, hver gang prosaen
+    // gemmes, og som regel er der intet at rydde op. Fandt fortryd den, ville
+    // klikket sige «Fortrudt» uden at tage noget tilbage.
+    const real = Session.begin(store, { branchId: w.branchId, actor, summary: 'Frida' });
+    real.insert(entity, person('Frida'));
+    real.end();
+
+    Session.begin(store, { branchId: w.branchId, actor, summary: 'Intet at rydde op' }).end();
+
+    undoLast(store, w.branchId, actor);
+    assert.equal(
+      db.select().from(entity).where(eq(entity.name, 'Frida')).all().length, 0,
+      'fortryd skal ramme den sidste tur, der faktisk skrev noget',
+    );
+  });
+
   it('gentag er at fortryde fortrydelsen', () => {
     const s = Session.begin(store, { branchId: w.branchId, actor, summary: 'Emil' });
     s.insert(entity, person('Emil'));

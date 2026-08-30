@@ -3,6 +3,7 @@ import type { Store } from '../../db/client';
 import { chapter, law, realm, source, sourceLink } from '../../db/schema';
 import type { Context } from '../workbench';
 import { suggestionsFor } from '../services/suggestions';
+import { labelForTarget } from './sources';
 import { sceneDesk } from './desk';
 
 /**
@@ -51,7 +52,14 @@ export function manuscriptPacket(store: Store, ctx: Context, sceneId: string) {
     return item ? {
       id: item.id, title: item.title, kind: item.kind, url: item.url,
       filePath: item.filePath, note: item.note,
-      backs: { kind: link.targetKind, id: link.targetId, quote: link.quote, note: link.note },
+      backs: {
+        kind: link.targetKind, id: link.targetId,
+        // Om forfatteren selv har markeret kilden som en mulig modstrid er det
+        // vigtigste ved henvisningen — og det manglede i pakken.
+        relation: link.relation,
+        label: labelForTarget(store, link.targetKind, link.targetId),
+        quote: link.quote, note: link.note,
+      },
     } : null;
   }).filter((item): item is NonNullable<typeof item> => item != null);
 

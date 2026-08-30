@@ -6,18 +6,19 @@ og hvornår de **fortælles**.
 
 ## Status
 
-**Fase 0 til 7 er færdige.** Datamodellen, tidsløseren, ændringsloggen og
+**Fase 0 til 8 er færdige.** Datamodellen, tidsløseren, ændringsloggen og
 MCP-serveren står; oven på dem et interface med værkvælger, tidslinje, lister og
 historik, et skrivebord hvor prosaen bliver til med bibelen åben ved siden af —
 og en motor, der siger fra, når noget ikke kan lade sig gøre. Fortællelaget
 kontrollerer desuden POV, lag, selvmøder og afsløringsrækkefølge, mens en AI kan
 lægge manuskriptforslag i margenen uden at røre prosaen. Kontinuitetslaget følger
-desuden genstande, relationer, identiteter, forsvindinger, setups og researchkilder.
+desuden genstande, relationer, identiteter, forsvindinger, setups og researchkilder,
+og kildehylden viser, hvad hver kilde faktisk holder oppe.
 
 ```bash
 npm install
-npm test                              # 157 prøver
-npm run fixtures -- ./fabula.db       # læg Memento, Predestination og Inception ind
+npm test                              # 184 prøver
+npm run fixtures -- ./fabula.db       # læg de fire prøvecases ind
 npm run build && npm run dev          # interfacet på http://localhost:4173
 npm run ask -- ./fabula.db hent_kontekst
 ```
@@ -173,17 +174,22 @@ Serveren taler dansk: `opret_verden`, `hvem_vidste_hvad`, `fortryd`.
 - **Ændringsloggen.** Hver skrivning er en hændelse med en modsat, grupperet per
   samtaletur, med bruger-id og gren-id fra dag ét.
 - **Bibelen er data, prosaen er din.** Claude arbejder frit i modellen.
-  Manuskriptet røres aldrig uden et ja.
+  Manuskriptet røres aldrig uden et ja — og jaet er et klik i editoren, ikke et
+  værktøjskald. Gennemgangen kan foreslå en formulering; den kan ikke skrive den.
+- **Kilder gemmes og vises, aldrig læst.** Programmet åbner ikke en PDF for at
+  gætte, hvad den siger. Det, der regnes på, er forfatterens egen markering.
 
 ## Prøvecases
 
-Tre film, hver med sin akse. Kan modellen holde dem, kan den holde det meste.
+Tre film, hver med sin akse — og en serie, der er vores egen. Kan modellen holde
+dem, kan den holde det meste.
 
 | | Presser på | Lagt ind |
 |---|---|---|
 | **Memento** | Fortællerorden mod kronologi; viden der udløber | 10 kapitler, 22 skrevne scener og 1.034 ord. 18 beskrevne personer, steder og ting; 20 events over to år |
 | **Predestination** | Personlig tid, selvmøder, flere identiteter | 5 kapitler, 10 skrevne scener og 480 ord. Fire ben af det samme liv, fortalt fra tre af dem |
 | **Inception** | Lag inden i lag med hvert sit ur | 4 kapitler, 10 skrevne scener og 504 ord. 13 beskrevne personer, steder og ting fordelt over fire lag |
+| **Havnen** | En serie: to bøger, tres år, tre slægtled | «Saltet» 5 kapitler, 9 scener, 521 ord; «Tidevandet» 4 kapitler, 7 scener, 422 ord. Ingen af de tre film rørte den almindelige sag: at læseren af bind to har bind et med sig |
 
 De er skrevet til at have vægt, ikke til at være korte. Et kapitel med én scene
 og én synsvinkel beviser næsten ingenting — det er først ved den her tæthed, at
@@ -192,9 +198,15 @@ kan ses, om et svar afhænger af *hvilket* hoved man spørger. Prøverne holder
 tætheden fast, så de ikke stille bliver tynde igen: hver scene skal have mindst
 30 ord, og hver person, hvert sted og hver ting en egentlig beskrivelse.
 
-Alle tre loader rent: `koer_gennemgang` melder ingenting på nogen af dem. Det er
-den egentlige prøve på reglerne — de skal kunne tie om tre indviklede historier,
-der alle går op.
+De tre film loader rent: `koer_gennemgang` melder ingenting på nogen af dem. Det
+er den egentlige prøve på reglerne — de skal kunne tie om tre indviklede
+historier, der alle går op. Havnen melder én bemærkning, og den er sat der med
+vilje: en kilde, forfatteren selv har markeret som en mulig modstrid med en
+scene. Reglerne skal også kunne sige den slags højt uden at kalde det en fejl.
+
+Prøvecasene måles per bog, ikke per verden. Én egenskab gælder ikke alle: de tre
+film brydes med kronologien inde i bogen, mens Havnens to bind hver fortælles
+fremad — afstanden dér ligger *mellem* bindene, og den prøves for sig.
 
 ## Sprog
 
@@ -212,9 +224,9 @@ src/core/
   services/        skrivning, som UI og MCP begge kalder
   queries/         hvem vidste hvad, hvem var hvor, hvad ved læseren
   solve.ts         løseren kørt på databasen
-src/mcp/           62 værktøjer, danske navne
+src/mcp/           73 værktøjer, danske navne
 src/server/        API'et interfacet taler med, og HTTP-serveren
-src/fixtures/      de tre prøvecases
+src/fixtures/      de fire prøvecases
 web/               interfacet: React, egen CSS, ingen komponentbibliotek
 docs/ORDBOG.md     dansk ↔ engelsk, regelkoder, MCP-flade
 ```
@@ -276,12 +288,47 @@ Og det er her fase 6 betaler sig: «twistet i kapitel 8» mod «twistet i kapite
 viser **Mod en anden gren**, hvilke akser der flytter sig — og det er selve
 argumentet for at vælge den ene.
 
+### Kilderne og det udtrykkelige ja
+
+Research bliver aldrig læst maskinelt. En kilde gemmes og vises: titel, sti,
+link og forfatterens egen note. Det er ikke en mangel, det er hele holdningen —
+programmet skal ikke lade som om, det har forstået en fotograferet protokolside.
+Det, der arbejdes videre på, er forfatterens egen markering: **understøtter**,
+**kontekst** eller **mulig modstrid**. Den sidste bliver til en bemærkning i
+gennemgangen, med navnet på det, den strider mod.
+
+**Kildehylden** står under Kontinuitet og er sorteret efter de to spørgsmål, den
+er til for: hvad er markeret som en mulig modstrid, og hvad blev gemt og aldrig
+knyttet til noget. En henvisning, hvis mål er slettet, skjules ikke — der står,
+at den peger på ingenting.
+
+Manuskriptgennemgangen kommenterer i margenen. En note må foreslå en formulering,
+og forslaget er inert: der findes ingen vej fra MCP-fladen til prosaen. Hænger
+noten på et anker i teksten, kan forfatteren skrive den ind med ét klik i
+editoren — og det klik *er* tilsagnet:
+
+```
+research   Vejrarkivet noterer kuling den aften. Enten skal Mads tage fejl med
+           vilje — og så skal det stå — eller også skal sætningen om vejret gå.
+
+           Foreslået formulering — ikke anvendt
+           «Der var storm, og alligevel var det ikke stormen …»
+
+           [ Skriv den ind ]  [ Markér som fulgt ]  [ Afvis ]
+```
+
+Udskiftningen sker i editoren, hvor sætningen kan ses lande, og prosa og note
+gemmes i **den samme tur** — ét fortryd tager begge dele tilbage. Serveren
+afviser at gemme en tekst, der ikke indeholder den foreslåede formulering, så en
+gemning kan ikke rejse ind under en notes navn. Er passagen skrevet om, siden
+noten blev lagt, siger den det frem for at gætte, hvor sætningen sad.
+
 ## Næste skridt
 
 **Kendt grænse:** en plottråd hører til én bog (`thread.work_id`), så et setup i
 bind et og en indfrielse i bind to kan ikke skrives som én tråd. Hver bog må have
 sin egen. Det er værd at rette, hvis serier bliver den normale arbejdsform.
 
-**Fase 8: kilderne og manuskriptgennemgangen.** Research kan gemmes og vises,
-men ikke læses endnu. Og gennemgangen af selve prosaen — den, der kommenterer i
-margenen og aldrig retter uden et ja — mangler stadig.
+**Kildefiler som vedhæftninger.** `source.file_path` peger på en sti, ingen har
+lovet holder. En egentlig vedhæftningsmappe med kopi ved indlæggelse ville gøre
+en kilde lige så holdbar som resten af modellen — stadig uden at læse den.

@@ -79,6 +79,12 @@ export const suggestion = sqliteTable('suggestion', {
   }).notNull().default('open'),
   createdAt: createdAt(),
   decidedAt: integer('decided_at', { mode: 'timestamp_ms' }),
+  /**
+   * When the proposed wording was written into the manuscript -- and it is only
+   * ever set by the writer clicking it in, in the editor, where they can see
+   * what changed and undo it. Nothing on the MCP side can set it.
+   */
+  appliedAt: integer('applied_at', { mode: 'timestamp_ms' }),
 }, (t) => ({
   byScene: index('suggestion_scene_idx').on(t.sceneId, t.branchId, t.status),
 }));

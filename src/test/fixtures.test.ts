@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { eq } from 'drizzle-orm';
-import { openStore } from '../db/client';
+import { openStore, type Store } from '../db/client';
 import {
   beat, chapter, entity, entityLeg, event, sceneEvent, scene, sceneText, thread,
 } from '../db/schema';
@@ -11,7 +11,7 @@ import { solveTime } from '../core/solve';
 import { RealmClocks } from '../core/time/realms';
 import { SECONDS, formatSpan } from '../core/time/gregorian';
 import { Workbench } from '../core/workbench';
-import { loadInception, loadMemento, loadPredestination } from '../fixtures';
+import { loadHavnen, loadInception, loadMemento, loadPredestination } from '../fixtures';
 import { realm } from '../db/schema';
 
 /**
@@ -187,10 +187,38 @@ describe('Inception — lag inden i lag', () => {
  * en kronologi der ikke bare følger læserækkefølgen.
  */
 describe('Prøvecasene har vægt nok til at bevise noget', () => {
+  /**
+   * `outOfOrder` er den ene egenskab, der ikke gælder alle.
+   *
+   * De tre film er valgt, fordi de bryder med kronologien inde i bogen. Havnen
+   * er valgt af en anden grund: den er en serie, og hver af dens to bind
+   * fortælles pænt fremad. Den afstand, den prøver, ligger mellem bindene --
+   * læseren af «Tidevandet» har «Saltet» med sig -- og den prøves i
+   * `series.test.ts`. At kræve et tilbageblik her ville være at skrive
+   * historien om, så prøven kunne blive tilfreds.
+   */
   const worlds = [
-    { name: 'Memento', load: loadMemento, minScenes: 20, minChapters: 8 },
-    { name: 'Predestination', load: loadPredestination, minScenes: 9, minChapters: 5 },
-    { name: 'Inception', load: loadInception, minScenes: 9, minChapters: 4 },
+    { name: 'Memento', load: loadMemento, minScenes: 20, minChapters: 8, outOfOrder: true },
+    { name: 'Predestination', load: loadPredestination, minScenes: 9, minChapters: 5, outOfOrder: true },
+    { name: 'Inception', load: loadInception, minScenes: 9, minChapters: 4, outOfOrder: true },
+    // Serien måles per bog. Den blev bygget efter de tre film og slap uden om
+    // vægtprøven i starten -- og var derfor den tyndeste af dem alle sammen.
+    {
+      name: 'Havnen: Saltet',
+      load: (store: Store) => {
+        const loaded = loadHavnen(store);
+        return { worldId: loaded.worldId, workId: loaded.firstWorkId };
+      },
+      minScenes: 9, minChapters: 5, outOfOrder: false,
+    },
+    {
+      name: 'Havnen: Tidevandet',
+      load: (store: Store) => {
+        const loaded = loadHavnen(store);
+        return { worldId: loaded.worldId, workId: loaded.secondWorkId };
+      },
+      minScenes: 7, minChapters: 4, outOfOrder: false,
+    },
   ];
 
   for (const world of worlds) {
@@ -238,6 +266,7 @@ describe('Prøvecasene har vægt nok til at bevise noget', () => {
           scenes.filter((sc) => !links.some((l) => l.sceneId === sc.id)).length, 0,
           'hver scene skal hænge på et event, ellers kan den ikke placeres i tiden',
         );
+        if (!world.outOfOrder) return;
         const ranks = scenes
           .map((sc) => links.find((l) => l.sceneId === sc.id))
           .map((l) => store.db.select().from(event).where(eq(event.id, l!.eventId)).get()!)
@@ -247,9 +276,12 @@ describe('Prøvecasene har vægt nok til at bevise noget', () => {
       });
 
       it('har læsbar prøveprosa i hver scene', () => {
+        // Filtreret ned til bogens egne scener. En serie har flere bøger i den
+        // samme gren, og uden det her tælles bind to med i bind ets regnskab.
         const written = store.db.select().from(sceneText)
           .where(eq(sceneText.branchId, ctx.branchId)).all()
-          .filter((text) => text.isCurrent);
+          .filter((text) => text.isCurrent)
+          .filter((text) => scenes.some((sc) => sc.id === text.sceneId));
         assert.equal(written.length, scenes.length,
           `${scenes.length - written.length} scener mangler prosa`);
         for (const text of written) {

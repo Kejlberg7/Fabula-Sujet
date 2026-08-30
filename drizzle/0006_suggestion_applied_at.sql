@@ -1,0 +1,1 @@
+ALTER TABLE `suggestion` ADD `applied_at` integer;
