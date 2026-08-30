@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { eq } from 'drizzle-orm';
 import { openStore } from '../db/client';
-import { chapter, entityLeg, event, sceneEvent, scene, sceneText } from '../db/schema';
+import { chapter, entity, entityLeg, event, sceneEvent, scene, sceneText } from '../db/schema';
 import { whoKnewWhat } from '../core/queries/knowledge';
 import { whoWasWhere, worldline } from '../core/queries/presence';
 import { solveTime } from '../core/solve';
@@ -219,6 +219,15 @@ describe('Prøvecasene har vægt nok til at bevise noget', () => {
         assert.ok(heads.size >= 2, `kun ${heads.size} synsvinkel — så prøves den anden aldrig`);
       });
 
+      it('beskriver alle personer, steder og ting', () => {
+        const rows = store.db.select().from(entity).where(eq(entity.worldId, worldId)).all();
+        assert.ok(rows.length > 0);
+        for (const row of rows) {
+          assert.ok((row.summary?.trim().length ?? 0) >= 60,
+            `${row.name} har kun en tynd eller manglende beskrivelse`);
+        }
+      });
+
       it('hænger sammen med kronologien uden at følge den', () => {
         const links = store.db.select().from(sceneEvent)
           .where(eq(sceneEvent.branchId, ctx.branchId)).all()
@@ -235,11 +244,16 @@ describe('Prøvecasene har vægt nok til at bevise noget', () => {
           'bogen må ikke fortælles i den rækkefølge, tingene skete — så prøves de to akser ikke');
       });
 
-      it('har prosa på mindst én side', () => {
+      it('har læsbar prøveprosa i hver scene', () => {
         const written = store.db.select().from(sceneText)
-          .where(eq(sceneText.branchId, ctx.branchId)).all();
-        assert.ok(written.length > 0, 'skrivebordet skal have noget at vise');
-        assert.ok(written.every((t) => (t.wordCount ?? 0) > 0));
+          .where(eq(sceneText.branchId, ctx.branchId)).all()
+          .filter((text) => text.isCurrent);
+        assert.equal(written.length, scenes.length,
+          `${scenes.length - written.length} scener mangler prosa`);
+        for (const text of written) {
+          assert.ok((text.wordCount ?? 0) >= 30,
+            `sceneteksten ${text.id} er for tynd (${text.wordCount ?? 0} ord)`);
+        }
       });
     });
   }

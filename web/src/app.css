@@ -178,6 +178,24 @@ main { overflow: auto; min-width: 0; }
 
 /* ---------- timeline ---------- */
 .tl-controls { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+.tl-controls .btn[aria-current="true"] { border-color: var(--story); color: var(--story); background: var(--story-wash); }
+.tl-navigate .btn { min-width: 34px; }
+.tl-stats { flex-basis: 100%; }
+.tl-overview {
+  height: 24px; margin: 0 0 8px 148px; position: relative; overflow: hidden;
+  border: 1px solid var(--line); border-radius: 4px; background: var(--surface-2);
+  cursor: crosshair;
+}
+.tl-overview:focus { outline: 2px solid var(--story); outline-offset: 2px; }
+.tl-overview-event {
+  position: absolute; top: 8px; width: 3px; height: 7px; margin-left: -1px;
+  border-radius: 2px; background: var(--line-2);
+}
+.tl-overview-window {
+  position: absolute; inset-block: 2px; min-width: 4px; border: 1px solid var(--story);
+  border-radius: 3px; background: color-mix(in srgb, var(--story) 16%, transparent);
+  pointer-events: none;
+}
 .tl-frame {
   border: 1px solid var(--line); border-radius: 4px;
   background: var(--surface); overflow: auto; max-height: calc(100vh - 220px);

@@ -15,7 +15,7 @@ lægge manuskriptforslag i margenen uden at røre prosaen.
 
 ```bash
 npm install
-npm test                              # 116 prøver
+npm test                              # 122 prøver
 npm run fixtures -- ./fabula.db       # læg Memento, Predestination og Inception ind
 npm run build && npm run dev          # interfacet på http://localhost:4173
 npm run ask -- ./fabula.db hent_kontekst
@@ -32,7 +32,7 @@ lander i den samme log, som Claude skriver til.
 | Skærm | Viser |
 |---|---|
 | **Forsiden** | Hvor meget der er lagt ind, og hvad der senest skete |
-| **Tidslinjen** | Kronologien i baner, med uskarpe events tegnet som det spænd, de kan ligge i |
+| **Tidslinjen** | Kronologien i baner. Starter på historiens tætteste område; skift til hele tiden, zoom, panorér eller hop i oversigtsbåndet |
 | **Personer · Steder · Ting** | Listerne, med et panel der viser ben, tilstedeværelse og hvad personen ved |
 | **Events** | Hvad der skete, og hvor fast tiden på det er |
 | **Fakta · Love** | Påstande med pladser, og hvad der kan lade sig gøre i verdenen |
@@ -53,6 +53,10 @@ udkast: **hvad ved synsvinklen lige her**, og **hvad ved læseren nu**. Afstande
 mellem dem er den dramatiske ironi. Får læseren noget udtalt, som synsvinklen
 ikke har, bliver det meldt — men et *vink* bliver stående, for det er
 foregribelse og ikke en fejl.
+
+Alle 42 scener i de tre prøvehistorier har deres egen korte, nyskrevne prosa.
+Dermed kan skrivebordet prøves som en bog, man går igennem scene for scene, ikke
+kun som en håndfuld tomme beholdere omkring datamodellen.
 
 Svaret er læst på personens egen tid, ikke verdens. To scener af den samme aften
 i Predestination, fortalt fra hver sit ben af det samme liv, får derfor to
@@ -154,15 +158,16 @@ Tre film, hver med sin akse. Kan modellen holde dem, kan den holde det meste.
 
 | | Presser på | Lagt ind |
 |---|---|---|
-| **Memento** | Fortællerorden mod kronologi; viden der udløber | 10 kapitler, 22 scener, 20 events over to år. Otte personer, seks fakta, en løgn og en polaroid |
-| **Predestination** | Personlig tid, selvmøder, flere identiteter | 5 kapitler, 10 scener. Fire ben af det samme liv, fortalt fra tre af dem |
-| **Inception** | Lag inden i lag med hvert sit ur | 4 kapitler, 10 scener, et per lag. Syv på holdet, med hver sin del af sandheden |
+| **Memento** | Fortællerorden mod kronologi; viden der udløber | 10 kapitler, 22 skrevne scener og 1.034 ord. 18 beskrevne personer, steder og ting; 20 events over to år |
+| **Predestination** | Personlig tid, selvmøder, flere identiteter | 5 kapitler, 10 skrevne scener og 480 ord. Fire ben af det samme liv, fortalt fra tre af dem |
+| **Inception** | Lag inden i lag med hvert sit ur | 4 kapitler, 10 skrevne scener og 504 ord. 13 beskrevne personer, steder og ting fordelt over fire lag |
 
 De er skrevet til at have vægt, ikke til at være korte. Et kapitel med én scene
 og én synsvinkel beviser næsten ingenting — det er først ved den her tæthed, at
 tallene i kapitelvisningen løber baglæns, at båndet bliver et gitter, og at det
 kan ses, om et svar afhænger af *hvilket* hoved man spørger. Prøverne holder
-tætheden fast, så de ikke stille bliver tynde igen.
+tætheden fast, så de ikke stille bliver tynde igen: hver scene skal have mindst
+30 ord, og hver person, hvert sted og hver ting en egentlig beskrivelse.
 
 Alle tre loader rent: `koer_gennemgang` melder ingenting på nogen af dem. Det er
 den egentlige prøve på reglerne — de skal kunne tie om tre indviklede historier,

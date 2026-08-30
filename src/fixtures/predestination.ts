@@ -17,6 +17,37 @@ const YEAR = Math.round(365.2425 * SECONDS.DAY);
 const DAY = SECONDS.DAY;
 const HOUR = SECONDS.HOUR;
 
+const PREDESTINATION_PROSE: Record<string, string[]> = {
+  'Barnet, som det bliver fortalt': [
+    'Jeg fortæller bartenderen om barnet på trappen, selv om jeg ikke kan huske at have hørt historien fra nogen. Det har altid bare været begyndelsen.',
+    'Han holder glasset stille midt i bevægelsen. Jeg tror, han har medlidenhed med mig; jeg ved ikke, at han husker vægten af det barn i sine egne arme.',
+  ],
+  'Hvad der venter ham': [
+    'Jeg ved, hvilken dør John snart går ind ad, og hvem der står på den anden side. Jeg har selv haft hans vrede med ind i det rum.',
+    'Alligevel fortæller jeg ham kun, at bureauet kan bruge mennesker som os. Sandheden skal komme i den rækkefølge, der allerede har skabt mig.',
+  ],
+  'Jane, atten år': [
+    'Jeg lærte tidligt at klare mig uden at ligne de andre piger. På børnehjemmet blev forskellen til en disciplin: løb hurtigere, læs længere, forvent mindre.',
+    'Da brevet fra rumprogrammet kom, troede jeg, at nogen endelig havde set den person, jeg selv forsøgte at blive. Jeg vidste ikke, at en anden allerede kendte hele banen.',
+  ],
+  'Robertson kommer på besøg': [
+    'Robertson satte sig uden at tage frakken af og talte om tjeneste, rejser og en fremtid, der ikke krævede en pæn forklaring på min fortid.',
+    'Han kendte mine prøver og mine ar bedre end en fremmed burde. Jeg tog hans viden som bevis på, at bureauet havde brug for mig, ikke på at det havde skabt mig.',
+  ],
+  Klinikken: [
+    'Da jeg vågnede, talte lægen langsomt og lod ordene stå hver for sig. Kroppen, jeg kendte, havde skjult noget for både dem og mig.',
+    'Jeg bad om et spejl og fik i stedet flere forklaringer. Først senere forstod jeg, at dette rum ikke afsluttede Janes liv; det drejede det ind i Johns.',
+  ],
+  Bomben: [
+    'Timeren var allerede begyndt, da jeg kom ud i gaden. Folk bevægede sig omkring tasken uden at vide, at deres næste minut var blevet planlagt år i forvejen.',
+    'Jeg kunne have råbt. I stedet så jeg på hænderne, der engang havde jagtet bombemanden, og gjorde det, jeg huskede at han havde gjort.',
+  ],
+  'Han ser sig selv i øjnene': [
+    'Den gamle mand kendte mit ansigt, før jeg kendte hans. Da han løftede våbnet, så jeg ikke en fjende, men den sidste mulige udgave af min egen stædighed.',
+    'Han sagde, at sløjfen ikke kunne brydes, kun gennemleves. Jeg hørte min egen stemme under hans og forstod, hvorfor Robertson aldrig havde behøvet en anden kandidat.',
+  ],
+};
+
 /**
  * Predestination, as a test of personal time.
  *
@@ -59,16 +90,31 @@ export function loadPredestination(store: Store): { worldId: string; workId: str
 
     const traveller = createEntity(s, ctx, {
       name: 'Den rejsende', kind: 'person',
-      summary: 'Én person. Fire navne, fire aldre, én verdenslinje.',
+      summary: 'Én person fordelt over navnene Jane, John, bartenderen og bomberen; fire livsafsnit mødes, påvirker og skaber hinanden på den samme personlige tidslinje.',
     });
     const robertson = createEntity(s, ctx, {
-      name: 'Robertson', kind: 'person', summary: 'Rekrutterer. Ved mere, end han siger.',
+      name: 'Robertson', kind: 'person', summary: 'Bureauets rolige rekrutterer, som møder den samme person på flere livsstadier og kun afslører den del af planen, hvert stadium skal bruge.',
     });
-    const bar = createEntity(s, ctx, { name: 'Baren', kind: 'place' });
-    const orphanage = createEntity(s, ctx, { name: 'Børnehjemmet', kind: 'place' });
-    const agency = createEntity(s, ctx, { name: 'Bureauet', kind: 'place' });
-    const clinic = createEntity(s, ctx, { name: 'Klinikken', kind: 'place' });
-    const street = createEntity(s, ctx, { name: 'Gaden i New York', kind: 'place' });
+    const bar = createEntity(s, ctx, {
+      name: 'Baren', kind: 'place',
+      summary: 'Et lukket rum i 1970, hvor to aldre af det samme liv sidder på hver sin side af disken.',
+    });
+    const orphanage = createEntity(s, ctx, {
+      name: 'Børnehjemmet', kind: 'place',
+      summary: 'Både begyndelsen og afleveringsstedet i sløjfen; et hjem bygget oven på en hemmelighed.',
+    });
+    const agency = createEntity(s, ctx, {
+      name: 'Bureauet', kind: 'place',
+      summary: 'En tidsmyndighed, der rekrutterer den rejsende flere gange uden at fortælle hele planen.',
+    });
+    const clinic = createEntity(s, ctx, {
+      name: 'Klinikken', kind: 'place',
+      summary: 'Stedet hvor en medicinsk krise deler Janes liv i et før og et efter.',
+    });
+    const street = createEntity(s, ctx, {
+      name: 'Gaden i New York', kind: 'place',
+      summary: 'Bombemandens mål og stedet, hvor jægeren til sidst møder sin egen mulige fremtid.',
+    });
 
     // Rejsetid i verdens tid. Selve springene mellem ben er ikke rejser og
     // rammes ikke af den — det er præcis dét, benene findes for.
@@ -342,7 +388,7 @@ export function loadPredestination(store: Store): { worldId: string; workId: str
               slotId: parentFact.slotIds.get('barn'), strength: 'confirmed',
             }],
             prose: [
-              'Hun vejer ingenting. Han bliver stående længere, end han har lov til, og så går han tilbage til bilen.',
+              'Hun vejer næsten ingenting i hans arme. Han bliver stående længere, end han har lov til, og så går han tilbage til bilen.',
               'Der er ikke noget at fortryde. Det er allerede sket.',
             ],
           },
@@ -380,11 +426,11 @@ export function loadPredestination(store: Store): { worldId: string; workId: str
             factId: shown.factId, sceneId, slotId: shown.slotId, strength: shown.strength,
           });
         }
-        if (spec.prose) {
-          saveSceneText(s, ctx, store, {
-            sceneId, doc: paragraphs(...spec.prose), markdown: markdownOf(...spec.prose),
-          });
-        }
+        const prose = spec.prose ?? PREDESTINATION_PROSE[spec.title];
+        if (!prose) throw new Error(`Predestination mangler prøveprosa til «${spec.title}».`);
+        saveSceneText(s, ctx, store, {
+          sceneId, doc: paragraphs(...prose), markdown: markdownOf(...prose),
+        });
       });
     });
   });

@@ -32,6 +32,7 @@ describe('gregoriansk tid', () => {
   it('siger tidspunkter og varigheder på dansk', () => {
     assert.equal(formatInstant(parseInstant('1985-06-12').earliest, 'month'), 'juni 1985');
     assert.equal(formatSpan(3 * DAY), '3 døgn');
+    assert.equal(formatSpan(5 * DAY - 10), '5 døgn', 'afrunding må ikke give 4 døgn 24 timer');
     assert.equal(formatSpan(200 * 60), '3 timer 20 minutter');
     assert.equal(parseSpan('3 dage'), 3 * DAY);
     assert.equal(parseSpan('10 min'), 600);

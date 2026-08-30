@@ -13,6 +13,41 @@ import { Workbench } from '../core/workbench';
 import { updateRow } from '../core/services/generic';
 import { markdownOf, paragraphs } from './prose';
 
+const INCEPTION_PROSE: Record<string, string[]> = {
+  'Yusuf ved rattet': [
+    'Yusuf holdt begge hænder på rattet, mens varevognen gled mellem bilerne. Bag ham lå seks sovende kroppe spændt fast til sæderne og arbejdede gennem hver sit lange ur.',
+    'Broen kom nærmere. Han regnede på sekunderne frem for afstanden; faldet skulle begynde på det øjeblik, alle lagene var klar til at høre det.',
+  ],
+  'De kommer ind': [
+    'Arthur åbnede øjnene til regn, der ikke fandtes ovenpå. Fischer sad mellem dem og troede stadig, at frygten var hans egen reaktion på en virkelig kidnapning.',
+    'Arthur gennemgik rollerne én gang til. Hver løgn skulle pege mod den næste, og ingen måtte se sømmen mellem Fischers forsvar og Ariadnes bygninger.',
+  ],
+  'Yusuf indrømmer det': [
+    'Tyngden i drømmen ændrede sig, før Arthur mærkede varevognen dreje. Han spurgte Yusuf om bedøvelsen, og pausen gav svaret før ordene gjorde.',
+    'Døden ville ikke vække dem. Den ville sende dem længere ned til et sted uden fælles ur. Arthur så på de sovende omkring sig og begyndte at omregne planen.',
+  ],
+  'De venter': [
+    'Ariadne betragtede elevatorens tal skifte uden at kabinen bevægede sig. Cobb havde sagt, at arkitekten kontrollerede rummet, men hans minder havde allerede deres egne etager.',
+    'De ventede på sparket ovenfra. Hvert sekund trak sig langt nok ud til, at hun kunne forestille sig alt det, der kunne nå at gå galt nedenunder.',
+  ],
+  'Op ad bjerget': [
+    'Eames førte dem gennem sneen med Fischers vagter bagved. Fæstningen lå højere, end Ariadnes tegning havde lovet, som om målets forsvar havde gjort bjerget stejlere.',
+    'Han skiftede ansigt for at komme forbi den første post og skiftede tilbage i læ af muren. I denne verden var identitet et redskab, men kuglerne var stadig konkrete nok.',
+  ],
+  'Han går i land': [
+    'Cobb vågnede med ansigtet i det lave vand. Byen ved kysten var bygget af år, han havde forsøgt at kalde uvirkelige, og hvert tomt vindue kendte hans navn.',
+    'Han gik mod huset uden at se sig tilbage. Ovenfor faldt varevognen stadig; hernede havde han tid nok til at blive gammel med sin skyld igen.',
+  ],
+  'Han lader hende blive': [
+    'Mal ventede ved det dækkede bord, sådan som hans erindring altid placerede hende. Hun tilbød et liv, der kunne fortsætte, hvis han bare holdt op med at kalde det en drøm.',
+    'Cobb fortalte hende endelig, at hun var en projektion. Ordene gjorde hende ikke mindre virkelig, men de gjorde det muligt for ham at gå uden at bede hende følge med.',
+  ],
+  'Sparket når ned': [
+    'Ariadne hørte musikken som en tone gennem dybt vand. Bygningerne omkring kysten bøjede sig, mens de øvre lags korte fald blev til en hel verdens sammenbrud.',
+    'Hun greb Fischer og sprang. På vejen op passerede de uger, timer og sekunder i den modsatte rækkefølge, indtil varevognens vand lukkede sig omkring dem.',
+  ],
+};
+
 const MIN = SECONDS.MINUTE;
 
 /**
@@ -56,30 +91,51 @@ export function loadInception(store: Store): { worldId: string; workId: string; 
     const timeSystemId = defaultTimeSystemOf(store, ctx);
 
     const cobb = createEntity(s, ctx, {
-      name: 'Cobb', kind: 'person', summary: 'Leder holdet. Har sin egen dagsorden med.',
+      name: 'Cobb', kind: 'person', summary: 'Holdets leder og erfarne drømmeindbrudstyv; hans ønske om at komme hjem kolliderer med skyldfølelsen, der gør Mal til en farlig projektion.',
     });
     const arthur = createEntity(s, ctx, {
-      name: 'Arthur', kind: 'person', summary: 'Har styr på alting undtagen det, Cobb ikke fortæller.',
+      name: 'Arthur', kind: 'person', summary: 'Planlæggeren, der holder styr på lag, spark og flugtveje, men må arbejde uden den afgørende viden Cobb har skjult om Mal.',
     });
     const ariadne = createEntity(s, ctx, {
-      name: 'Ariadne', kind: 'person', summary: 'Bygger lagene. Den eneste der spørger.',
+      name: 'Ariadne', kind: 'person', summary: 'Arkitekten bag drømmeverdenens rum og holdets mest nysgerrige medlem; hun opdager, at den største trussel ikke kommer fra Fischer, men fra Cobb.',
     });
-    const eames = createEntity(s, ctx, { name: 'Eames', kind: 'person' });
-    const yusuf = createEntity(s, ctx, { name: 'Yusuf', kind: 'person' });
-    const saito = createEntity(s, ctx, { name: 'Saito', kind: 'person' });
+    const eames = createEntity(s, ctx, {
+      name: 'Eames', kind: 'person',
+      summary: 'Forfalsker identiteter i drømme og improviserer dér, hvor resten af planen bliver for stiv.',
+    });
+    const yusuf = createEntity(s, ctx, {
+      name: 'Yusuf', kind: 'person',
+      summary: 'Kemikeren bag den dybe bedøvelse og chaufføren, der skal holde det øverste ur i gang.',
+    });
+    const saito = createEntity(s, ctx, {
+      name: 'Saito', kind: 'person',
+      summary: 'Betaler for missionen, deltager i den og bærer den politiske magt, Cobb håber at købe.',
+    });
     const fischer = createEntity(s, ctx, {
-      name: 'Fischer', kind: 'person', summary: 'Målet. Ved ingenting om noget af det.',
+      name: 'Fischer', kind: 'person', summary: 'Arving og missionens mål, som tror han forsvarer sig mod kidnapning, mens holdet forsøger at få en fremmed idé til at føles som hans egen.',
     });
     const mal = createEntity(s, ctx, {
-      name: 'Mal', kind: 'person', summary: 'Er her ikke. Er her alligevel.',
+      name: 'Mal', kind: 'person', summary: 'Cobbs afdøde hustru, som kun findes i hans sind, men dér har vilje, stemme og adgang til alle de verdener, han prøver at kontrollere.',
     });
     const totem = createEntity(s, ctx, {
-      name: 'Toppen', kind: 'object', summary: 'Fortæller ham hvilket lag han er i. Måske.',
+      name: 'Toppen', kind: 'object', summary: 'Cobbs lille snurretop og private virkelighedsprøve: standser den, er verden virkelig; fortsætter den, kan også selve testen være en del af drømmen.',
     });
-    const van = createEntity(s, ctx, { name: 'Varevognen', kind: 'place' });
-    const hotel = createEntity(s, ctx, { name: 'Hotellet', kind: 'place' });
-    const fortress = createEntity(s, ctx, { name: 'Snefæstningen', kind: 'place' });
-    const limbo = createEntity(s, ctx, { name: 'Kysten', kind: 'place' });
+    const van = createEntity(s, ctx, {
+      name: 'Varevognen', kind: 'place',
+      summary: 'Missionens fysiske anker; ti minutters fald her skal synkronisere uger i lagene nedenunder.',
+    });
+    const hotel = createEntity(s, ctx, {
+      name: 'Hotellet', kind: 'place',
+      summary: 'Første drømmelag, hvor korridorer, tyngdekraft og sikkerhedsvagter følger Fischers sind.',
+    });
+    const fortress = createEntity(s, ctx, {
+      name: 'Snefæstningen', kind: 'place',
+      summary: 'Et militariseret andet lag, der gør Fischers følelsesmæssige forsvar til konkret arkitektur.',
+    });
+    const limbo = createEntity(s, ctx, {
+      name: 'Kysten', kind: 'place',
+      summary: 'Det dybeste uformede lag, hvor år kan gå, og Cobbs minder har bygget en forladt by.',
+    });
 
     // Hvert lag er tyve gange hurtigere end det over, og fæstnet til det på det
     // øjeblik, man går ind. Uden holdepunktet siger forholdet kun hvor hurtigt
@@ -325,11 +381,11 @@ export function loadInception(store: Store): { worldId: string; workId: string; 
             factId: shown.factId, sceneId, slotId: shown.slotId, strength: shown.strength,
           });
         }
-        if (spec.prose) {
-          saveSceneText(s, ctx, store, {
-            sceneId, doc: paragraphs(...spec.prose), markdown: markdownOf(...spec.prose),
-          });
-        }
+        const prose = spec.prose ?? INCEPTION_PROSE[spec.title];
+        if (!prose) throw new Error(`Inception mangler prøveprosa til «${spec.title}».`);
+        saveSceneText(s, ctx, store, {
+          sceneId, doc: paragraphs(...prose), markdown: markdownOf(...prose),
+        });
       });
     });
   });

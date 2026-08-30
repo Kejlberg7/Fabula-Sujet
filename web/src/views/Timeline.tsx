@@ -1,7 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import { useQuery } from '../store';
 import { formatInstant, formatSpan, SECONDS } from '../format';
 import type { TimelineItem } from '../../../src/server/api';
+import {
+  clampRange, denseEventRange, paddedRange, panRange, zoomRange, type TimeRange,
+} from '../../../src/core/time/focus';
 
 const ROW = 26;
 const AXIS = 34;
@@ -31,11 +34,9 @@ const STEPS: { seconds: number; label: (t: number) => string }[] = [
 export function Timeline({ nonce }: { nonce: number }) {
   const [by, setBy] = useState<'person' | 'place'>('person');
   const [realmId, setRealmId] = useState<string>('');
-  const [zoom, setZoom] = useState(1);
+  const [view, setView] = useState<TimeRange | null>(null);
+  const [viewMode, setViewMode] = useState<'focus' | 'all' | 'custom'>('focus');
   const [selected, setSelected] = useState<TimelineItem | null>(null);
-  // At zoom 1 the whole chronology fits the window, whatever its size. A fixed
-  // pixel width means half the story is off-screen on one machine and
-  // squeezed into a corner on another.
   const track = useRef<HTMLDivElement>(null);
   const [trackWidth, setTrackWidth] = useState(900);
   useEffect(() => {
@@ -55,13 +56,36 @@ export function Timeline({ nonce }: { nonce: number }) {
     [nonce],
   );
 
-  const geometry = useMemo(() => {
+  const ranges = useMemo(() => {
     if (!data || data.span.from == null || data.span.to == null) return null;
-    const raw = Math.max(data.span.to - data.span.from, SECONDS.HOUR);
-    const pad = raw * 0.04;
-    const from = data.span.from - pad;
-    const to = data.span.to + pad;
-    const width = Math.round(trackWidth * zoom);
+    const all = paddedRange({ from: data.span.from, to: data.span.to });
+    const dense = denseEventRange(data.items) ?? all;
+    // If almost everything is already together, "fokus" should not be a
+    // mysterious almost-identical preset.
+    const focus = dense.to - dense.from > (all.to - all.from) * 0.9
+      ? all : clampRange(dense, all);
+    return { all, focus };
+  }, [data]);
+
+  const focusKey = data && data.span.from != null && data.span.to != null
+    ? `${by}:${realmId}:${data.items.map((item) => `${item.id}:${item.from}:${item.toLatest}`).join('|')}`
+    : '';
+  useEffect(() => {
+    if (!ranges) return;
+    setView(ranges.focus);
+    setViewMode('focus');
+    setSelected(null);
+  // Reset only when the actual chronology/filter changes, not when an
+  // unrelated MCP edit refreshes the screen.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusKey]);
+
+  const activeView = view ?? ranges?.focus ?? null;
+  const geometry = useMemo(() => {
+    if (!activeView) return null;
+    const from = activeView.from;
+    const to = activeView.to;
+    const width = trackWidth;
     const scale = width / (to - from);
     const x = (t: number) => PAD + (t - from) * scale;
 
@@ -71,8 +95,8 @@ export function Timeline({ nonce }: { nonce: number }) {
     for (let t = Math.ceil(from / step.seconds) * step.seconds; t <= to; t += step.seconds) {
       ticks.push({ t, label: step.label(t) });
     }
-    return { from, to, width: width + PAD * 2, x, ticks, span: raw };
-  }, [data, zoom, trackWidth]);
+    return { from, to, width: width + PAD * 2, x, ticks, span: to - from };
+  }, [activeView, trackWidth]);
 
   if (loading && !data) return <div className="page"><p className="empty">Henter …</p></div>;
   if (!data || !geometry || data.lanes.length === 0) {
@@ -90,6 +114,34 @@ export function Timeline({ nonce }: { nonce: number }) {
   const height = AXIS + data.lanes.length * ROW + 8;
   const rowOf = (laneId: string) =>
     AXIS + data.lanes.findIndex((l) => l.id === laneId) * ROW;
+  const visible = data.items.filter((item) =>
+    item.toLatest >= geometry.from && item.from <= geometry.to);
+  const choose = (mode: 'focus' | 'all') => {
+    if (!ranges) return;
+    setView(ranges[mode]);
+    setViewMode(mode);
+  };
+  const zoom = (factor: number) => {
+    if (!ranges || !activeView) return;
+    setView(zoomRange(activeView, factor, ranges.all));
+    setViewMode('custom');
+  };
+  const pan = (fraction: number) => {
+    if (!ranges || !activeView) return;
+    setView(panRange(activeView, fraction, ranges.all));
+    setViewMode('custom');
+  };
+  const jumpOverview = (event: MouseEvent<HTMLDivElement>) => {
+    if (!ranges || !activeView) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const ratio = (event.clientX - rect.left) / rect.width;
+    const centre = ranges.all.from + ratio * (ranges.all.to - ranges.all.from);
+    const span = activeView.to - activeView.from;
+    setView(clampRange({ from: centre - span / 2, to: centre + span / 2 }, ranges.all));
+    setViewMode('custom');
+  };
+  const overviewX = (time: number) => ranges
+    ? ((time - ranges.all.from) / (ranges.all.to - ranges.all.from)) * 100 : 0;
 
   return (
     <div className="page">
@@ -119,15 +171,49 @@ export function Timeline({ nonce }: { nonce: number }) {
           </select>
         </div>
         <div className="picker">
-          <label>Zoom</label>
-          <button className="btn" onClick={() => setZoom((z) => Math.max(0.5, z / 1.6))}>−</button>
-          <button className="btn" onClick={() => setZoom(1)}>1:1</button>
-          <button className="btn" onClick={() => setZoom((z) => Math.min(64, z * 1.6))}>+</button>
+          <label>Udsnit</label>
+          <button className="btn" aria-current={viewMode === 'focus'}
+            onClick={() => choose('focus')}>Fokus</button>
+          <button className="btn" aria-current={viewMode === 'all'}
+            onClick={() => choose('all')}>Hele tiden</button>
         </div>
-        <span className="mono" style={{ color: 'var(--muted)' }}>
-          {formatSpan(geometry.span)} · {data.items.length} markeringer
+        <div className="picker tl-navigate">
+          <label>Flyt og zoom</label>
+          <button className="btn" title="Tidligere" aria-label="Vis tidligere"
+            onClick={() => pan(-0.6)}>←</button>
+          <button className="btn" title="Zoom ud" aria-label="Zoom ud"
+            onClick={() => zoom(1.7)}>−</button>
+          <button className="btn" title="Zoom ind" aria-label="Zoom ind"
+            onClick={() => zoom(0.58)}>+</button>
+          <button className="btn" title="Senere" aria-label="Vis senere"
+            onClick={() => pan(0.6)}>→</button>
+        </div>
+        <span className="mono tl-stats" style={{ color: 'var(--muted)' }}>
+          viser {formatSpan(geometry.span)} af {formatSpan(ranges!.all.to - ranges!.all.from)}
+          {' · '}{visible.length} af {data.items.length} markeringer
         </span>
       </div>
+
+      {ranges && activeView && (
+        <div className="tl-overview" role="slider" tabIndex={0}
+          aria-label="Hele kronologien; klik for at flytte det viste udsnit"
+          aria-valuemin={0} aria-valuemax={100}
+          aria-valuenow={Math.round(overviewX((activeView.from + activeView.to) / 2))}
+          onClick={jumpOverview}
+          onKeyDown={(event) => {
+            if (event.key === 'ArrowLeft') pan(-0.25);
+            if (event.key === 'ArrowRight') pan(0.25);
+          }}>
+          {data.items.filter((item) => item.kind === 'event').map((item) => (
+            <span key={item.id} className="tl-overview-event"
+              style={{ left: `${overviewX((item.from + item.toLatest) / 2)}%` }} />
+          ))}
+          <span className="tl-overview-window" style={{
+            left: `${overviewX(activeView.from)}%`,
+            width: `${overviewX(activeView.to) - overviewX(activeView.from)}%`,
+          }} />
+        </div>
+      )}
 
       <div className="tl-frame">
         <div style={{ display: 'grid', gridTemplateColumns: '148px 1fr' }}>
@@ -152,7 +238,7 @@ export function Timeline({ nonce }: { nonce: number }) {
             ))}
           </div>
 
-          <div ref={track} style={{ overflowX: 'auto' }}>
+          <div ref={track}>
             <svg width={geometry.width} height={height} role="img"
               aria-label="Kronologi med en bane per person eller sted">
               <defs>
@@ -181,21 +267,23 @@ export function Timeline({ nonce }: { nonce: number }) {
                   stroke="var(--line)" strokeWidth="1" />
               ))}
 
-              {data.items.filter((i) => i.kind === 'presence').map((item) => {
+              {visible.filter((i) => i.kind === 'presence').map((item) => {
                 const y = rowOf(item.laneId) + ROW / 2 - 2;
-                const w = Math.max(2, geometry.x(item.to) - geometry.x(item.from));
+                const left = geometry.x(Math.max(item.from, geometry.from));
+                const right = geometry.x(Math.min(item.toLatest, geometry.to));
+                const w = Math.max(2, right - left);
                 return (
-                  <rect key={item.id} x={geometry.x(item.from)} y={y} width={w} height={4} rx="2"
+                  <rect key={item.id} x={left} y={y} width={w} height={4} rx="2"
                     fill="var(--line-2)" opacity="0.85">
                     <title>{item.title} — {formatInstant(item.from, 'day')}</title>
                   </rect>
                 );
               })}
 
-              {data.items.filter((i) => i.kind === 'event').map((item) => {
+              {visible.filter((i) => i.kind === 'event').map((item) => {
                 const y = rowOf(item.laneId) + 5;
-                const left = geometry.x(item.from);
-                const right = geometry.x(item.toLatest);
+                const left = geometry.x(Math.max(item.from, geometry.from));
+                const right = geometry.x(Math.min(item.toLatest, geometry.to));
                 const w = Math.max(3, right - left);
                 const chosen = selected?.id === item.id;
                 return (

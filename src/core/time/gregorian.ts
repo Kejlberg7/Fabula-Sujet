@@ -120,6 +120,7 @@ export function formatSpan(seconds: number): string {
   if (abs < 14 * DAY) {
     const days = Math.floor(abs / DAY);
     const h = Math.round((abs % DAY) / HOUR);
+    if (h === 24) return `${days + 1} døgn`;
     return h ? `${days} døgn ${h} timer` : `${days} døgn`;
   }
   if (abs < 120 * DAY) return `${Math.round(abs / DAY)} døgn`;

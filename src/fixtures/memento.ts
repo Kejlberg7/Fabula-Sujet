@@ -18,6 +18,85 @@ const DAY = SECONDS.DAY;
 const HOUR = SECONDS.HOUR;
 const MIN = SECONDS.MINUTE;
 
+const MEMENTO_PROSE: Record<string, string[]> = {
+  'Sagen om Sammy': [
+    'Mappen er tyndere, end Leonard havde ventet. Ingen scanning viser en skade, og alligevel kan Sammy ikke huske den mand, der lige har forladt rummet.',
+    'Leonard skriver ordet psykisk i margen og understreger det. Han tror endnu, at en forklaring bliver sandere af at stå i den rigtige rubrik.',
+  ],
+  'Teddy siger det hele': [
+    'Teddy taler hurtigt nu, som om sandheden kun kan nå at eksistere, mens Leonard stadig ser på ham. Jimmy var ikke begyndelsen, siger han. Jimmy var endnu en afslutning.',
+    'Leonard ser ned på fotografierne. Han kan høre ordene, men ikke finde et sted i sit system, hvor de må blive liggende.',
+  ],
+  'Endnu et opkald': [
+    'Stemmen i telefonen lader ham fortsætte, og derfor gør han det. Sammy kunne huske, hvordan man gav en indsprøjtning, men ikke at han lige havde gjort det.',
+    'Leonard ser på sin håndskrift ved siden af telefonen. Der står, at han selv har ringet op. Det føles som en besked fra en fremmed.',
+  ],
+  'De elektriske genstande': [
+    'Sammy rækker efter den forkerte klods igen. Strømmen får hånden til at springe tilbage, men næste runde begynder uden frygt i hans ansigt.',
+    'Leonard noterer resultatet. Kroppen lærer ingenting, tænker han, og ser ikke den lille tøven før Sammys fingre rører bordet.',
+  ],
+  'Han skriver på bagsiden': [
+    'Teddy står med ryggen til, mens billedet langsomt bliver tydeligt. Leonard vender det om og holder pennen over den blanke flade.',
+    'Mistanken er stadig varm og præcis. Han skriver den ned, før den bliver til den samme tåge som alt andet: Stol ikke på hans løgne.',
+  ],
+  'Tredje aften': [
+    'På den tredje aften fortæller Leonard om fru Jankis. Hun ville ikke acceptere lægernes svar, fordi et svar uden håb ikke lød videnskabeligt nok.',
+    'Telefonen knitrer. Han forestiller sig den ukendte lytter nikke og fortsætter, selv om han ikke længere ved, hvem samtalen skulle hjælpe.',
+  ],
+  'Hun beder om insulinen': [
+    'Fru Jankis stiller uret på bordet og beder Sammy om hendes insulin. Da han kommer tilbage, smiler hun og spørger igen med nøjagtig samme stemme.',
+    'Leonard ser hendes blik følge kanylen. Det er ikke en prøve af Sammy alene; hun prøver også, hvor længe hendes eget håb kan holde.',
+  ],
+  'Natten, i glimt': [
+    'Et badeværelsesvindue står åbent. En hånd, et flisegulv og hendes ansigt kommer uden rækkefølge, belyst som fotografier af et lyn.',
+    'Leonard forsøger at fastholde manden bag sig, men erindringen stopper dér, hvor hans nye liv begynder. Resten er smerte og den sætning, han senere får skrevet på brystet.',
+  ],
+  'Han vågner hos Natalie': [
+    'Loftet er ukendt, men fotografiet på natbordet viser kvinden i køkkenet. Under hendes ansigt står der, at hun hjælper ham.',
+    'Leonard læser ordene to gange, før han går ud til hende. Tillid er ikke en følelse længere. Det er noget, han kan holde mellem fingrene.',
+  ],
+  'Fjerde aften': [
+    'Leonard lægger skjorten til side og læser sin egen krop højt for stemmen i telefonen. Fakta ét til fem står mørke og sikre under lampen.',
+    'Han spørger, om et menneske kan lyve for sig selv med permanent blæk. Ingen svarer med det samme, og pausen føles vigtig nok til at skrive ned.',
+  ],
+  'Nålen': [
+    'Nålen bevæger sig langsomt gennem den sidste linje. Leonard følger bogstaverne i spejlet, mens smerterne gør dette minut nemt at holde fast i.',
+    'Da tatovøren tørrer blodet væk, er mistanken blevet til hud. Om lidt vil Leonard ikke huske beslutningen, kun adlyde resultatet.',
+  ],
+  'Natalie henter ham': [
+    'Natalie viser sit fotografi, før hun siger sit navn. Hun lader Leonard læse sin egen korte beskrivelse og venter på, at papiret gør hende troværdig.',
+    'Hun siger, at han er i fare, og at hun kan hjælpe. Han følger med, fordi hendes historie passer ind i de tomme felter, han allerede bærer rundt på.',
+  ],
+  'Hun får det, hun kom efter': [
+    'Natalie ser ham lægge fotografierne i den samme rækkefølge, som han gjorde en time tidligere. Denne gang sørger hun for, at Dodd ligger øverst.',
+    'Hun giver ham en adresse og en grund til at være vred. Da han spørger, hvem der har skrevet noten, peger hun bare på hans egen hånd.',
+  ],
+  'Femte aften': [
+    'Den sidste telefonsamtale slutter uden et farvel. Leonard holder røret mod øret, indtil klartonen bliver det eneste sikre i værelset.',
+    'Han finder en besked om, at Teddy kommer. Før han kan beslutte, om det er godt eller dårligt, banker det på døren.',
+  ],
+  'Dodd i skabet': [
+    'Skabsdøren hopper i karmen, hver gang Dodd kaster sig mod den. Leonard læser sedlen i sin hånd igen: Manden vil dræbe Natalie.',
+    'Burt ser ind fra gangen og vælger ikke at spørge. Leonard leder efter næste instruktion, mens problemet bag døren allerede er begyndt at ændre betydning.',
+  ],
+  'Natalie kommer forbi': [
+    'Natalie træder ind på værelset, ser den ukendte bilnøgle og forstår mere, end hun viser. Hun spørger, hvor Jimmy er, uden at bruge hans navn.',
+    'Leonard fortæller hende det, han stadig kan holde fast i. Mens han taler, ser hun på hans lommer og beslutter, hvilken sandhed han skal vågne med næste gang.',
+  ],
+  'Bilen på parkeringspladsen': [
+    'Bilen er dyrere end noget, Leonard ville have lejet, men nøglen passer. I handskerummet ligger et registreringsbevis med et navn, han ikke kender.',
+    'Burt vinker fra receptionen og spørger ikke, hvorfor gæsten har skiftet bil. Leonard skriver nummerpladen ned, før spørgsmålet kan forsvinde.',
+  ],
+  'Teddy i kælderen': [
+    'Teddy finder ham ved siden af kroppen og siger, at de skal væk. Leonard ved ikke, hvorfor stemmen lyder bekendt, men polaroidet i lommen har samme ansigt.',
+    'Han tager Jimmys jakke og bilnøgler. Teddy protesterer, og det er nok til, at Leonard beslutter at beholde begge dele.',
+  ],
+  Jimmy: [
+    'Jimmy kommer ind med hænderne synlige og kalder Leonard et navn, kun folk fra motellet burde kende. Et øjeblik åbner der sig en anden mulig historie.',
+    'Leonard lukker den igen. Han har tatoveringen, noterne og et mål foran sig; tilsammen vejer de mere end den tvivl, han snart alligevel mister.',
+  ],
+};
+
 /**
  * Memento, as a test of the model rather than a retelling.
  *
@@ -72,33 +151,63 @@ export function loadMemento(store: Store): { worldId: string; workId: string } {
     // ---------------------------------------------------------------- personer
     const leonard = createEntity(s, ctx, {
       name: 'Leonard', kind: 'person',
-      summary: 'Kan ikke danne nye erindringer. Husker alt før overfaldet.',
+      summary: 'Tidligere forsikringsefterforsker, som ikke kan danne nye varige erindringer og derfor gør noter, fotos og tatoveringer til sit ydre sind.',
     });
     const teddy = createEntity(s, ctx, {
-      name: 'Teddy', kind: 'person', summary: 'Siger han hjælper. Hedder John Edward Gammell.',
+      name: 'Teddy', kind: 'person', summary: 'Politibetjent under navnet Teddy, som både hjælper Leonard, bruger hans tilstand og forsøger at fortælle ham en sandhed, han ikke ønsker.',
     });
     const natalie = createEntity(s, ctx, {
-      name: 'Natalie', kind: 'person', summary: 'Bartender. Har sine egne grunde.',
+      name: 'Natalie', kind: 'person', summary: 'Bartender og Jimmys kæreste, som hurtigt forstår Leonards begrænsning og bruger hans system til at få løst sit eget problem med Dodd.',
     });
     const burt = createEntity(s, ctx, {
-      name: 'Burt', kind: 'person', summary: 'Receptionist på motellet. Udlejer to værelser til den samme mand.',
+      name: 'Burt', kind: 'person', summary: 'Pragmatisk receptionist på motellet, der udlejer to værelser til den samme glemsomme gæst og accepterer systemets mærkelige logik.',
     });
-    const dodd = createEntity(s, ctx, { name: 'Dodd', kind: 'person' });
-    const jimmy = createEntity(s, ctx, { name: 'Jimmy Grantz', kind: 'person' });
-    const wife = createEntity(s, ctx, { name: 'Leonards kone', kind: 'person' });
+    const dodd = createEntity(s, ctx, {
+      name: 'Dodd', kind: 'person',
+      summary: 'Voldelig håndlanger på jagt efter pengene og bilen, Natalie har mistet.',
+    });
+    const jimmy = createEntity(s, ctx, {
+      name: 'Jimmy Grantz', kind: 'person',
+      summary: 'Narkohandler og Natalies kæreste; bliver det mål, Leonard tror afslutter jagten.',
+    });
+    const wife = createEntity(s, ctx, {
+      name: 'Leonards kone', kind: 'person',
+      summary: 'Leonards sidste sikre erindring og den fraværende person, hele hans system kredser om.',
+    });
     const sammy = createEntity(s, ctx, {
       name: 'Sammy Jankis', kind: 'person',
-      summary: 'Forsikringssag. Om han findes, er hele spørgsmålet.',
+      summary: 'En tidligere forsikringssag om hukommelsestab, som Leonard bruger som forklaring og advarsel; hvor meget af historien der egentlig er hans egen, er omstridt.',
     });
 
     // ------------------------------------------------------------------ steder
-    const motel = createEntity(s, ctx, { name: 'Motellet', kind: 'place' });
-    const bar = createEntity(s, ctx, { name: 'Baren', kind: 'place' });
-    const natalieHome = createEntity(s, ctx, { name: 'Natalies hus', kind: 'place' });
-    const derelict = createEntity(s, ctx, { name: 'Den forladte bygning', kind: 'place' });
-    const parlour = createEntity(s, ctx, { name: 'Tatoveringsbutikken', kind: 'place' });
-    const home = createEntity(s, ctx, { name: 'Leonards hus', kind: 'place' });
-    const office = createEntity(s, ctx, { name: 'Forsikringskontoret', kind: 'place' });
+    const motel = createEntity(s, ctx, {
+      name: 'Motellet', kind: 'place',
+      summary: 'Et anonymt værelse, der fungerer som base, arkiv og fælde for en mand uden nye minder.',
+    });
+    const bar = createEntity(s, ctx, {
+      name: 'Baren', kind: 'place',
+      summary: 'Natalies arbejdsplads og stedet, hvor dagens sandhed bliver fortalt og straks valgt fra.',
+    });
+    const natalieHome = createEntity(s, ctx, {
+      name: 'Natalies hus', kind: 'place',
+      summary: 'Et privat rum fyldt med spor efter Jimmy, hvor Natalie kan styre, hvad Leonard ser.',
+    });
+    const derelict = createEntity(s, ctx, {
+      name: 'Den forladte bygning', kind: 'place',
+      summary: 'En tom industribygning uden vidner, udvalgt som endestation for Leonard og Jimmy.',
+    });
+    const parlour = createEntity(s, ctx, {
+      name: 'Tatoveringsbutikken', kind: 'place',
+      summary: 'Et sterilt arbejdsrum, hvor midlertidige mistanker bliver skrevet permanent på huden.',
+    });
+    const home = createEntity(s, ctx, {
+      name: 'Leonards hus', kind: 'place',
+      summary: 'Hjemmet før skaden; stedet for overfaldet og grænsen mellem gammel og ny hukommelse.',
+    });
+    const office = createEntity(s, ctx, {
+      name: 'Forsikringskontoret', kind: 'place',
+      summary: 'Leonards tidligere arbejdsplads, hvor Sammy-sagen bliver ordnet i mapper og forklaringer.',
+    });
 
     // Rejsetid er en hård grænse, og den kan kun løftes af en evne. Her er den
     // skrevet ned, så reglen har noget at regne på — og så farvesporets
@@ -156,11 +265,17 @@ export function loadMemento(store: Store): { worldId: string; workId: string } {
     });
 
     // ------------------------------------------------------------ ting og skrift
-    const polaroidTeddy = createEntity(s, ctx, { name: 'Polaroid af Teddy', kind: 'object' });
-    const polaroidNatalie = createEntity(s, ctx, { name: 'Polaroid af Natalie', kind: 'object' });
+    const polaroidTeddy = createEntity(s, ctx, {
+      name: 'Polaroid af Teddy', kind: 'object',
+      summary: 'Et øjebliksbillede, hvis håndskrevne advarsel overlever den mistanke, der skabte den.',
+    });
+    const polaroidNatalie = createEntity(s, ctx, {
+      name: 'Polaroid af Natalie', kind: 'object',
+      summary: 'Leonards ydre hukommelse om Natalie, reduceret til et ansigt og få valgte ord.',
+    });
     const tattoo = createEntity(s, ctx, {
       name: 'Tatoveringen på brystet', kind: 'object',
-      summary: 'JOHN G. VOLDTOG OG DRÆBTE MIN KONE. Den kan ikke lægges fra sig.',
+      summary: 'Den centrale anklage skrevet permanent på Leonards krop; i modsætning til en note kan den hverken mistes, gemmes væk eller uden videre rettes.',
     });
 
     // ============================================================== kronologien
@@ -516,11 +631,11 @@ export function loadMemento(store: Store): { worldId: string; workId: string } {
             slotId: shown.slotId, strength: shown.strength,
           });
         }
-        if (spec.prose) {
-          saveSceneText(s, ctx, store, {
-            sceneId, doc: paragraphs(...spec.prose), markdown: markdownOf(...spec.prose),
-          });
-        }
+        const prose = spec.prose ?? MEMENTO_PROSE[spec.title];
+        if (!prose) throw new Error(`Memento mangler prøveprosa til «${spec.title}».`);
+        saveSceneText(s, ctx, store, {
+          sceneId, doc: paragraphs(...prose), markdown: markdownOf(...prose),
+        });
       });
     });
   });
