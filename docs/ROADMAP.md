@@ -35,17 +35,25 @@ Prosaen og bibelen bindes rigtigt sammen.
 
 ## Fase 10 — Prosaen kontrolleres mod bibelen
 
-**Status: i gang.** Den versionsbundne gennemlæsning og navnene uden kobling er
-implementeret og browserprøvet 30. august 2026. Resten står nedenfor.
+**Status: færdig, med én bevidst undtagelse.** Implementeret og browserprøvet
+30. august 2026.
 
 - ~~Gennemgå scene, kapitel, bog eller serie.~~
 - ~~En gennemgang husker hvilken tekstversion den gælder og bliver markeret som
   forældet, når scenen ændres.~~
 - ~~Find personer, steder, genstande og events, der kun findes i prosaen.~~
 - ~~Foreslå kobling til en eksisterende post eller oprettelse af en ny.~~
-- Sammenlign omtaler med tilstedeværelse, besiddelse, genstandstilstand,
-  POV-viden, identitet, navnekendskab, love og kronologi.
-- Forslag lander i margenen og ændrer aldrig prosa uden forfatterens klik.
+- ~~Sammenlign omtaler med POV-viden, identitet, navnekendskab, love og
+  kronologi.~~
+- ~~Forslag lander i margenen og ændrer aldrig prosa uden forfatterens klik.~~
+
+**Undtagelsen: tilstedeværelse, besiddelse og genstandstilstand.** De kan ikke
+udledes af en omtale. «Han tænkte på Valdemar» nævner Valdemar og placerer ham
+ingen steder, så en regel, der læste et mærke som «var i rummet», ville melde
+den mest almindelige sætning i bogen. Skal prosaen kunne bære den påstand, skal
+et anker kunne sige *hvordan* passagen bruger sit mål — vist i rummet eller blot
+nævnt, sådan som `scene_event.mode` allerede gør for events. Det er en
+modelændring, og den ligger i fase 15.
 
 ## Fase 11 — Serien som én fortælling
 
@@ -89,6 +97,9 @@ implementeret og browserprøvet 30. august 2026. Resten står nedenfor.
   besiddelser, tilstande, rejseforbindelser, tidsbånd, deltagere, afsløringer og
   plotbeats.
 - Før en sletning vises alle afhængigheder med navne, aldrig interne UUID'er.
+- Et anker kan sige, hvordan passagen bruger sit mål: vist i rummet eller blot
+  nævnt. Først da kan tilstedeværelse, besiddelse og genstandstilstand prøves
+  mod prosaen — se undtagelsen i fase 10.
 
 ## Fase 16 — De sidste overblik og robusthed
 

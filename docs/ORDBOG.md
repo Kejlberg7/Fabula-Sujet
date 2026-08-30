@@ -92,6 +92,9 @@ der ikke noget galt — så har forfatteren bare ikke besluttet sig endnu.
 | `name_or_identity` | Navn og identitet | 5 ✓ |
 | `disappearance` | Forsvinding | 5 ✓ |
 | `source_conflict` | Modstrid med kilde — kun forfatterens markering, filen læses ikke | 5 ✓ |
+| `mention_ahead_of_time` | Omtale før sin tid — bunden narration peger på noget, der ikke er sket | 10 ✓ |
+| `mention_name_not_yet` | Navn uden for sin tid — prosaen bruger en identitet uden for dens gyldighed | 10 ✓ |
+| `mention_reader_ahead` | Omtale før læseren ved det — prosaen peger på et faktum, læseren ikke har fået | 10 ✓ |
 
 ## MCP-fladen
 

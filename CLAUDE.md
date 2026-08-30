@@ -57,6 +57,12 @@ decisions, verification already run, and the next concrete action.
   the version it was written about. A note whose scene has been saved since is
   *stale*, not wrong -- it is marked, never blocked, because prose saves as you
   type and a lock would close the whole margin.
+- **A mention names; it does not place.** A mark in the prose says the writer
+  was pointing at something, not that anybody was in the room -- «Han tænkte på
+  Valdemar» names Valdemar and puts him nowhere. So presence, possession and
+  object state are never derived from an anchor. What does follow from one is
+  checked in `src/core/rules/mentions.ts`: time, a name's validity, and what the
+  reading order has handed the reader.
 - **Only report what cannot be arranged otherwise.** A vague date can be placed
   anywhere in its interval; if any placement is consistent, there is nothing
   wrong — the writer has not decided yet. Every rule in `src/core/rules/` proves
@@ -68,7 +74,7 @@ Node 20 (`.nvmrc`). The shell may default to an older nvm version — check
 `node -v` before running anything.
 
 ```bash
-npm test                            # 222 prøver
+npm test                            # 238 prøver
 npm run fixtures -- ./fabula.db     # Memento, Predestination, Inception, Havnen
 npm run build && npm run dev        # interface on :4173
 npm run ask -- ./fabula.db hent_kontekst

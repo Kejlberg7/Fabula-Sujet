@@ -4,11 +4,13 @@ Sidst opdateret: 30. august 2026
 
 ## Aktiv fase
 
-**Fase 10 — Prosaen kontrolleres mod bibelen.** I gang. Første snit (den
-versionsbundne gennemlæsning) og andet snit (navne uden kobling) er
-implementeret, prøvet og browserprøvet.
+**Fase 10 — Prosaen kontrolleres mod bibelen. Færdig, med én bevidst
+undtagelse.** Alle tre snit er implementeret, prøvet og browserprøvet:
+den versionsbundne gennemlæsning, navnene uden kobling, og omtalen som en
+påstand, motoren kan prøve.
 
-Fase 0–9 er færdige. Den aftalte videre plan ligger i `docs/ROADMAP.md`.
+Fase 0–10 er færdige. Næste fase er 11 — serien som én fortælling. Den aftalte
+plan ligger i `docs/ROADMAP.md`.
 
 ## Færdigt i fase 10 indtil nu
 
@@ -34,6 +36,41 @@ Fase 0–9 er færdige. Den aftalte videre plan ligger i `docs/ROADMAP.md`.
 - Havnen har en afsluttet gennemlæsning af første bind med margennoten hængt på
   sig. Den ligger efter omtalerne i indlæsningen, ellers ville prøvecasen blive
   født forældet.
+
+## Færdigt i fase 10, tredje snit
+
+- `src/core/rules/mentions.ts` med tre regler, alle registreret i `RULES` og
+  dermed i `koer_gennemgang`, `vis_regler`, Gennemgangen og afvisningerne.
+- `mention_ahead_of_time`: en bunden narration peger på et event, hvis
+  *tidligste* mulige tidspunkt ligger efter scenens. Alvidende fortæller er
+  undtaget, og et event, scenen selv dramatiserer, er POV-reglens sag.
+- `mention_name_not_yet`: prosaen bruger en identitet uden for dens
+  gyldighedsperiode. Samme påstand som `name_or_identity`, men fremsat af
+  teksten i stedet for af en deltagelse.
+- `mention_reader_ahead`: prosaen peger på et faktum, læserækkefølgen ikke har
+  udleveret. Meldes som bemærkning, ikke fejl — en antydning, der mangler at
+  stå som en afsløring, er lige så sandsynlig som en for tidlig afsløring.
+- Scenens nutid er kun det, den **dramatiserer**. Desken falder tilbage til et
+  omtalt event; det er rigtigt for «hvornår handler scenen om», og forkert for
+  «hvad var sandt imens». Bartenderen, der i 1970 fortæller om 1945, ville
+  ellers blive målt mod 1945. Dramatiserer scenen ingenting, tier reglerne.
+- Alle tre spørger lovlaget først og bærer `lifted`, som resten af motoren.
+- Vægtprøve pr. bog: de fire prøvecases melder ingenting under de tre regler.
+- `vis_regler` beregner nu sin kolonnebredde i stedet for at bruge 18 tegn.
+
+## Bevidst ikke bygget i fase 10
+
+Tilstedeværelse, besiddelse og genstandstilstand udledes **ikke** af en omtale.
+Et mærke siger, at forfatteren pegede på noget, ikke at nogen var i rummet:
+«Han tænkte på Valdemar» nævner Valdemar og placerer ham ingen steder. En regel,
+der læste det som tilstedeværelse, ville melde den mest almindelige sætning i
+bogen, og så bliver hele værktøjet slået fra.
+
+Vejen dertil er kendt og skrevet ned: et anker skal kunne sige *hvordan*
+passagen bruger sit mål — vist i rummet eller blot nævnt — præcis som
+`scene_event.mode` allerede gør for events. Det er en modelændring med migration
+og en UI-beslutning ved hvert anker, og den ligger nu i fase 15 i `ROADMAP.md`.
+Den er ikke glemt; den er valgt fra her.
 
 ## Færdigt i fase 10, andet snit
 
@@ -110,8 +147,8 @@ intet at se og intet at klikke på.
 
 ## I gang nu
 
-- Ingen halv implementering står åben. Næste konkrete arbejde er tredje snit af
-  fase 10 nedenfor.
+- Ingen halv implementering står åben. Fase 10 er lukket. Næste arbejde er
+  fase 11.
 
 ## Beslutninger
 
@@ -119,6 +156,8 @@ intet at se og intet at klikke på.
   læsning ikke skelnes fra en aktuel.
 - «Forældet» er en oplysning, ikke en spærring. Prosa gemmes, mens man skriver.
 - Interfacet starter ikke en gennemlæsning. Det er Claude, der læser prosaen.
+- En omtale nævner; den placerer ikke. Tilstedeværelse følger ikke af et mærke.
+- Scenens nutid er det, den dramatiserer. Et omtalt event er ikke en nutid.
 - Et hul er et spørgsmål, ikke en fejl. En forbipasserende behøver ingen post.
 - Panelet må pege på et navn; kun forfatterens klik må sætte mærket.
 - En navnedel, to poster deler, bruges ikke. Et gæt her er værre end tavshed.
@@ -129,7 +168,7 @@ intet at se og intet at klikke på.
 
 ## Verificering
 
-- 222/222 prøver er grønne.
+- 238/238 prøver er grønne.
 - Typecheck og produktionsbuild er rene. Vite gentager den kendte advarsel om
   en JavaScript-chunk over 500 kB; det er ikke en buildfejl.
 - Migration 0007 er prøvet mod en kopi af den eksisterende database. Prøven
@@ -143,19 +182,20 @@ intet at se og intet at klikke på.
   «nævnt uden omtale» op i ankrene uden at ændre ordtallet, og «Marie Krag» blev
   oprettet som genstand, fik G2 og blev knyttet i næste klik.
 - `vis_navne_uden_kobling` på hele serien melder fire scener og ingen støj.
+- Browserprøvet på en kopi af den rigtige database: et anker fra «Sundvej,
+  september» til «Marie Krag går ned» giver bemærkningen «Omtale før sin tid» i
+  Gennemgangen med Læg til side-knappen, som alle andre fund.
 
 ## Næste konkrete handling
 
-Fase 10, tredje snit: sammenhold de *knyttede* omtaler med det, motoren allerede
-ved. En omtale af en person i en scene har et tidspunkt og et sted, og deraf
-følger spørgsmålene: var hun der, havde han den genstand på sig, var genstanden i
-den tilstand, kunne synsvinkelpersonen vide det, kendte hun navnet, tillader en
-lov det. Reglerne findes i `src/core/rules/`; det, der mangler, er at lade en
-omtale i prosaen tælle som en påstand, de kan prøves imod.
-
-Samme disciplin som resten af motoren: meld kun det, der ikke kan arrangeres
-anderledes, spørg lovlaget først, og læg fundet i margenen. MCP får stadig ingen
-vej til at skrive prosa.
+Fase 11 — serien som én fortælling. Den kendte grænse er `thread.work_id`: en
+plottråd hører til én bog, så et setup i bind et og en indfrielse i bind to kan
+ikke skrives som den samme tråd. Første snit er derfor at lade en tråd høre til
+en bog, en serie eller en verden, med migration og uden datatab, og at regne
+orden som serie → bog → kapitel → scene. Derefter skal Grebet medregne
+forberedelse og læservarviden fra tidligere bind, og en serieoversigt skal vise
+gennemgående personer, tråde, afsløringer og uløste setups — uden at blande en
+anden serie i den samme verden ind.
 
 ## Åbne risici
 

@@ -16,12 +16,13 @@ desuden genstande, relationer, identiteter, forsvindinger, setups og researchkil
 og kildehylden viser, hvad hver kilde faktisk holder oppe. Prosa og bibel er nu
 bundet sammen med stabile arbejdsreferencer, der kan skrives som `@G1` og vises
 som det naturlige navn på siden. En gennemlæsning af manuskriptet ved, hvilken
-version af hver scene den faktisk læste, og skrivebordet siger nu til, når et
-navn står i prosaen uden at hænge sammen med bibelen.
+version af hver scene den faktisk læste, skrivebordet siger til, når et navn
+står i prosaen uden at hænge sammen med bibelen, og de omtaler, der *er* knyttet,
+bliver prøvet mod tid, navnegyldighed og læserens rækkefølge.
 
 ```bash
 npm install
-npm test                              # 222 prøver
+npm test                              # 238 prøver
 npm run fixtures -- ./fabula.db       # læg de fire prøvecases ind
 npm run build && npm run dev          # interfacet på http://localhost:4173
 npm run ask -- ./fabula.db hent_kontekst
@@ -415,14 +416,61 @@ MCP kan spørge om det samme med `vis_navne_uden_kobling`, og gennemgangspakken
 for en scene tager det med — men der findes ingen vej derfra til at sætte
 omtalen. Et mærke i manuskriptet er stadig kun forfatterens klik.
 
+### Omtalen som påstand
+
+Alle de andre regler læser modellen. Tre regler læser manuskriptet: en omtale er
+forfatteren, der peger på noget, mens hun skriver, og det kan holdes op mod, hvad
+bibelen siger var sandt i det øjeblik.
+
+```
+· [mention_ahead_of_time] «Sundvej, september» peger i prosaen på «Marie Krag
+  går ned», som tidligst sker senere. Scenen er bunden til Mads Krag, så enten
+  varsler fortælleren noget, synsvinklen ikke kan kende, eller også er det noget,
+  den venter sig — og så mangler bibelen forventningen, ikke mærket.
+```
+
+- **Omtale før sin tid.** En bunden narration kan ikke pege på noget, der endnu
+  ikke er sket. En alvidende fortæller må gerne, og gør det hele dagen, så reglen
+  spørger først, hvem der fortæller. Kun sikkerhed meldes: eventets *tidligste*
+  mulige tidspunkt skal ligge efter scenens. Kan det arrangeres, så det går op,
+  er der ikke noget galt — datoen er bare ikke besluttet endnu.
+- **Navn uden for sin tid.** Prosaen kalder ham Teddy, og på det tidspunkt hed
+  ingen Teddy endnu. Modellen nægtede allerede at lade nogen *optræde* under et
+  navn uden for dets gyldighed; det her er den samme påstand, fremsat af teksten.
+- **Omtale før læseren ved det.** Prosaen peger på et faktum, læserækkefølgen
+  ikke har udleveret endnu. Det er ikke «du røbede det» — det er «enten er det en
+  antydning, der mangler at stå som en afsløring, eller også står den for
+  tidligt», og begge dele er forfatterens valg. En antydning, ingen har skrevet
+  ned, er usynlig for alt andet i programmet: afsløringsrækkefølgen, læserviden,
+  Grebet.
+
+Scenens nutid er det, den *dramatiserer* — ikke, som i desken, med tilbagefald
+til noget omtalt. En bartender, der i 1970 fortæller om et barn i 1945, ville
+ellers blive målt mod 1945, og hvert navn, han har brugt siden, ville se ud, som
+om det ikke fandtes endnu. En scene, der dramatiserer ingenting, har ingen nutid,
+og så tier reglerne.
+
+**Hvad en omtale ikke siger.** Den sætter ingen i rummet. «Han tænkte på
+Valdemar» nævner Valdemar og placerer ham ingen steder, så tilstedeværelse,
+besiddelse og genstandstilstand kan ikke udledes af et mærke — en regel, der
+troede noget andet, ville melde den mest almindelige sætning i bogen. Skal
+prosaen kunne bære den påstand, skal et anker kunne sige *hvordan* passagen
+bruger sit mål: vist i rummet eller blot nævnt, sådan som `scene_event.mode`
+allerede gør for events. Det står i `docs/ROADMAP.md` som en modelændring til
+fase 15, ikke som noget, der er glemt.
+
+Alle fire prøvecases er tavse under de tre regler, og der er en vægtprøve pr. bog
+på netop den tavshed.
+
 ## Næste skridt
 
-**Fase 10, resten:** den versionsbundne gennemlæsning står, og navnene uden
-kobling bliver fundet. Tilbage står selve kontrollen: de *knyttede* omtaler skal
-sammenholdes med tid, sted, viden, identitet, besiddelse, genstandstilstand og
-love — står en person i en scene, hun ikke kan have været i, eller nævnes en
-genstand, der på det tidspunkt lå et andet sted. Resultatet lander i margenen og
-ændrer aldrig prosaen af sig selv.
+**Fase 10 er færdig, med én bevidst undtagelse:** tilstedeværelse, besiddelse og
+genstandstilstand kan ikke udledes af en omtale, og det kræver et anker, der
+siger, hvordan passagen bruger sit mål. Det ligger i fase 15.
+
+**Fase 11 er den næste:** serien som én fortælling. En plottråd skal kunne høre
+til en bog, en serie eller en verden, så et setup i bind et kan få sin
+indfrielse i bind to.
 
 **Kendt grænse:** en plottråd hører til én bog (`thread.work_id`), så et setup i
 bind et og en indfrielse i bind to kan ikke skrives som én tråd. Hver bog må have

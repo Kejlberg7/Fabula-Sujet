@@ -392,6 +392,9 @@ export const reviewTools: ToolDef[] = [
     title: 'Vis reglerne',
     description: 'Hvilke regler motoren kører, og hvad de hedder på dansk.',
     inputSchema: {},
-    run: () => RULES.map((r) => `  ${r.code.padEnd(18)} ${r.title}`).join('\n'),
+    run: () => {
+      const width = Math.max(...RULES.map((r) => r.code.length));
+      return RULES.map((r) => `  ${r.code.padEnd(width)}  ${r.title}`).join('\n');
+    },
   }),
 ];
