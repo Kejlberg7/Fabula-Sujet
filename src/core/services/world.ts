@@ -3,14 +3,16 @@ import type { Store } from '../../db/client';
 import {
   appUser, branch, realm, series, timeSystem, work, world,
 } from '../../db/schema';
-import { Session } from '../changelog';
+import { Session, inTurn } from '../changelog';
 import { newId } from '../ids';
 import type { Context } from '../workbench';
 
 /**
- * Creating a world is the one write that cannot go through a session, because a
- * session needs a branch and the branch is part of what is being made. It is
- * the only exception in the codebase, and it is why it lives here alone.
+ * The world's scaffolding is the one write that cannot go through a session,
+ * because a session needs a branch and the branch is part of what is being
+ * made. That exception covers the world, its branch, its clock and the user --
+ * and nothing else. The realm below is branch content and goes through the log
+ * like everything else, because it can diverge and must be copyable.
  */
 export function createWorld(
   store: Store,
@@ -22,22 +24,39 @@ export function createWorld(
   const realmId = newId();
   const now = new Date();
 
-  return store.db.transaction((tx) => {
-    let userId = tx.select().from(appUser).get()?.id;
-    if (!userId) {
-      userId = newId();
-      tx.insert(appUser).values({ id: userId, name: input.userName ?? 'Forfatteren', createdAt: now }).run();
+  const userId = store.db.transaction((tx) => {
+    let existing = tx.select().from(appUser).get()?.id;
+    if (!existing) {
+      existing = newId();
+      tx.insert(appUser).values({ id: existing, name: input.userName ?? 'Forfatteren', createdAt: now }).run();
     }
     tx.insert(world).values({ id: worldId, name: input.name, summary: input.summary ?? null, createdAt: now }).run();
     tx.insert(branch).values({ id: branchId, worldId, name: 'hoved', isDefault: true, createdAt: now }).run();
     tx.insert(timeSystem).values({ id: timeSystemId, worldId, name: 'Gregoriansk', kind: 'gregorian' }).run();
-    // Every world starts with the realm everything else is nested inside.
-    tx.insert(realm).values({
+    return existing;
+  });
+
+  /**
+   * The realm goes through the change log, unlike the scaffolding above it.
+   *
+   * World, branch, clock and user are not branch content -- they frame it. The
+   * realm *is* branch content: it carries `branch_id` and it is copied when a
+   * variant is made. A row that can diverge but was never logged cannot be
+   * reconstructed at a fork point, and the copy then leaves every event on the
+   * new branch pointing at the parent's realm.
+   */
+  inTurn(store, {
+    branchId,
+    actor: { kind: 'system' },
+    summary: `Opret verden: ${input.name}`,
+  }, (session) => {
+    session.insert(realm, {
       id: realmId, worldId, branchId, name: 'Virkeligheden', kind: 'reality',
       timeSystemId, timeRatioNum: 1, timeRatioDen: 1, createdAt: now,
-    }).run();
-    return { worldId, branchId, realmId, timeSystemId, userId: userId! };
+    });
   });
+
+  return { worldId, branchId, realmId, timeSystemId, userId };
 }
 
 export function createRealm(

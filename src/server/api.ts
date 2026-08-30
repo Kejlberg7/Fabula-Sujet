@@ -34,6 +34,10 @@ import { createSuggestion, decideSuggestion, suggestionsFor } from '../core/serv
 import { solveTime } from '../core/solve';
 import { formatInstant, formatSpan } from '../core/time/gregorian';
 import { Workbench } from '../core/workbench';
+import {
+  branchWorkspace, compareBranches, createBranchFromHistory, moveChapter, moveReveal,
+  moveScene, setBranchArchived, setDefaultBranch,
+} from '../core/branches';
 
 /**
  * The read and write surface the interface talks to.
@@ -138,7 +142,11 @@ export function createApi(store: Store) {
               : null,
           })),
         branches: db.select().from(branch).where(eq(branch.worldId, current.worldId)).all()
-          .map((b) => ({ id: b.id, name: b.name, isDefault: b.isDefault })),
+          .map((b) => ({
+            id: b.id, name: b.name, isDefault: b.isDefault,
+            archived: b.archivedAt != null, parentBranchId: b.parentBranchId,
+            forkChangeSeq: b.forkChangeSeq,
+          })),
         realms: db.select().from(realm).where(eq(realm.branchId, current.branchId)).all()
           .map((r) => ({
             id: r.id, name: r.name, kind: r.kind,
@@ -527,6 +535,83 @@ export function createApi(store: Store) {
       ({ undone: rollbackTo(store, ctx().branchId, input.seq, actor) }),
     'history.checkpoint': (input: { label: string }) =>
       ({ id: markCheckpoint(db, ctx().branchId, input.label) }),
+
+    /** Independent narrative roads, all retaining their common lineage. */
+    'branch.workspace': () => branchWorkspace(store, ctx()),
+
+    'branch.create': (input: { name: string; seq?: number }) => {
+      const c = ctx();
+      const latest = db.select({ max: sql<number | null>`max(${change.seq})` }).from(change)
+        .where(eq(change.branchId, c.branchId)).get()?.max ?? 0;
+      const created = createBranchFromHistory(store, {
+        sourceBranchId: c.branchId,
+        sourceWorkId: c.workId,
+        name: input.name,
+        changeSeq: input.seq ?? latest,
+        actor,
+      });
+      bench.setActive({
+        worldId: c.worldId,
+        branchId: created.branchId,
+        workId: created.workId,
+      });
+      return created;
+    },
+
+    'branch.compare': (input: { otherBranchId: string }) => {
+      const c = ctx();
+      if (!c.workId) throw new Error('Der er ikke valgt en bog.');
+      return compareBranches(store, {
+        leftBranchId: c.branchId,
+        rightBranchId: input.otherBranchId,
+        workId: c.workId,
+      });
+    },
+
+    'branch.choose': (input: { branchId: string }) => {
+      const c = ctx();
+      setDefaultBranch(store, input.branchId, actor);
+      const next = bench.setActive({ worldId: c.worldId, branchId: input.branchId });
+      return { branchId: next.branchId, workId: next.workId };
+    },
+
+    'branch.archive': (input: { branchId: string }) => {
+      const c = ctx();
+      if (input.branchId === c.branchId) {
+        throw new Error('Skift til en anden gren, før du arkiverer denne.');
+      }
+      return bench.run({ actor, summary: 'Arkivér gren' }, (session) => {
+        setBranchArchived(session, store, input.branchId, true);
+        return { archived: true };
+      });
+    },
+
+    'branch.reopen': (input: { branchId: string }) =>
+      bench.run({ actor, summary: 'Genåbn gren' }, (session) => {
+        setBranchArchived(session, store, input.branchId, false);
+        return { archived: false };
+      }),
+
+    'branch.chapter.move': (input: { chapterId: string; toIndex: number }) =>
+      bench.run({ actor, summary: 'Flyt kapitel' }, (session, c) => {
+        moveChapter(session, store, c, input.chapterId, input.toIndex);
+        return { moved: true };
+      }),
+
+    'branch.scene.move': (input: {
+      sceneId: string; targetChapterId: string; toIndex: number;
+    }) => bench.run({ actor, summary: 'Flyt scene' }, (session, c) => {
+      moveScene(session, store, c, input);
+      return { moved: true };
+    }),
+
+    'branch.reveal.move': (input: {
+      revealId: string; sceneId: string;
+      strength?: 'hinted' | 'implied' | 'stated' | 'confirmed';
+    }) => bench.run({ actor, summary: 'Flyt afsløring' }, (session, c) => {
+      moveReveal(session, store, c, input);
+      return { moved: true };
+    }),
 
     'row.update': (input: { table: string; id: string; patch: Record<string, unknown> }) =>
       bench.run({ actor, summary: `Ret ${input.table}` }, (session) =>

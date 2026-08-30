@@ -272,6 +272,75 @@ main { overflow: auto; min-width: 0; }
 .turn.undone .summary { text-decoration: line-through; }
 .turn .seq { font-family: var(--mono); font-size: 11px; color: var(--line-2); }
 .turn .meta { font-size: 12px; color: var(--muted); }
+.history-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+
+/* ---------- phase 6: narrative alternatives ---------- */
+.alternatives-page { max-width: 1180px; }
+.branch-create { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.branch-create input {
+  min-width: 230px; padding: 6px 9px; border: 1px solid var(--line-2);
+  border-radius: 3px; background: var(--surface);
+}
+.branch-current { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.branch-current h3 { font-family: var(--serif); font-size: 21px; margin: 1px 0; }
+.branch-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 8px; }
+.branch-card {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px;
+  padding: 12px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface);
+}
+.branch-card.archived { opacity: .65; border-style: dashed; }
+.branch-badges { display: flex; gap: 5px; flex-wrap: wrap; justify-content: flex-end; }
+.branch-actions { grid-column: 1 / -1; display: flex; gap: 6px; justify-content: flex-end; }
+.branch-help { color: var(--muted); margin-top: -5px; }
+.order-editor { display: grid; gap: 10px; }
+.order-chapter { border: 1px solid var(--line); border-radius: 4px; background: var(--surface); overflow: hidden; }
+.order-chapter > header {
+  display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: 9px;
+  align-items: center; padding: 9px 11px; background: var(--disc-wash); border-bottom: 1px solid var(--line);
+}
+.order-chapter h3 { margin: 0; font-family: var(--serif); font-size: 17px; }
+.order-number, .scene-order { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.order-chapter ol { list-style: none; padding: 0; margin: 0; }
+.order-chapter li {
+  display: grid; grid-template-columns: 30px minmax(160px, 1fr) auto;
+  gap: 9px; align-items: center; padding: 7px 11px; border-bottom: 1px dotted var(--line);
+}
+.order-chapter li:last-child { border-bottom: 0; }
+.order-chapter li > div:nth-child(2) { display: flex; gap: 4px; flex-direction: column; }
+.scene-move { display: flex; gap: 4px; align-items: center; }
+.scene-move select { max-width: 230px; }
+.btn.arrow { padding: 2px 7px; min-width: 29px; }
+.reveal-editor { display: grid; gap: 6px; }
+.reveal-row {
+  display: grid; grid-template-columns: minmax(220px, 1fr) 120px minmax(220px, 1fr);
+  gap: 10px; align-items: center; padding: 8px 10px;
+  border: 1px solid var(--line); border-radius: 4px; background: var(--surface);
+}
+.reveal-row > div { display: flex; flex-direction: column; }
+.compare-head { display: flex; justify-content: space-between; gap: 16px; align-items: end; margin-top: 22px; }
+.compare-head .section { margin-bottom: 2px; }
+.comparison-summary {
+  display: grid; grid-template-columns: 1fr auto auto 1fr auto; gap: 9px;
+  align-items: center; padding: 10px 12px; background: var(--surface-2); border-radius: 4px;
+}
+.comparison-arrow { color: var(--muted); font-family: var(--mono); font-size: 11px; text-transform: uppercase; }
+.difference-list { border: 1px solid var(--line); border-radius: 4px; overflow: hidden; margin-top: 8px; }
+.difference {
+  display: grid; grid-template-columns: 130px minmax(180px, 1fr) minmax(90px, auto) 24px minmax(90px, auto);
+  gap: 9px; align-items: center; padding: 8px 10px; border-bottom: 1px solid var(--line); background: var(--surface);
+}
+.difference:last-child { border-bottom: 0; }
+.difference-arrow { color: var(--story); text-align: center; }
+@media (max-width: 900px) {
+  .turn { grid-template-columns: 50px minmax(0, 1fr); }
+  .history-actions { grid-column: 2; }
+  .reveal-row { grid-template-columns: 1fr; }
+  .order-chapter li { grid-template-columns: 24px 1fr; }
+  .scene-move { grid-column: 2; flex-wrap: wrap; }
+  .comparison-summary { grid-template-columns: 1fr; }
+  .difference { grid-template-columns: 1fr; }
+  .difference-arrow { text-align: left; }
+}
 
 .banner {
   border: 1px solid var(--line); border-left: 3px solid var(--story);

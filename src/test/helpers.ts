@@ -1,5 +1,6 @@
 import { openStore, type Store } from '../db/client';
 import { newId } from '../core/ids';
+import { inTurn } from '../core/changelog';
 import { appUser, branch, timeSystem, world, realm } from '../db/schema';
 
 export interface TestWorld {
@@ -29,10 +30,21 @@ export function makeWorld(name = 'Prøveverden'): TestWorld {
   db.insert(timeSystem).values({
     id: timeSystemId, worldId, name: 'Gregoriansk', kind: 'gregorian',
   }).run();
-  db.insert(realm).values({
-    id: realmId, worldId, branchId, name: 'Virkeligheden', kind: 'reality',
-    timeSystemId, timeRatioNum: 1, timeRatioDen: 1, createdAt: new Date(),
-  }).run();
+  /**
+   * Laget skrives gennem ændringsloggen, præcis som `createWorld` gør det.
+   *
+   * En prøveverden, der bygges anderledes end koden bygger den, skjuler
+   * netop den slags fejl, prøverne er til for: et lag uden for loggen kan ikke
+   * genskabes ved et forgreningspunkt, og så peger en ny gren på forælderens.
+   */
+  inTurn(store, {
+    branchId, actor: { kind: 'system' }, summary: 'Opret prøveverden',
+  }, (session) => {
+    session.insert(realm, {
+      id: realmId, worldId, branchId, name: 'Virkeligheden', kind: 'reality',
+      timeSystemId, timeRatioNum: 1, timeRatioDen: 1, createdAt: new Date(),
+    });
+  });
 
   return { store, worldId, branchId, userId, realmId, timeSystemId };
 }

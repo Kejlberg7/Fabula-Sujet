@@ -89,7 +89,7 @@ der ikke noget galt — så har forfatteren bare ikke besluttet sig endnu.
 
 ## MCP-fladen
 
-62 værktøjer. Navnene og argumenterne er danske, fordi du skal tale til dem.
+70 værktøjer. Navnene og argumenterne er danske, fordi du skal tale til dem.
 Alt indenfor er engelsk.
 
 | Gruppe | Værktøj |
@@ -104,6 +104,7 @@ Alt indenfor er engelsk.
 | Ret og fjern | `opdater` · `slet` · `fortryd` · `gentag` · `saet_nedslag` · `rul_tilbage_til` · `historik` · `vis_aendringer` |
 | Spørg | `hvem_vidste_hvad` · `hvem_var_hvor` · `hvad_ved_laeseren` · `vis_verdenslinje` · `find` · `koer_tidsloesning` |
 | Gennemgang | `koer_gennemgang` · `vis_fund` · `afvis_fund` · `genaabn_fund` · `vis_regler` · `vis_scene_til_gennemgang` · `tilfoej_margennote` · `vis_margennoter` · `afgoer_margennote` |
+| Grene | `vis_grene` · `opret_gren` · `sammenlign_grene` · `vaelg_hovedgren` · `arkiver_gren` · `genaabn_gren` · `flyt_scene` · `flyt_afsloering` |
 
 `opdater` og `slet` tager et engelsk tabelnavn fra listen ovenfor. Oprettelse er
 typet per slags, fordi felterne er vidt forskellige, når noget skabes — mens en

@@ -44,6 +44,8 @@ describe('MCP-fladen', () => {
       'opret_afsloering', 'opdater', 'slet', 'fortryd', 'hvem_vidste_hvad', 'koer_tidsloesning',
       'vis_scene_til_gennemgang', 'tilfoej_margennote', 'vis_margennoter', 'afgoer_margennote',
       'registrer_tilstand', 'registrer_forsvinding', 'opret_plottraad', 'tilfoej_slag',
+      'vis_grene', 'opret_gren', 'sammenlign_grene', 'vaelg_hovedgren', 'arkiver_gren',
+      'genaabn_gren', 'flyt_scene', 'flyt_afsloering',
     ]) {
       assert.ok(names.includes(expected), `mangler værktøjet ${expected}`);
     }
@@ -158,6 +160,14 @@ describe('MCP-fladen', () => {
 
     const reader = await call('hvad_ved_laeseren', { gennem_kapitel: 1 });
     assert.match(reader, /kun: offer/, 'læseren har heller ikke fået gerningsmanden endnu');
+  });
+
+  it('starter et alternativ gennem samtalen uden at røre hovedsporet', async () => {
+    assert.match(await call('opret_gren', { navn: 'Et andet spor' }), /oprettet.*originalen er urørt/i);
+    const branches = await call('vis_grene');
+    assert.match(branches, /Et andet spor \[valgt\]/);
+    assert.match(branches, /hoved \[hovedspor\]/);
+    assert.match(await call('sammenlign_grene', { med: 'hoved' }), /identisk/);
   });
 
   it('gennemgår manuskriptet i margenen uden at ændre prosaen', async () => {

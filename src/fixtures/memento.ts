@@ -1,5 +1,8 @@
 import { inTurn } from '../core/changelog';
+import { eq, sql } from 'drizzle-orm';
 import type { Store } from '../db/client';
+import { change, chapter, reveal, scene } from '../db/schema';
+import { createBranchFromHistory, moveReveal, moveScene } from '../core/branches';
 import { SECONDS, parseInstant } from '../core/time/gregorian';
 import {
   createEntity, createIdentity, createPlaceLink, createRelationship, recordDisappearance,
@@ -131,6 +134,8 @@ export function loadMemento(store: Store): { worldId: string; workId: string } {
   const ctx = bench.setActive({ worldId: created.worldId, userId: created.userId });
   const realmId = created.realmId;
   let workId = '';
+  let earlyNameRevealId = '';
+  const sceneIds = new Map<string, string>();
 
   // Fire strækninger af kronologi. Sammy-sporet ligger halvandet år før alt
   // andet, og det er meningen: tidslinjen skal kunne rumme både et tyndt og et
@@ -667,7 +672,6 @@ export function loadMemento(store: Store): { worldId: string; workId: string } {
       },
     ];
 
-    const sceneIds = new Map<string, string>();
     book.forEach((chapter, chapterIndex) => {
       const chapterId = createChapter(s, ctx, store, {
         workId, title: chapter.title, position: chapterIndex + 1, summary: chapter.summary,
@@ -683,10 +687,13 @@ export function loadMemento(store: Store): { worldId: string; workId: string } {
           sceneId, eventId: spec.event, mode: spec.mode ?? 'dramatised',
         });
         for (const shown of spec.reveals ?? []) {
-          createReveal(s, ctx, {
+          const revealId = createReveal(s, ctx, {
             factId: shown.factId, sceneId,
             slotId: shown.slotId, strength: shown.strength,
           });
+          if (spec.title === 'Teddy siger det hele' && shown.factId === teddyIsJohnG.factId) {
+            earlyNameRevealId = revealId;
+          }
         }
         const prose = spec.prose ?? MEMENTO_PROSE[spec.title];
         if (!prose) throw new Error(`Memento mangler prøveprosa til «${spec.title}».`);
@@ -727,6 +734,42 @@ export function loadMemento(store: Store): { worldId: string; workId: string } {
     });
   });
 
-  bench.setActive({ worldId: created.worldId, workId });
+  // One visible alternative makes phase 6 testable immediately. It is a real
+  // branch, not special fixture UI: Teddy's name is hinted in the opening and
+  // his confession is moved to the front. The main branch remains the film-like
+  // arrangement and is selected again before returning.
+  const forkSeq = store.db.select({ max: sql<number>`max(${change.seq})` }).from(change)
+    .where(eq(change.branchId, ctx.branchId)).get()!.max;
+  const variant = createBranchFromHistory(store, {
+    sourceBranchId: ctx.branchId,
+    sourceWorkId: workId,
+    name: 'Teddy afsløres tidligere',
+    changeSeq: forkSeq,
+    actor: { kind: 'system' },
+  });
+  const variantCtx = { ...ctx, branchId: variant.branchId, workId: variant.workId };
+  const copiedScene = (sourceId: string) => store.db.select().from(scene)
+    .where(eq(scene.originId, sourceId)).all().find((item) => item.branchId === variant.branchId)!;
+  const opening = copiedScene(sceneIds.get('Nogen har ringet')!);
+  const confession = copiedScene(sceneIds.get('Teddy siger det hele')!);
+  const openingChapter = store.db.select().from(chapter)
+    .where(eq(chapter.id, opening.chapterId)).get()!;
+  const nameReveal = store.db.select().from(reveal)
+    .where(eq(reveal.originId, earlyNameRevealId)).all()
+    .find((item) => item.branchId === variant.branchId)!;
+  inTurn(store, {
+    branchId: variant.branchId,
+    actor: { kind: 'system' },
+    summary: 'Prøv Teddy-afsløringen tidligere',
+  }, (session) => {
+    moveScene(session, store, variantCtx, {
+      sceneId: confession.id, targetChapterId: openingChapter.id, toIndex: 0,
+    });
+    moveReveal(session, store, variantCtx, {
+      revealId: nameReveal.id, sceneId: opening.id, strength: 'hinted',
+    });
+  });
+
+  bench.setActive({ worldId: created.worldId, branchId: ctx.branchId, workId });
   return { worldId: created.worldId, workId };
 }

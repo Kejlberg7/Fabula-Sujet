@@ -6,7 +6,7 @@ og hvornår de **fortælles**.
 
 ## Status
 
-**Fase 0 til 5 er færdige.** Datamodellen, tidsløseren, ændringsloggen og
+**Fase 0 til 6 er færdige.** Datamodellen, tidsløseren, ændringsloggen og
 MCP-serveren står; oven på dem et interface med værkvælger, tidslinje, lister og
 historik, et skrivebord hvor prosaen bliver til med bibelen åben ved siden af —
 og en motor, der siger fra, når noget ikke kan lade sig gøre. Fortællelaget
@@ -16,7 +16,7 @@ desuden genstande, relationer, identiteter, forsvindinger, setups og researchkil
 
 ```bash
 npm install
-npm test                              # 132 prøver
+npm test                              # 139 prøver
 npm run fixtures -- ./fabula.db       # læg Memento, Predestination og Inception ind
 npm run build && npm run dev          # interfacet på http://localhost:4173
 npm run ask -- ./fabula.db hent_kontekst
@@ -218,8 +218,33 @@ web/               interfacet: React, egen CSS, ingen komponentbibliotek
 docs/ORDBOG.md     dansk ↔ engelsk, regelkoder, MCP-flade
 ```
 
+### Alternativer
+
+En gren er en hel, selvstændig udgave af historien — ikke et filter og ikke en
+skjult fortrydelse. Under **Historik** kan du sige «start gren her» ved et
+hvilket som helst trin, og så bliver hele fortællingen som den så ud dér kopieret
+til et nyt spor med sine egne id'er. Originalen røres ikke.
+
+På **Alternativer** flytter du scener og kapitler op og ned og afsløringer fra
+scene til scene, og **Sammenlign** viser præcis hvad der har rykket sig:
+
+```
+SCENE FLYTTET      Teddy siger det hele          nr. 1  →  nr. 3
+AFSLØRING FLYTTET  Teddy hedder John Edward G.   Nogen har ringet → Teddy siger det hele
+AFSLØRING ÆNDRET   Teddy hedder John Edward G.   hinted → confirmed
+```
+
+Grene flettes aldrig. Du vælger et hovedspor eller arkiverer en variant, og
+begge dele kan gøres om. Alt sammen går gennem den samme ændringslog som resten,
+så en flytning er ét fortryd væk.
+
+Prøvecasen for Memento har en variant med i forvejen — «Teddy afsløres tidligere»
+— så der er noget at sammenligne fra første kørsel.
+
 ## Næste skridt
 
-**Fase 6: virkelige alternativer.** Opret en gren fra et nedslag i den synlige
-historik, prøv en anden scene- og afsløringsrækkefølge, sammenlign grenene og
-vælg eller arkivér en variant uden at flette dem eller miste den oprindelige.
+**Fase 7: hvor godt sidder grebet?** Det, du spurgte om undervejs — at kunne se
+«hvor god» en afsløring er, snarere end blot om den er mulig. Materialet ligger
+der allerede: afstanden mellem hvornår læseren får noget og hvornår personen har
+det, hvor længe et setup hænger uindfriet, og hvor meget en gren flytter på den
+afstand i forhold til en anden.

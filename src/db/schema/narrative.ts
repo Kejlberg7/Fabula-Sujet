@@ -9,13 +9,13 @@ import { realm, series, world } from './world';
  * A line of development of the whole project.
  *
  * A branch is not a copy of everything: it is a parent plus a fork point, and
- * creating one copies only the rows that are allowed to diverge, stamping each
+ * creating one copies the story's branch-scoped rows, stamping each
  * copy's `origin_id` with where it came from. Reading a branch is therefore a
  * plain `where branch_id = ?`.
  *
- * For now only narrative rows may diverge. Widening that to world rows -- the
- * "what if he had survived" case -- means letting the copy step include more
- * tables. The column is already on every row, so there is nothing to migrate.
+ * The phase-6 interface changes narrative order and reveals, but the snapshot
+ * also carries the bible and chronology. That keeps every branch independently
+ * readable and already permits the later "what if he had survived" case.
  */
 export const branch = sqliteTable('branch', {
   id: pk(),

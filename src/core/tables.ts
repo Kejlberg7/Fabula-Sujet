@@ -21,8 +21,23 @@ export function tableByName(name: string): SQLiteTable {
   return table;
 }
 
-/** Tables whose rows may differ between branches. Everything else is shared. */
+/**
+ * Content copied into a branch snapshot. Global containers, users, sources,
+ * the change log and derived findings stay outside it.
+ *
+ * Phase 6 edits narrative rows in the interface, but copying the whole story
+ * state is intentional: a branch must still be able to see its people, facts,
+ * events and realms, and it leaves the door open for a later "what if she
+ * survived?" branch without another storage model.
+ */
 export const DIVERGEABLE_TABLES: ReadonlySet<string> = new Set([
+  'realm', 'place_link',
+  'entity', 'identity', 'entity_leg', 'presence', 'possession', 'entity_state',
+  'relationship', 'disappearance',
+  'event', 'participation', 'temporal_link', 'event_fact',
+  'fact', 'fact_slot', 'binding', 'belief', 'memory_policy', 'statement', 'carrier',
+  'law', 'source_link',
   'work', 'part', 'chapter', 'scene', 'scene_text',
   'scene_event', 'reveal', 'text_anchor', 'thread', 'beat',
+  'suggestion',
 ]);

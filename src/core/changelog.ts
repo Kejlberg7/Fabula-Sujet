@@ -34,7 +34,7 @@ export interface TurnOptions {
 
 type Row = Record<string, unknown>;
 /** A row as the driver holds it: numbers, strings, nulls -- never a Date. */
-type RawRow = Record<string, unknown>;
+export type RawRow = Record<string, unknown>;
 
 function idColumn(table: SQLiteTable) {
   const col = (table as unknown as Record<string, unknown>)['id'];
@@ -129,6 +129,29 @@ export class Session {
       const written = rawRow(this.store.sqlite, name, id)!;
       this.record(tx as unknown as Db, 'insert', name, id, null, written);
       return { ...written, id };
+    });
+  }
+
+  /**
+   * Copies a driver-shaped row while still recording an ordinary insertion.
+   *
+   * Branching reconstructs an older snapshot from the change log. Those rows
+   * use SQLite column names (`branch_id`, not `branchId`) and deliberately stay
+   * raw: converting dates and JSON through the mapper would make the copy less
+   * faithful than undo. This is the one sanctioned path from a historical raw
+   * row back into the database, and it remains fully visible and reversible.
+   */
+  insertRaw<T extends SQLiteTable>(table: T, row: RawRow): RawRow {
+    this.assertOpen();
+    const name = getTableName(table);
+    tableByName(name);
+    const id = row['id'];
+    if (typeof id !== 'string' || !id) throw new Error('Raw row has no id');
+    return this.db.transaction((tx) => {
+      rawInsert(this.store.sqlite, name, row);
+      const written = rawRow(this.store.sqlite, name, id)!;
+      this.record(tx as unknown as Db, 'insert', name, id, null, written);
+      return written;
     });
   }
 

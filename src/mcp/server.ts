@@ -12,6 +12,7 @@ import { narrativeTools } from './tools/narrative';
 import { historyTools } from './tools/history';
 import { queryTools } from './tools/queries';
 import { reviewTools } from './tools/review';
+import { branchTools } from './tools/branches';
 
 export const allTools: ToolDef[] = [
   ...worldTools,
@@ -20,6 +21,7 @@ export const allTools: ToolDef[] = [
   ...knowledgeTools,
   ...narrativeTools,
   ...historyTools,
+  ...branchTools,
   ...queryTools,
   ...reviewTools,
 ];
@@ -39,6 +41,8 @@ Nogle vaner, der gør modellen brugbar frem for larmende:
   Det ændrer ikke ældre minder, udtrykkelige overbevisninger eller noget, personen bærer på skrift.
 • Skeln skarpt mellem hvornår en PERSON får noget at vide (registrer_overbevisning) og hvornår
   LÆSEREN gør (opret_afsloering). Afstanden mellem dem er hele fortællegrebet.
+• Når forfatteren vil prøve en anden rækkefølge, brug opret_gren før flyt_scene eller
+  flyt_afsloering. Sammenlign bagefter; en gren flettes aldrig skjult ind i en anden.
 • Brug registrer_tilstand til værdier, der udelukker hinanden inden for en kategori, og sæt kategori
   på relationer, når deres tilstande skal kontrolleres. Registrer setups og payoffs på en plottråd.
 • Kilder gemmes og vises kun. Læs aldrig en fil på programmets vegne; markér blot den relation,

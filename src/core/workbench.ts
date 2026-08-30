@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm';
 import type { Store } from '../db/client';
 import { appState, branch, work, world } from '../db/schema';
 import { Session, type Actor, type TurnOptions } from './changelog';
+import { workInBranch } from './branches';
 
 /**
  * What we are working on.
@@ -65,7 +66,15 @@ export class Workbench {
     // Switching world drops the book, which is right when there is a choice to
     // make -- but a world holding exactly one book has no ambiguity to protect,
     // and making someone pick it anyway defeats setting the context at all.
-    let workId = next.workId ?? (sameWorld ? current?.workId ?? null : null);
+    const sameBranch = sameWorld && current?.branchId === branchId;
+    let workId = next.workId
+      ?? (sameBranch
+        ? current?.workId ?? null
+        : current?.workId ? workInBranch(this.store, current.workId, branchId) : null);
+    if (workId) {
+      const selected = this.db.select().from(work).where(eq(work.id, workId)).get();
+      if (!selected || selected.branchId !== branchId || selected.worldId !== next.worldId) workId = null;
+    }
     if (!workId) {
       const inWorld = this.db.select().from(work)
         .where(eq(work.worldId, next.worldId)).all()
@@ -88,7 +97,8 @@ export class Workbench {
 
   defaultBranchOf(worldId: string): string {
     const rows = this.db.select().from(branch).where(eq(branch.worldId, worldId)).all();
-    const chosen = rows.find((b) => b.isDefault) ?? rows[0];
+    const open = rows.filter((b) => !b.archivedAt);
+    const chosen = open.find((b) => b.isDefault) ?? open[0] ?? rows[0];
     if (!chosen) throw new Error('Verdenen har ingen gren. Det burde ikke kunne ske.');
     return chosen.id;
   }

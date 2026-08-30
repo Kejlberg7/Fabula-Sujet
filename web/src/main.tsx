@@ -15,10 +15,12 @@ import { Desk } from './views/Desk';
 import { Findings } from './views/Findings';
 import { History } from './views/History';
 import { Continuity } from './views/Continuity';
+import { Alternatives } from './views/Alternatives';
 
 export type View =
   | 'overblik' | 'tidslinje' | 'personer' | 'steder' | 'ting'
-  | 'events' | 'fakta' | 'love' | 'kontinuitet' | 'kapitler' | 'baand' | 'skrivebord' | 'gennemgang' | 'historik';
+  | 'events' | 'fakta' | 'love' | 'kontinuitet' | 'kapitler' | 'baand' | 'skrivebord'
+  | 'alternativer' | 'gennemgang' | 'historik';
 
 export interface Notice { text: string; bad?: boolean }
 
@@ -103,7 +105,11 @@ function TopBar({
               id="branch" value={active.branchId}
               onChange={(e) => switchTo({ branchId: e.target.value })}
             >
-              {data!.branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+              {data!.branches.filter((b) => !b.archived || b.id === active.branchId).map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}{b.isDefault ? ' · hovedspor' : ''}{b.archived ? ' · arkiveret' : ''}
+                </option>
+              ))}
             </select>
           </div>
         </>
@@ -211,6 +217,7 @@ function App() {
           {item('kapitler', 'Kapitler')}
           {item('baand', 'Båndet')}
           {item('skrivebord', 'Skrivebordet')}
+          {item('alternativer', 'Alternativer')}
           <h3>Arbejdet</h3>
           {item('gennemgang', 'Gennemgangen',
             findings?.filter((f) => f.dismissedReason == null).length || undefined)}
@@ -232,6 +239,9 @@ function App() {
           {view === 'baand' && <Band nonce={dataNonce} />}
           {view === 'skrivebord' && (
             <Desk nonce={dataNonce} notify={notify} onChanged={bump} />
+          )}
+          {view === 'alternativer' && (
+            <Alternatives nonce={dataNonce} notify={notify} onChanged={bump} />
           )}
           {view === 'gennemgang' && (
             <Findings nonce={dataNonce} notify={notify} onChanged={bump} />

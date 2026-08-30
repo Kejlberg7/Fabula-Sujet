@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm';
 import type { SQLiteTable } from 'drizzle-orm/sqlite-core';
 import type { Store } from '../db/client';
 import {
-  chapter, entity, event, fact, identity, realm, scene, source, thread, work, world,
+  branch, chapter, entity, event, fact, identity, realm, reveal, scene, source, thread, work, world,
 } from '../db/schema';
 import type { Context } from '../core/workbench';
 
@@ -107,4 +107,16 @@ export function resolveThread(store: Store, ctx: Context, needle: string) {
   const rows = rowsIn(store, thread, thread.branchId as never, ctx.branchId)
     .filter((row) => !ctx.workId || row.workId === ctx.workId);
   return pick(rows, needle, (row) => row.name, 'plottråd');
+}
+
+export function resolveBranch(store: Store, ctx: Context, needle: string) {
+  const rows = store.db.select().from(branch).where(eq(branch.worldId, ctx.worldId)).all();
+  return pick(rows, needle, (row) => row.name, 'gren');
+}
+
+export function resolveReveal(store: Store, ctx: Context, needle: string) {
+  const facts = new Map(store.db.select().from(fact).where(eq(fact.worldId, ctx.worldId)).all()
+    .map((row) => [row.id, row.summary]));
+  const rows = rowsIn(store, reveal, reveal.branchId as never, ctx.branchId);
+  return pick(rows, needle, (row) => facts.get(row.factId) ?? row.id, 'afsløring');
 }

@@ -36,7 +36,7 @@ Node 20 (`.nvmrc`). The shell may default to an older nvm version — check
 `node -v` before running anything.
 
 ```bash
-npm test                            # 132 prøver
+npm test                            # 139 prøver
 npm run fixtures -- ./fabula.db     # Memento, Predestination, Inception
 npm run build && npm run dev        # interface on :4173
 npm run ask -- ./fabula.db hent_kontekst

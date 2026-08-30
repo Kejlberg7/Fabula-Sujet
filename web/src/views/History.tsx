@@ -12,10 +12,17 @@ import type { Notice } from '../main';
  * point you can roll back -- and rolling back is itself an action, so it too
  * can be undone.
  */
+/** What we are being asked to name, and where it belongs. */
+type Naming =
+  | { kind: 'checkpoint' }
+  | { kind: 'branch'; turnId: string; seq: number };
+
 export function History({
   nonce, notify, onChanged,
 }: { nonce: number; notify: (n: Notice) => void; onChanged: () => void }) {
   const [open, setOpen] = useState<string | null>(null);
+  const [naming, setNaming] = useState<Naming | null>(null);
+  const [name, setName] = useState('');
   const { data, loading, reload } = useQuery('history.list', { limit: 60 }, [nonce]);
 
   const act = async (fn: () => Promise<string>) => {
@@ -28,6 +35,45 @@ export function History({
     }
   };
 
+  const stopNaming = () => { setNaming(null); setName(''); };
+
+  const confirmName = () => {
+    const given = name.trim();
+    const asked = naming;
+    if (!given || !asked) return;
+    stopNaming();
+    void act(async () => {
+      if (asked.kind === 'checkpoint') {
+        await call('history.checkpoint', { label: given });
+        return `Nedslaget «${given}» er sat.`;
+      }
+      const result = await call('branch.create', { name: given, seq: asked.seq });
+      return `«${given}» er oprettet herfra og valgt. `
+        + `${result.copiedRows} fortællerækker blev kopieret.`;
+    });
+  };
+
+  /**
+   * Navngivning sker på siden, ikke i et systemvindue.
+   *
+   * Resten af programmet spørger sådan her — afvisningen af et fund gør det
+   * samme — og et `window.prompt` stopper desuden alt, mens det står åbent.
+   */
+  const nameField = (label: string) => (
+    <div className="aside-form">
+      <input
+        autoFocus value={name} placeholder={label}
+        onChange={(e) => setName(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') confirmName();
+          if (e.key === 'Escape') stopNaming();
+        }}
+      />
+      <button className="btn primary" disabled={!name.trim()} onClick={confirmName}>Gem</button>
+      <button className="btn" onClick={stopNaming}>Fortryd</button>
+    </div>
+  );
+
   return (
     <div className="page">
       <h2>Historik</h2>
@@ -36,13 +82,11 @@ export function History({
       </p>
 
       <div className="tl-controls">
-        <button className="btn" onClick={() => act(async () => {
-          const label = window.prompt('Hvad skal nedslaget hedde?');
-          if (!label) return 'Intet nedslag sat.';
-          await call('history.checkpoint', { label });
-          return `Nedslaget «${label}» er sat.`;
-        })}>Sæt nedslag her</button>
+        <button className="btn" onClick={() => { setNaming({ kind: 'checkpoint' }); setName(''); }}>
+          Sæt nedslag her
+        </button>
       </div>
+      {naming?.kind === 'checkpoint' && nameField('Hvad skal nedslaget hedde?')}
 
       {loading && !data && <p className="empty">Henter …</p>}
       {data?.length === 0 && <p className="empty">Der er ikke sket noget endnu.</p>}
@@ -65,18 +109,31 @@ export function History({
               </button>
             </div>
             {open === turn.turnId && <Rows turnId={turn.turnId} nonce={nonce} />}
+            {naming?.kind === 'branch' && naming.turnId === turn.turnId
+              && nameField('Hvad skal den nye gren hedde?')}
           </div>
-          <button
-            className="btn" disabled={turn.undone}
-            onClick={() => act(async () => {
-              const result = await call('history.rollback', { seq: turn.lastSeq });
-              return result.undone === 0
-                ? 'Der var ikke noget at rulle tilbage.'
-                : `Rullet tilbage hertil. ${result.undone} handling${result.undone === 1 ? '' : 'er'} fortrudt.`;
-            })}
-          >
-            Rul tilbage hertil
-          </button>
+          <div className="history-actions">
+            <button
+              className="btn" disabled={turn.undone}
+              onClick={() => {
+                setNaming({ kind: 'branch', turnId: turn.turnId, seq: turn.lastSeq });
+                setName('');
+              }}
+            >
+              Start gren her
+            </button>
+            <button
+              className="btn" disabled={turn.undone}
+              onClick={() => act(async () => {
+                const result = await call('history.rollback', { seq: turn.lastSeq });
+                return result.undone === 0
+                  ? 'Der var ikke noget at rulle tilbage.'
+                  : `Rullet tilbage hertil. ${result.undone} handling${result.undone === 1 ? '' : 'er'} fortrudt.`;
+              })}
+            >
+              Rul tilbage hertil
+            </button>
+          </div>
         </div>
       ))}
     </div>
