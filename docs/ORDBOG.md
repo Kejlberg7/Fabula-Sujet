@@ -50,6 +50,7 @@ navn i en tabel eller et felt er også en fejl.
 | Tråd | `thread` | Plotlinje. Begynder i én bog og når så langt, rækkevidden siger |
 | Rækkevidde | `thread.scope` | Hvor langt en tråd når: `bog`, `serie` eller `verden` |
 | Læseorden | `readingOrder` | Serie → bog → kapitel → scene, som én stigende orden |
+| Serieoversigt | `seriesOverview` | Serien læst som én fortælling: bind, gennemgående personer, tråde, afsløringer og uløste setups |
 | Slag | `beat` | Setup, komplikation eller payoff i en tråd |
 | Bruger | `app_user` | |
 | Arbejdssted | `app_state` | Hvilken verden, bog og gren der er valgt lige nu |
@@ -113,7 +114,7 @@ Alt indenfor er engelsk.
 | Love og kilder | `opret_lov` · `opret_kilde` · `knyt_kilde` · `vis_kilder` |
 | Fortælling | `opret_plottraad` · `tilfoej_slag` · `opret_kapitel` · `opret_scene` · `knyt_scene_til_event` · `opret_afsloering` · `gem_scenetekst` · `vis_kapitler` · `saet_tekstanker` · `vis_skrivebord` · `vis_baand` |
 | Ret og fjern | `opdater` · `slet` · `fortryd` · `gentag` · `saet_nedslag` · `rul_tilbage_til` · `historik` · `vis_aendringer` |
-| Spørg | `vis_referencer` · `vis_omtaler` · `hvem_vidste_hvad` · `hvem_var_hvor` · `hvad_ved_laeseren` · `vis_verdenslinje` · `find` · `koer_tidsloesning` |
+| Spørg | `vis_serieoversigt` · `vis_referencer` · `vis_omtaler` · `hvem_vidste_hvad` · `hvem_var_hvor` · `hvad_ved_laeseren` · `vis_verdenslinje` · `find` · `koer_tidsloesning` |
 | Gennemgang | `koer_gennemgang` · `vis_fund` · `afvis_fund` · `genaabn_fund` · `vis_regler` · `vis_scene_til_gennemgang` · `tilfoej_margennote` · `vis_margennoter` · `afgoer_margennote` |
 | Gennemlæsning | `start_gennemlaesning` · `afslut_gennemlaesning` · `vis_gennemlaesninger` |
 | Navne uden kobling | `vis_navne_uden_kobling` |

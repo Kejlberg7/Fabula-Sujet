@@ -14,6 +14,7 @@ import { compareTwists, twistReadings } from '../core/queries/dramaturgy';
 import { readBindings } from '../core/queries/bindings';
 import { manuscriptPacket } from '../core/queries/manuscript';
 import { readingOrder, type ThreadScope } from '../core/queries/order';
+import { seriesOverview } from '../core/queries/series';
 import { proseGaps } from '../core/queries/proseGaps';
 import { sourceShelf } from '../core/queries/sources';
 import { knowledgeTrack } from '../core/queries/track';
@@ -892,6 +893,19 @@ export function createApi(store: Store) {
      * possibility question. No score: each reading names the scenes it came
      * from, because that is the part a writer can act on.
      */
+    /**
+     * The series read as one thing. Null when the chosen book stands alone --
+     * a single volume is not a series, and pretending otherwise would put an
+     * empty panel in front of the writer.
+     */
+    'series.overview': (input: { seriesId?: string }) => {
+      const c = ctx();
+      const seriesId = input?.seriesId
+        ?? (c.workId ? db.select().from(work).where(eq(work.id, c.workId)).get()?.seriesId : null);
+      if (!seriesId) return null;
+      return seriesOverview(store, c, { seriesId });
+    },
+
     'twist.list': (input: { workId?: string }) => {
       const c = ctx();
       const workId = input.workId ?? c.workId;

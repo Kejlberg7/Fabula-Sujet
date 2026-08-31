@@ -1,19 +1,88 @@
+import { eq } from 'drizzle-orm';
 import { z } from 'zod';
+import { work } from '../../db/schema';
 import { whoKnewWhat } from '../../core/queries/knowledge';
 import { whoWasWhere, worldline } from '../../core/queries/presence';
 import { whatReaderKnows } from '../../core/queries/reader';
 import { find } from '../../core/queries/search';
+import { seriesOverview } from '../../core/queries/series';
 import {
   referenceBacklinks, referenceByCode, referenceCatalog,
 } from '../../core/queries/references';
 import { solveTime } from '../../core/solve';
 import { formatInstant } from '../../core/time/gregorian';
 import { asInstant, defineTool, timeArg, type ToolDef } from '../kit';
-import { resolveEntity, resolveWork } from '../resolve';
+import { resolveEntity, resolveSeries, resolveWork } from '../resolve';
 
 const at = (v: number | null) => (v == null ? '?' : formatInstant(v, 'day'));
 
+/** Rækkevidden sagt på dansk. Koden er engelsk indeni; overfladen er ikke. */
+const REACH_DA: Record<string, string> = {
+  work: 'kun sin egen bog', series: 'hele serien', world: 'hele verden',
+};
+
+/** «1 bind», «2 bind» — men «1 scene», «2 scener». Endelsen skal passe. */
+const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+
 export const queryTools: ToolDef[] = [
+  defineTool({
+    name: 'vis_serieoversigt',
+    title: 'Vis serieoversigt',
+    description:
+      'Serien læst som én fortælling: bindene i rækkefølge, de personer der går igen, '
+      + 'plottrådene og hvor langt de når, afsløringerne i læserækkefølge, og de setups der '
+      + 'endnu ikke er indfriet. En anden serie i den samme verden er ikke med — læseren af '
+      + 'denne serie har ikke læst den.',
+    inputSchema: {
+      serie: z.string().optional().describe('Navn på serien. Uden den bruges den aktive bogs serie'),
+    },
+    run: (args, tools) => {
+      const ctx = tools.bench.context();
+      const chosen = args.serie
+        ? resolveSeries(tools.store, ctx, args.serie).id
+        : (ctx.workId
+          ? tools.store.db.select().from(work).where(eq(work.id, ctx.workId)).get()?.seriesId
+          : null);
+      if (!chosen) return 'Den aktive bog hører ikke til en serie. Vælg en serie med «serie».';
+      const view = seriesOverview(tools.store, ctx, { seriesId: chosen });
+      if (!view) return 'Serien findes ikke i den aktive verden.';
+
+      const blocks: string[] = [`SERIEN «${view.name}»${view.summary ? ` — ${view.summary}` : ''}`];
+
+      blocks.push(['BIND', ...view.volumes.map((v, i) =>
+        `  ${i + 1}. ${v.title} — ${count(v.chapters, 'kapitel', 'kapitler')}, `
+        + count(v.scenes, 'scene', 'scener'))].join('\n'));
+
+      blocks.push(view.people.length === 0
+        ? 'GENNEMGÅENDE PERSONER\n  Ingen går igen på tværs af bindene endnu.'
+        : ['GENNEMGÅENDE PERSONER', ...view.people.map((person) =>
+          `  ${person.code ? `${person.code} ` : ''}${person.name} — ${person.volumes.join(', ')}`,
+        )].join('\n'));
+
+      blocks.push(view.threads.length === 0
+        ? 'PLOTTRÅDE\n  Ingen tråde i serien endnu.'
+        : ['PLOTTRÅDE', ...view.threads.map((line) =>
+          `  ${line.name} · begynder i ${line.home} · når ${REACH_DA[line.scope]}`
+          + `\n    ${count(line.setups, 'setup', 'setups')}, `
+          + `${count(line.payoffs, 'indfrielse', 'indfrielser')}`
+          + (line.volumes.length > 0 ? ` · ligger i ${line.volumes.join(', ')}` : ' · endnu uskrevet'),
+        )].join('\n'));
+
+      blocks.push(view.reveals.length === 0
+        ? 'AFSLØRINGER\n  Ingen afsløringer i serien endnu.'
+        : ['AFSLØRINGER (i læserækkefølge)', ...view.reveals.map((item) =>
+          `  ${item.volume} · ${item.sceneTitle} — ${item.summary} [${item.strength}]`
+          + (item.carriedFrom ? `\n    Læseren har det med fra «${item.carriedFrom}».` : ''),
+        )].join('\n'));
+
+      blocks.push(view.open.length === 0
+        ? 'ULØSTE SETUPS\n  Ingen. Hvert setup i serien har noget efter sig.'
+        : ['ULØSTE SETUPS', ...view.open.map((item) => `  ${item.message}`)].join('\n'));
+
+      return blocks.join('\n\n');
+    },
+  }),
+
   defineTool({
     name: 'vis_referencer',
     title: 'Vis arbejdsreferencer',

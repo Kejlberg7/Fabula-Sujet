@@ -47,7 +47,9 @@ decisions, verification already run, and the next concrete action.
   switched off within a week.
 - **En serie læses i rækkefølge.** Læseren af bind to har læst bind et, så
   `whatReaderKnows` tæller tidligere bøger i den samme serie med. En anden serie
-  i den samme verden arver ingenting. Rækkefølgen selv -- serie → bog → kapitel
+  i den samme verden arver ingenting -- og det gælder også serieoversigten,
+  `seriesOverview` i `src/core/queries/series.ts`, som samler fra seriens bind
+  og ingen andre. Rækkefølgen selv -- serie → bog → kapitel
   → scene -- kommer ét sted fra, `readingOrder` i `src/core/queries/order.ts`.
   Kapitler tæller fra et i hver bog, så det, der regner ordenen selv, lægger før
   eller siden bind to's første kapitel før bind et's andet.
@@ -80,7 +82,7 @@ Node 20 (`.nvmrc`). The shell may default to an older nvm version — check
 `node -v` before running anything.
 
 ```bash
-npm test                            # 254 prøver
+npm test                            # 263 prøver
 npm run fixtures -- ./fabula.db     # Memento, Predestination, Inception, Havnen
 npm run build && npm run dev        # interface on :4173
 npm run ask -- ./fabula.db hent_kontekst

@@ -4,13 +4,37 @@ Sidst opdateret: 31. august 2026
 
 ## Aktiv fase
 
-**Fase 11 — Serien som én fortælling. Første og andet snit er færdige.** En
-plottråd begynder i én bog og når så langt, rækkevidden siger: bogen, serien
-eller verden. Læserækkefølgen serie → bog → kapitel → scene kommer nu ét sted
-fra, og Grebet måler forberedelse og spor på hele serien.
+**Fase 11 — Serien som én fortælling. Færdig.** En plottråd begynder i én bog
+og når så langt, rækkevidden siger: bogen, serien eller verden. Læserækkefølgen
+serie → bog → kapitel → scene kommer ét sted fra, Grebet måler forberedelse og
+spor på hele serien, og serieoversigten viser serien som én fortælling.
 
-Fase 0–10 er færdige. Tilbage i fase 11 står tredje snit: serieoversigten. Den
+Fase 0–11 er færdige. Næste fase er 12 — holdbare kildevedhæftninger. Den
 aftalte plan ligger i `docs/ROADMAP.md`.
+
+## Færdigt i fase 11, tredje snit
+
+- `src/core/queries/series.ts` med `seriesOverview`: bindene i læserækkefølge,
+  de personer der går igen, trådene og hvor langt de når, afsløringerne i
+  læserækkefølge, og de uløste setups. Læser kun.
+- «At være i et bind» er tre ting, forfatteren selv har skrevet ned: bindet
+  fortæller et event, personen deltager i, en scene er fortalt fra hendes side,
+  eller prosaen peger på hende. Der gættes ikke ud fra navne. Går igen betyder
+  mere end ét bind — ellers er det ikke en gennemgående person.
+- Afsløringerne bærer `carriedFrom`. I bind to er «Marie Krag blev sænket med
+  vilje» ikke en afsløring; læseren har vidst det i en hel bog. Det er den
+  linje, oversigten findes for.
+- De uløste setups kommer fra `dangling_setup` selv, kørt uden valgt bog og
+  filtreret til seriens tråde bagefter. En regel skrevet om til et panel er en
+  regel, der kan være uenig med sig selv.
+- Grænsen er prøvet i begge retninger: en anden serie i den samme verden dukker
+  ikke op i Krag-oversigten, og Krag dukker ikke op i dens. En tråd med
+  rækkevidde `verden` står i begge, med hjemstavnen sat til «(uden for serien)»
+  der, hvor den ikke begynder.
+- MCP: `vis_serieoversigt` (valgfrit `serie`; ellers den aktive bogs).
+  API: `series.overview`, som svarer `null`, når bogen ikke er i en serie.
+- UI: ny visning **Serien** under Overblik. Står du i en bog uden serie, siger
+  den det frem for at vise en tom side.
 
 ## Færdigt i fase 11, andet snit
 
@@ -202,11 +226,14 @@ intet at se og intet at klikke på.
 
 ## I gang nu
 
-- Ingen halv implementering står åben. Fase 11's første og andet snit er
-  lukket. Næste arbejde er tredje snit: serieoversigten.
+- Ingen halv implementering står åben. Fase 11 er lukket. Næste arbejde er
+  fase 12.
 
 ## Beslutninger
 
+- En oversigt bruger reglen, ikke en kopi af den. `dangling_setup` køres og
+  filtreres; den bliver ikke skrevet om til panelet.
+- En person går igen, når hun er i mere end ét bind. Ét bind er ikke «igen».
 - Grebet måler på to akser. Bogens egen, når spørgsmålet er «hvor i bogen»;
   seriens, når spørgsmålet er «hvor lang tid gik der».
 - Et scenenummer gælder inden i sit bind. Står scenen i et andet bind, skal
@@ -232,7 +259,7 @@ intet at se og intet at klikke på.
 
 ## Verificering
 
-- 254/254 prøver er grønne.
+- 263/263 prøver er grønne.
 - Typecheck og produktionsbuild er rene. Vite gentager den kendte advarsel om
   en JavaScript-chunk over 500 kB; det er ikke en buildfejl.
 - Migration 0007 er prøvet mod en kopi af den eksisterende database. Prøven
@@ -250,6 +277,12 @@ intet at se og intet at klikke på.
   «nævnt uden omtale» op i ankrene uden at ændre ordtallet, og «Marie Krag» blev
   oprettet som genstand, fik G2 og blev knyttet i næste klik.
 - `vis_navne_uden_kobling` på hele serien melder fire scener og ingen støj.
+- Browserprøvet på den rigtige `fabula.db`: Serien viser de to bind side om
+  side, «P5 Karen Krag · Saltet · Tidevandet» som den eneste gennemgående, de
+  tre tråde med hver sin rækkevidde, «Ingen. Hvert setup i serien har noget
+  efter sig», og de ti afsløringer i læserækkefølge med «læseren har det med
+  fra «Saltet»» på dem i bind to. Skiftes verden til Memento, siger visningen,
+  at bogen ikke hører til en serie. Ingen fejl i konsollen.
 - Browserprøvet på den rigtige `fabula.db`: Kontinuitet viser «Gælden · hele
   serien» med bindets titel på hvert slag i læserækkefølge, gennemgangen melder
   ingen hængende setups, og Grebet skriver «Der går 14 scener fra det første
@@ -261,14 +294,14 @@ intet at se og intet at klikke på.
 
 ## Næste konkrete handling
 
-Fase 11, tredje snit: serieoversigten. Den skal vise gennemgående personer,
-plottråde, afsløringer og uløste setups for én serie — og ikke blande en anden
-serie i den samme verden ind. Byggeklodserne findes: `readingOrder` giver
-bindene og rækkefølgen, `reach` giver trådene, `whatReaderKnows` giver
-læserviden hen over bindeskellet, og `dangling_setup` giver de uløste setups.
-Det, der mangler, er en forespørgsel — formentlig `src/core/queries/series.ts` —
-plus et MCP-værktøj og en visning. Afgrænsningen er den samme som alle andre
-steder: en verden kan rumme flere serier, og de arver ingenting fra hinanden.
+Fase 12 — holdbare kildevedhæftninger. `source.file_path` peger i dag på en
+sti, ingen har lovet holder: flytter forfatteren filen, peger henvisningen ud i
+luften, og det opdager programmet aldrig. Første snit er et administreret
+projektarkiv, som filen kopieres ind i ved indlæggelsen, med originalt navn,
+MIME-type, størrelse og kontrolsum gemt, så en manglende eller beskadiget fil
+kan opdages. Reglen ovenfor gælder uændret: en kilde gemmes og vises, aldrig
+læses — hverken OCR, udtræk eller fortolkning. Sletning af en henvisning og
+fjernelse af selve filen skal blive ved med at være to handlinger.
 
 ## Åbne risici
 

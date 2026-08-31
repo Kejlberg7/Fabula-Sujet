@@ -819,3 +819,25 @@ h3.section {
   }
   .prose-surface { font-size: 17px; }
 }
+
+/*
+ * Serieoversigten.
+ *
+ * Bindene står som kort ved siden af hinanden, fordi rækkefølgen er hele
+ * pointen; et uløst setup står som en linje for sig, så det ikke drukner i
+ * tabellen under det.
+ */
+.volume-line {
+  display: grid; gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+/* Rækkerne her fører ingen steder hen, så de skal heller ikke se ud, som om de gør. */
+.table.reveals tbody tr { cursor: default; }
+
+.series-open p {
+  margin: 0 0 6px; padding: 8px 10px;
+  border-left: 2px solid var(--warning, var(--line-2));
+  background: var(--surface); font-size: 13px;
+}
+.series-open p:last-child { margin-bottom: 0; }

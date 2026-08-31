@@ -6,7 +6,7 @@ og hvornår de **fortælles**.
 
 ## Status
 
-**Fase 0 til 10 er færdige, og fase 11 er begyndt.** Datamodellen, tidsløseren, ændringsloggen og
+**Fase 0 til 11 er færdige.** Datamodellen, tidsløseren, ændringsloggen og
 MCP-serveren står; oven på dem et interface med værkvælger, tidslinje, lister og
 historik, et skrivebord hvor prosaen bliver til med bibelen åben ved siden af —
 og en motor, der siger fra, når noget ikke kan lade sig gøre. Fortællelaget
@@ -24,7 +24,7 @@ indfriet i bind to.
 
 ```bash
 npm install
-npm test                              # 254 prøver
+npm test                              # 263 prøver
 npm run fixtures -- ./fabula.db       # læg de fire prøvecases ind
 npm run build && npm run dev          # interfacet på http://localhost:4173
 npm run ask -- ./fabula.db hent_kontekst
@@ -510,13 +510,40 @@ kontinuitetspanelet bogens egen tråd og seriens — men ikke den, der udelukken
 hører til «Tidevandet». En anden serie i den samme verden arver stadig
 ingenting.
 
+Og så er der oversigten selv. **Serien** viser bindene i rækkefølge, de personer
+der går igen, trådene og hvor langt de når, de setups der endnu ikke er
+indfriet, og alle afsløringerne i læserækkefølge:
+
+```
+AFSLØRINGER I LÆSERÆKKEFØLGE
+Saltet       Han fortæller hende det   Marie Krag blev sænket med vilje              bekræftet
+Tidevandet   Brevet                    Marie Krag blev sænket med vilje              antydet
+                                       · læseren har det med fra «Saltet»
+```
+
+Den sidste linje er hele grunden til, at oversigten findes. I bind to er den
+sætning ikke en afsløring; læseren har vidst det i en hel bog. Det, der sker
+der, er afstanden mellem det læseren ved, og det personerne ved — og den
+afstand kan ingen enkelt bog vise.
+
+En person går igen, når hun er i mere end ét bind, og «at være i et bind» er tre
+ting forfatteren selv har skrevet ned: bindet fortæller et event, hun deltager
+i, en scene er fortalt fra hendes side, eller prosaen peger på hende. Der bliver
+ikke gættet ud fra navne.
+
+Grænsen er hele pointen. En verden kan rumme flere serier, og de arver
+ingenting fra hinanden — læseren af den ene har ikke læst den anden. Oversigten
+samler derfor fra seriens bind og ingen andre. Står du i en bog uden serie,
+siger den det og lader være med at fylde en side.
+
 ## Næste skridt
 
-**Fase 11 er i gang.** To snit er lagt: tråde med rækkevidde, én læseorden for
-hele serien, en gennemgang der regner på tværs af bindene, og et Greb der måler
-forberedelse og spor over hele serien. Tilbage står serieoversigten:
-gennemgående personer, tråde, afsløringer og uløste setups — uden at blande en
-anden serie i den samme verden ind.
+**Fase 11 er færdig.** Tråde med rækkevidde, én læseorden for hele serien, en
+gennemgang der regner på tværs af bindene, et Greb der måler forberedelse og
+spor over hele serien, og en serieoversigt.
+
+**Fase 12 er den næste:** holdbare kildevedhæftninger. `source.file_path` peger
+i dag på en sti, ingen har lovet holder.
 
 **Fra fase 10, bevidst udskudt:** tilstedeværelse, besiddelse og
 genstandstilstand kan ikke udledes af en omtale, og det kræver et anker, der

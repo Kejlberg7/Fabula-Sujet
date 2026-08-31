@@ -4,6 +4,7 @@ import './app.css';
 import { call } from './client';
 import { useQuery } from './store';
 import { Overview } from './views/Overview';
+import { Series } from './views/Series';
 import { Timeline } from './views/Timeline';
 import { Entities } from './views/Entities';
 import { Events } from './views/Events';
@@ -19,7 +20,7 @@ import { Alternatives } from './views/Alternatives';
 import { Twists } from './views/Twists';
 
 export type View =
-  | 'overblik' | 'tidslinje' | 'personer' | 'steder' | 'ting'
+  | 'overblik' | 'tidslinje' | 'serien' | 'personer' | 'steder' | 'ting'
   | 'events' | 'fakta' | 'love' | 'kontinuitet' | 'kapitler' | 'baand' | 'skrivebord'
   | 'alternativer' | 'grebet' | 'gennemgang' | 'historik';
 
@@ -206,6 +207,7 @@ function App() {
           <h3>Overblik</h3>
           {item('overblik', 'Forsiden')}
           {item('tidslinje', 'Tidslinje')}
+          {item('serien', 'Serien')}
           <h3>Verden</h3>
           {item('personer', 'Personer', count('person'))}
           {item('steder', 'Steder', count('place'))}
@@ -228,6 +230,7 @@ function App() {
         <main>
           {view === 'overblik' && <Overview nonce={dataNonce} onGo={setView} />}
           {view === 'tidslinje' && <Timeline nonce={dataNonce} />}
+          {view === 'serien' && <Series nonce={dataNonce} />}
           {view === 'personer' && <Entities kind="person" nonce={dataNonce} notify={notify} onChanged={bump} />}
           {view === 'steder' && <Entities kind="place" nonce={dataNonce} notify={notify} onChanged={bump} />}
           {view === 'ting' && <Entities kind="object" nonce={dataNonce} notify={notify} onChanged={bump} />}
