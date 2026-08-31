@@ -74,8 +74,25 @@ export const source = sqliteTable('source', {
   }).notNull(),
   title: text('title').notNull(),
   url: text('url'),
-  /** Path inside the attachment store, for anything uploaded. */
+  /**
+   * Path to the copy inside the project's own file archive, relative to it.
+   *
+   * Relative on purpose: the archive travels with the database, and an
+   * absolute path would break the day the project moves to another machine.
+   * Null means the source has no file -- a note, a link, or a document that
+   * has not been attached yet.
+   */
   filePath: text('file_path'),
+  /** The name the file came in under, kept so the writer recognises it. */
+  originalName: text('original_name'),
+  /**
+   * SHA-256 of the bytes as they were copied in.
+   *
+   * This is the whole of what the program knows about the contents. It can
+   * say «these bytes are no longer the ones you filed» and nothing else --
+   * never what the file says.
+   */
+  checksum: text('checksum'),
   mimeType: text('mime_type'),
   byteSize: integer('byte_size'),
   note: text('note'),

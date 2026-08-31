@@ -841,3 +841,19 @@ h3.section {
   background: var(--surface); font-size: 13px;
 }
 .series-open p:last-child { margin-bottom: 0; }
+
+/**
+ * Kildens fil.
+ *
+ * En linje, der bryder, frem for en tabel: nogle kilder har ingen fil, og de
+ * fleste af dem, der har, har kun ét navn og to knapper at vise frem.
+ */
+.attachment {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0;
+}
+.attachment a { word-break: break-all; }
+.btn.small { padding: 3px 9px; font-size: 12px; }

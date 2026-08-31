@@ -4,13 +4,53 @@ Sidst opdateret: 31. august 2026
 
 ## Aktiv fase
 
-**Fase 11 — Serien som én fortælling. Færdig.** En plottråd begynder i én bog
-og når så langt, rækkevidden siger: bogen, serien eller verden. Læserækkefølgen
-serie → bog → kapitel → scene kommer ét sted fra, Grebet måler forberedelse og
-spor på hele serien, og serieoversigten viser serien som én fortælling.
+**Fase 12 — Holdbare kildevedhæftninger. Færdig.** En sti er et løfte, ingen
+har givet. Filen kopieres nu ind i projektets arkiv ved siden af databasen, og
+navn, type, størrelse og kontrolsum bliver gemt, så en fil, der forsvinder eller
+bliver en anden, kan opdages. Kilden bliver stadig kun gemt og vist — at kopiere
+og hashe bytes er ikke at læse dem.
 
-Fase 0–11 er færdige. Næste fase er 12 — holdbare kildevedhæftninger. Den
+Fase 0–12 er færdige. Næste fase er 13 — eksport, backup og genoprettelse. Den
 aftalte plan ligger i `docs/ROADMAP.md`.
+
+## Færdigt i fase 12
+
+- `src/core/attachments.ts`: arkivet. `fabula.db` giver `fabula-filer/`, og en
+  database i hukommelsen har intet arkiv — alt heri tier så, frem for at melde
+  hver kilde væk. Filen ligger under sin kildes id med sit eget navn; et navn
+  med skråstreger i bliver et filnavn, ikke en vej ud af arkivet.
+- Filen skrives før rækken opdateres. Bliver turen afbrudt, ligger der en kopi,
+  ingen peger på — den er harmløs og bliver listet. Den anden rækkefølge ville
+  give en kilde, der peger på ingenting, og det er præcis den fejl, fasen
+  findes for at slutte.
+- **Bytene ligger uden for ændringsloggen.** Rækken går gennem `Session` som
+  alt andet, men fortryd henter kun henvisningen tilbage og rører aldrig filen.
+  Det er den sikre retning: en fil, forfatteren har lagt ind, er ikke
+  programmets at smide væk. Det er den tredje dokumenterede undtagelse fra «kun
+  ændringsloggen skriver», ved siden af tidsløserens grænser og `finding`.
+- To prøver, ikke én. Den billige er reglen `attachment_missing`: ligger filen
+  der, og har den stadig sin størrelse — den kører hver gang. Den grundige
+  læser hver fil tilbage og sammenligner kontrolsummen; den bliver bedt om,
+  fordi hashning af hele arkivet ved hver gennemgang ville gøre gennemgangen
+  langsom for et svar, der ændrer sig cirka en gang om året.
+- `GET /api/fil/:sourceId` rækker bytene ud. Typen kommer fra det navn, filen
+  blev gemt under, aldrig fra indholdet, og `nosniff` holder browseren fast på
+  den. Alt uden for den korte indlejringsliste bliver hentet ned frem for vist,
+  så en SVG eller en HTML-side ikke kan køre som dokument på interfacets egen
+  oprindelse.
+- MCP: `vedhaeft_fil`, `fjern_fil` (med `slet_filen`), `tjek_vedhaeftninger`.
+  `opret_kilde`s `sti` betyder nu «kopiér denne fil ind», og kilde og fil
+  lægges ind i én tur, så én fortrydelse tager begge tilbage.
+- API: `source.attach` (base64 i samme JSON-krop som alt andet),
+  `source.attachPath`, `source.detach`, `source.check`. Kildehylden bærer
+  `originalName` og `fileState`, den billige prøve, så listen kan vise en chip
+  uden at læse noget.
+- UI: Kilder-fanen under Kontinuitet. «Vedhæft fil», status som chip, navnet
+  som link til filen, «Slip filen» og «Slet filen» som to knapper med hver sin
+  bekræftelse, og «Tjek filerne» til den grundige prøve.
+- Prøvecasen har to rigtige filer. De bygges ved indlæsningen — en gyldig
+  ét-sides PDF og en gyldig PNG — frem for at ligge i repoet, og de lægges kun
+  ind, når der er et arkiv at lægge dem i.
 
 ## Færdigt i fase 11, tredje snit
 
@@ -226,11 +266,27 @@ intet at se og intet at klikke på.
 
 ## I gang nu
 
-- Ingen halv implementering står åben. Fase 11 er lukket. Næste arbejde er
-  fase 12.
+- Ingen halv implementering står åben. Fase 12 er lukket. Næste arbejde er
+  fase 13.
 
 ## Beslutninger
 
+- En sti er et løfte, ingen har givet. Filen kopieres ind; den bliver ikke
+  linket til der, hvor forfatteren tilfældigvis havde den liggende.
+- Arkivet ligger ved siden af databasen, ikke inde i den. De to følges ad, når
+  projektet flyttes, og en database bliver ikke til et sted at gemme megabytes.
+- Bytene ligger uden for ændringsloggen. Fortryd henter rækken tilbage og lader
+  filen ligge; at slette en fil er en handling for sig, for `rm` har ingen
+  fortrydelse, og programmet skal ikke lade som om.
+- At kopiere og hashe bytes er ikke at læse dem. Reglen «en kilde gemmes og
+  vises, aldrig læses» står uændret.
+- Typen kommer fra navnet, aldrig fra indholdet. Og det, der kan køre kode,
+  bliver hentet ned frem for vist — «vises sikkert» gælder kun, hvor det passer.
+- CSP'en fik ikke `sandbox`. Direktivet gjorde enhver PDF til en tvungen
+  nedhentning, og en fil, der kun kan hentes ned, er ikke vist. Resten af
+  politikken står; indlejringslisten rummer ingen type, der kan køre kode.
+- Den billige prøve er en regel, den grundige bliver bedt om. En gennemgang, der
+  hashede hele arkivet hver gang, ville blive slukket inden for en uge.
 - En oversigt bruger reglen, ikke en kopi af den. `dangling_setup` køres og
   filtreres; den bliver ikke skrevet om til panelet.
 - En person går igen, når hun er i mere end ét bind. Ét bind er ikke «igen».
@@ -259,7 +315,7 @@ intet at se og intet at klikke på.
 
 ## Verificering
 
-- 263/263 prøver er grønne.
+- 284/284 prøver er grønne.
 - Typecheck og produktionsbuild er rene. Vite gentager den kendte advarsel om
   en JavaScript-chunk over 500 kB; det er ikke en buildfejl.
 - Migration 0007 er prøvet mod en kopi af den eksisterende database. Prøven
@@ -291,20 +347,42 @@ intet at se og intet at klikke på.
 - Browserprøvet på en kopi af den rigtige database: et anker fra «Sundvej,
   september» til «Marie Krag går ned» giver bemærkningen «Omtale før sin tid» i
   Gennemgangen med Læg til side-knappen, som alle andre fund.
+- Migration 0010 lægger `original_name` og `checksum` på `source` som to
+  `ADD COLUMN`. Journalens tidsstempel er 1790000006000.
+- Browserprøvet på den rigtige `fabula.db`: Kilder-fanen viser «FIL I ARKIVET ·
+  kajen-1951.png · image/png · 88 B» og protokollen på 925 B, «Tjek filerne»
+  svarer «2 filer prøvet, 2 uændrede», og en fil, der fjernes bag om
+  programmet, giver chippen «FILEN MANGLER» og bemærkningen «Kilden «Vejrarkiv
+  for Kattegat, november 1893» peger på filen …, som ikke ligger i arkivet
+  længere» i gennemgangen. Fortryd tog vedhæftningen tilbage. Ingen fejl i
+  konsollen.
+- `GET /api/fil/:id` svarer med `content-type` fra det gemte navn,
+  `content-disposition: inline` for PDF og PNG, `nosniff` og politikken uden
+  `sandbox`. PNG'en vises i browserruden; se den åbne risiko om PDF.
+- Prøvecasens to filer er rigtige: `file` genkender dem, `sips` læser PNG'ens
+  4×4, og PDF'en tegner sin side i en miniature med teksten i.
 
 ## Næste konkrete handling
 
-Fase 12 — holdbare kildevedhæftninger. `source.file_path` peger i dag på en
-sti, ingen har lovet holder: flytter forfatteren filen, peger henvisningen ud i
-luften, og det opdager programmet aldrig. Første snit er et administreret
-projektarkiv, som filen kopieres ind i ved indlæggelsen, med originalt navn,
-MIME-type, størrelse og kontrolsum gemt, så en manglende eller beskadiget fil
-kan opdages. Reglen ovenfor gælder uændret: en kilde gemmes og vises, aldrig
-læses — hverken OCR, udtræk eller fortolkning. Sletning af en henvisning og
-fjernelse af selve filen skal blive ved med at være to handlinger.
+Fase 13 — eksport, backup og genoprettelse. En bog eller en serie skal kunne
+forlade programmet som Markdown og DOCX, uden arbejds-id'er og uden de skjulte
+ankermærker: læseudgaven er forfatterens ord og ingenting andet. Dertil et
+valgfrit appendiks med personer, steder, tidslinje og kilder, en
+versionsmærket JSON-backup og en samlet ZIP, som arkivets filer følger med i —
+de ligger allerede samlet ét sted, så vejen er kort. Genoprettelsen skal vise
+en forhåndsoversigt, før den rører noget, og et helt roundtrip skal prøves i en
+tom database.
 
 ## Åbne risici
 
+- PDF'ens visning på stedet er ikke prøvet i en rigtig browser. Den indbyggede
+  browserrude i værktøjet henter altid en PDF ned i stedet for at vise den, og
+  Chrome-forbindelsen var ikke tilgængelig. Billeder er prøvet og vises. Går en
+  PDF stadig i nedhentning i en almindelig browser, er det næste sted at se
+  `content-security-policy` på `GET /api/fil/:sourceId`.
+- En fil, der er slettet fra arkivet, kommer ikke igen af sig selv. Fortryd
+  henter henvisningen tilbage, og så melder reglen den manglende fil — det er
+  med vilje synligt frem for tavst.
 - Prøvecasene indlæses altid i en tom database. Der er ingen vej til at hente
   nye eksempler ind i en database, man selv har arbejdet i, uden at få
   verdenerne dobbelt. Det var præcis den fælde, efterslættet ovenfor faldt i.

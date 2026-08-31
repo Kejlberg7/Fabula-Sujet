@@ -1,6 +1,8 @@
 node_modules/
 dist/
 *.db
+# Projektarkivet hører til databasen ved siden af, ikke til koden.
+*-filer/
 *.db-shm
 *.db-wal
 .DS_Store

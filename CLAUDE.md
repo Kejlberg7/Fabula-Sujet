@@ -35,7 +35,12 @@ decisions, verification already run, and the next concrete action.
   tool. Prose and note go in one turn, so one undo takes back both.
 - **A source is stored and shown, never read.** No PDF, article or photographed
   page is opened to guess what it says. What the rules act on is the writer's own
-  marking -- supports, context, or possible contradiction.
+  marking -- supports, context, or possible contradiction. The file itself is
+  copied into the project's archive beside the database
+  (`src/core/attachments.ts`), because a path is a promise nobody made. Copying
+  and hashing bytes is storing, not reading. The bytes live outside the change
+  log: undo restores the row and never touches the file, and deleting a file is
+  its own asked-for act.
 - **Vague time stays vague.** Never invent a date the writer has not decided.
   Events get intervals and links, and the solver narrows them.
 - **Memory retention only governs experience.** A person's memory policy may
@@ -82,7 +87,7 @@ Node 20 (`.nvmrc`). The shell may default to an older nvm version — check
 `node -v` before running anything.
 
 ```bash
-npm test                            # 263 prøver
+npm test                            # 284 prøver
 npm run fixtures -- ./fabula.db     # Memento, Predestination, Inception, Havnen
 npm run build && npm run dev        # interface on :4173
 npm run ask -- ./fabula.db hent_kontekst

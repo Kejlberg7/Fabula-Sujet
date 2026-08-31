@@ -74,12 +74,22 @@ tilbage. Prøvet mod en kopi af den rigtige database, ikke gættet.
 
 ## Fase 12 — Holdbare kildevedhæftninger
 
-- PDF'er, billeder og andre filer kopieres ind i et administreret projektarkiv.
-- Originalt navn, MIME-type, størrelse og kontrolsum gemmes.
-- Filer kan vises eller åbnes sikkert, men aldrig OCR-behandles, udtrækkes eller
-  fortolkes af programmet.
-- Manglende og beskadigede filer opdages.
-- Sletning af en henvisning og fjernelse af selve filen er to handlinger.
+**Status: færdig.** Implementeret og browserprøvet 31. august 2026.
+
+- ~~PDF'er, billeder og andre filer kopieres ind i et administreret projektarkiv.~~
+- ~~Originalt navn, MIME-type, størrelse og kontrolsum gemmes.~~
+- ~~Filer kan vises eller åbnes sikkert, men aldrig OCR-behandles, udtrækkes eller
+  fortolkes af programmet.~~
+- ~~Manglende og beskadigede filer opdages.~~
+- ~~Sletning af en henvisning og fjernelse af selve filen er to handlinger.~~
+
+Arkivet ligger ved siden af databasen — `fabula.db` giver `fabula-filer/` — så de
+to følges ad, når projektet flyttes. Selve bytene ligger uden for ændringsloggen:
+rækken går gennem loggen som alt andet, men fortryd henter henvisningen tilbage
+og rører aldrig filen. Det er den sikre retning; en fil, forfatteren har lagt
+ind, er ikke programmets at smide væk. Den billige prøve — ligger filen der, og
+har den stadig sin størrelse — er en regel, der kører hver gang. Den grundige,
+som læser hver fil tilbage og sammenligner kontrolsummen, bliver bedt om.
 
 ## Fase 13 — Eksport, backup og genoprettelse
 

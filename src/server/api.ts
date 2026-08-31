@@ -9,6 +9,9 @@ import {
 import {
   history, markCheckpoint, redoLast, rollbackTo, undoLast, type Actor,
 } from '../core/changelog';
+import {
+  attachBytes, attachFile, checkAttachments, detachFile, orphanFiles,
+} from '../core/attachments';
 import { bandView } from '../core/queries/band';
 import { compareTwists, twistReadings } from '../core/queries/dramaturgy';
 import { readBindings } from '../core/queries/bindings';
@@ -701,6 +704,42 @@ export function createApi(store: Store) {
 
     /** Everything saved as research, and what each item is actually holding up. */
     'source.shelf': () => sourceShelf(store, ctx()),
+
+    /**
+     * Filing a file the writer picked in the interface.
+     *
+     * The bytes arrive base64-encoded in the same JSON body as everything
+     * else. A multipart upload would be the tidier shape and would need its
+     * own route, its own parser and its own error path, for one file at a
+     * time on a machine that is already holding the whole thing in memory.
+     */
+    'source.attach': (input: { sourceId: string; name: string; base64: string }) =>
+      bench.run({ actor, summary: 'Vedhæft fil' }, (session, c) =>
+        attachBytes(store, session, c, {
+          sourceId: input.sourceId, name: input.name,
+          bytes: Buffer.from(input.base64, 'base64'),
+        })),
+
+    /** The same, for a file already lying on this machine. */
+    'source.attachPath': (input: { sourceId: string; path: string }) =>
+      bench.run({ actor, summary: 'Vedhæft fil' }, (session, c) =>
+        attachFile(store, session, c, input)),
+
+    /**
+     * Letting go of the file, and -- only when asked -- deleting it.
+     *
+     * Two decisions in one call, but never by accident: `removeFile` is set by
+     * a second confirmation in the interface, because `rm` has no undo.
+     */
+    'source.detach': (input: { sourceId: string; removeFile?: boolean }) =>
+      bench.run({ actor, summary: 'Fjern fil fra kilde' }, (session, c) =>
+        detachFile(store, session, c, input)),
+
+    /** The thorough check: every file read back and compared with what was filed. */
+    'source.check': () => ({
+      files: checkAttachments(store, ctx()),
+      orphans: orphanFiles(store),
+    }),
 
     /**
      * The writing desk: one scene, its prose, and the two answers that stop a

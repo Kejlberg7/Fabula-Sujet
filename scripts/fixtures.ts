@@ -9,7 +9,9 @@
  * the three touch: a series of two books, three generations and an ensemble.
  */
 import { openStore } from '../src/db/client';
-import { loadHavnen, loadInception, loadMemento, loadPredestination } from '../src/fixtures';
+import {
+  attachSampleFiles, loadHavnen, loadInception, loadMemento, loadPredestination,
+} from '../src/fixtures';
 import { Workbench } from '../src/core/workbench';
 
 const target = process.argv[2] ?? './fabula.db';
@@ -31,6 +33,17 @@ const mainBranchOf = (worldId: string): string =>
   (store.sqlite
     .prepare('select id from "branch" where world_id = ? order by is_default desc, created_at limit 1')
     .get(worldId) as { id: string }).id;
+
+/**
+ * Havnens to kilder er rigtige filer, ikke stier.
+ *
+ * De lægges i arkivet her frem for i selve prøvecasen, fordi prøverne kører mod
+ * en database i hukommelsen, og der findes intet arkiv at lægge dem i.
+ */
+const filed = attachSampleFiles(store, {
+  worldId: havnen.worldId, workId: null, userId: null,
+  branchId: mainBranchOf(havnen.worldId),
+});
 
 const count = (table: string, worldId: string, branchId: string) =>
   (store.sqlite.prepare(
@@ -54,6 +67,8 @@ for (const [name, world] of [
     + (branches > 1 ? `  (+ ${branches - 1} variant)` : ''),
   );
 }
+
+if (filed > 0) console.log(`\n${filed} filer lagt i arkivet ved siden af databasen.`);
 
 const last = store.sqlite.prepare('select count(*) as n from "change"').get() as { n: number };
 console.log(`\n${last.n} ændringer i loggen. Alt kan fortrydes.`);

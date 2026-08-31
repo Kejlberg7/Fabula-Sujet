@@ -766,7 +766,6 @@ export function loadHavnen(store: Store): {
     const protocol = createSource(s, ctx, {
       title: 'Søforhørsprotokol, Sundby herredsret',
       kind: 'pdf',
-      filePath: 'research/soeforhoer-1893.pdf',
       note: 'Fotograferede sider. Læses af mennesker, ikke af programmet.',
     });
     linkSource(s, ctx, {
@@ -777,7 +776,6 @@ export function loadHavnen(store: Store): {
     createSource(s, ctx, {
       title: 'Fotografi: kajen set fra nord, 1951',
       kind: 'image',
-      filePath: 'research/kajen-1951.jpg',
       note: 'Fundet i avisarkivet. Ved endnu ikke, hvad den skal bruges til.',
     });
 

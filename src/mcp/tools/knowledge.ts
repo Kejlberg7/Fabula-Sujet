@@ -3,6 +3,7 @@ import {
   attachFactToCarrier, createFact, recordBelief, recordStatement, type SlotValue,
 } from '../../core/services/knowledge';
 import { sourceShelf } from '../../core/queries/sources';
+import { attachFile, checkAttachments, detachFile, orphanFiles } from '../../core/attachments';
 import { createLaw, createSource, linkSource } from '../../core/services/laws';
 import { rootRealmOf } from '../../core/services/world';
 import { slotsOf } from '../../core/queries/bindings';
@@ -235,15 +236,98 @@ export const knowledgeTools: ToolDef[] = [
       titel: z.string(),
       slags: z.enum(['note', 'link', 'pdf', 'article', 'image', 'file']),
       url: z.string().optional(),
-      sti: z.string().optional().describe('Sti til filen på disken'),
+      sti: z.string().optional().describe(
+        'Sti til en fil på maskinen. Filen kopieres ind i projektets arkiv — den bliver ikke læst, '
+        + 'og henvisningen holder, selvom du bagefter flytter originalen.',
+      ),
       note: z.string().optional(),
     },
     run: (args, tools) => {
-      const { value } = write(tools, `Kilde: ${args.titel}`, (session, ctx) =>
-        createSource(session, ctx, {
-          title: args.titel, kind: args.slags, url: args.url, filePath: args.sti, note: args.note,
+      const { value } = write(tools, `Kilde: ${args.titel}`, (session, ctx) => {
+        const id = createSource(session, ctx, {
+          title: args.titel, kind: args.slags, url: args.url, note: args.note,
+        });
+        // Oprettelse og vedhæftning i én tur: fortryder du kilden, følger
+        // henvisningen til filen med tilbage.
+        const filed = args.sti
+          ? attachFile(tools.store, session, ctx, { sourceId: id, path: args.sti })
+          : null;
+        return { id, filed };
+      });
+      return `Kilden "${args.titel}" er gemt. (id: ${value.id})`
+        + (value.filed ? `\nFilen "${value.filed.originalName}" ligger nu i arkivet.` : '');
+    },
+  }),
+
+  defineTool({
+    name: 'vedhaeft_fil',
+    title: 'Vedhæft fil til kilde',
+    description:
+      'Kopierer en fil ind i projektets arkiv og knytter den til en kilde. Filen gemmes og vises — '
+      + 'den læses aldrig, hverken med OCR, udtræk eller fortolkning. Originalt navn, type, '
+      + 'størrelse og kontrolsum gemmes, så det kan opdages, hvis filen senere mangler eller er '
+      + 'blevet en anden. En kilde bærer én fil; en ny erstatter henvisningen til den gamle.',
+    inputSchema: {
+      kilde: z.string().describe('Titel eller id på kilden'),
+      sti: z.string().describe('Sti til filen på maskinen'),
+    },
+    run: (args, tools) => {
+      const source = resolveSource(tools.store, tools.bench.context(), args.kilde);
+      const { value } = write(tools, `Vedhæft fil: ${source.title}`, (session, ctx) =>
+        attachFile(tools.store, session, ctx, { sourceId: source.id, path: args.sti }));
+      return `"${value.originalName}" ligger nu i arkivet under kilden "${source.title}" `
+        + `(${value.mimeType}, ${value.byteSize} bytes).`;
+    },
+  }),
+
+  defineTool({
+    name: 'fjern_fil',
+    title: 'Fjern fil fra kilde',
+    description:
+      'Slipper kildens henvisning til sin fil. Selve filen bliver liggende i arkivet, medmindre du '
+      + 'udtrykkeligt beder om andet — at slippe henvisningen kan fortrydes, at slette filen kan ikke.',
+    inputSchema: {
+      kilde: z.string(),
+      slet_filen: z.boolean().optional().describe('Fjern også selve filen fra arkivet. Kan ikke fortrydes.'),
+    },
+    run: (args, tools) => {
+      const source = resolveSource(tools.store, tools.bench.context(), args.kilde);
+      const { value } = write(tools, `Fjern fil: ${source.title}`, (session, ctx) =>
+        detachFile(tools.store, session, ctx, {
+          sourceId: source.id, removeFile: args.slet_filen,
         }));
-      return `Kilden "${args.titel}" er gemt. (id: ${value})`;
+      return `Kilden "${source.title}" peger ikke længere på en fil.`
+        + (value.fileRemoved
+          ? ' Filen er slettet fra arkivet.'
+          : ' Filen ligger stadig i arkivet.');
+    },
+  }),
+
+  defineTool({
+    name: 'tjek_vedhaeftninger',
+    title: 'Tjek vedhæftede filer',
+    description:
+      'Læser hver vedhæftet fil tilbage og sammenligner med det, der blev lagt ind: er den der '
+      + 'stadig, og er den den samme? Kun bytes tælles og hashes — indholdet fortolkes ikke. '
+      + 'Nævner også filer i arkivet, som ingen kilde længere peger på.',
+    inputSchema: {},
+    run: (_args, tools) => {
+      const ctx = tools.bench.context();
+      const checked = checkAttachments(tools.store, ctx);
+      const orphans = orphanFiles(tools.store);
+      if (checked.length === 0 && orphans.length === 0) {
+        return 'Ingen kilder har en fil vedhæftet.';
+      }
+      const bad = checked.filter((row) => row.state !== 'ok');
+      const lines = [
+        `${checked.length} vedhæftede filer, ${checked.length - bad.length} uændrede.`,
+        ...bad.map((row) => `- ${row.title}: ${row.state} — ${row.note}`),
+        ...(orphans.length > 0
+          ? [`${orphans.length} fil(er) i arkivet peger ingen kilde på: `
+            + orphans.map((row) => row.filePath).join(', ')]
+          : []),
+      ];
+      return lines.join('\n');
     },
   }),
 

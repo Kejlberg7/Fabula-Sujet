@@ -1,4 +1,7 @@
+import { existsSync, statSync } from 'node:fs';
+import { join } from 'node:path';
 import { eq } from 'drizzle-orm';
+import { archiveRoot } from '../attachments';
 import type { Store } from '../../db/client';
 import {
   chapter, entity, event, fact, law, scene, source, sourceLink, work,
@@ -24,8 +27,17 @@ export interface ShelfItem {
   kind: 'note' | 'link' | 'pdf' | 'article' | 'image' | 'file';
   url: string | null;
   filePath: string | null;
+  /** What the file was called before it was filed. Null when nothing is attached. */
+  originalName: string | null;
   mimeType: string | null;
   byteSize: number | null;
+  /**
+   * The cheap check: is the file there, and is it still the size it was?
+   *
+   * Null when there is no file. The thorough check reads the bytes back and
+   * compares checksums, and that one is asked for -- see `checkAttachments`.
+   */
+  fileState: 'ok' | 'mangler' | 'beskadiget' | 'intet_arkiv' | null;
   note: string | null;
   createdAt: Date;
   backs: ShelfLink[];
@@ -94,12 +106,22 @@ export function sourceShelf(store: Store, ctx: Context): ShelfItem[] {
     bySource.set(link.sourceId, list);
   }
 
+  const root = archiveRoot(store);
+  const stateOf = (row: typeof source.$inferSelect): ShelfItem['fileState'] => {
+    if (!row.filePath) return null;
+    if (!root) return 'intet_arkiv';
+    const path = join(root, row.filePath);
+    if (!existsSync(path)) return 'mangler';
+    return row.byteSize != null && statSync(path).size !== row.byteSize ? 'beskadiget' : 'ok';
+  };
+
   return db.select().from(source).where(eq(source.worldId, ctx.worldId)).all()
     .map((row): ShelfItem => {
       const backs = bySource.get(row.id) ?? [];
       return {
         id: row.id, title: row.title, kind: row.kind, url: row.url,
-        filePath: row.filePath, mimeType: row.mimeType, byteSize: row.byteSize,
+        filePath: row.filePath, originalName: row.originalName,
+        mimeType: row.mimeType, byteSize: row.byteSize, fileState: stateOf(row),
         note: row.note, createdAt: row.createdAt,
         backs,
         conflicts: backs.filter((b) => b.relation === 'conflicts').length,

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { call } from '../client';
 import { useQuery } from '../store';
 import type { Notice } from '../main';
@@ -12,10 +12,104 @@ const RELATION_DA: Record<string, string> = {
 const BEAT_DA: Record<string, string> = {
   setup: 'setup', complication: 'komplikation', payoff: 'payoff',
 };
+/** Filens tilstand, som hylden kan se den uden at læse den. */
+const FILE_DA: Record<string, { text: string; chip: string }> = {
+  ok: { text: 'fil i arkivet', chip: 'quiet' },
+  mangler: { text: 'filen mangler', chip: 'alert' },
+  beskadiget: { text: 'filen er en anden', chip: 'alert' },
+  intet_arkiv: { text: 'intet arkiv', chip: 'disc' },
+};
+
+/** Størrelser skrives, som man siger dem, ikke i bytes med ti cifre. */
+function size(bytes: number | null): string {
+  if (bytes == null) return '';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} kB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 /** Kun vist, når tråden når længere end den bog, den begynder i. */
 const SCOPE_DA: Record<string, string> = {
   series: 'hele serien', world: 'hele verden',
 };
+
+/**
+ * Kildens fil: læg ind, åbn, slip.
+ *
+ * At slippe henvisningen og at slette filen er to knapper med hver sin
+ * bekræftelse. Den første kan fortrydes; den anden kan ikke, og det står der.
+ */
+function Attachment({
+  item, onSaved, onError,
+}: {
+  item: { id: string; filePath: string | null; originalName: string | null;
+    byteSize: number | null; mimeType: string | null; fileState: string | null };
+  onSaved: (text: string) => void;
+  onError: (text: string) => void;
+}) {
+  const picker = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+
+  const attach = async (file: File) => {
+    setBusy(true);
+    try {
+      // Filen læses her for at kunne sendes, ikke for at forstås. Base64 i
+      // samme JSON-krop som alt andet -- se `source.attach` på serveren.
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      let binary = '';
+      for (let i = 0; i < bytes.length; i += 0x8000) {
+        binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+      }
+      const filed = await call('source.attach', {
+        sourceId: item.id, name: file.name, base64: btoa(binary),
+      });
+      onSaved(`«${filed.originalName}» ligger nu i arkivet.`);
+    } catch (error) {
+      onError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const detach = async (removeFile: boolean) => {
+    const question = removeFile
+      ? 'Slet selve filen fra arkivet? Det kan ikke fortrydes.'
+      : 'Slip kildens henvisning til filen? Filen bliver liggende, og Fortryd henter henvisningen tilbage.';
+    if (!window.confirm(question)) return;
+    try {
+      const done = await call('source.detach', { sourceId: item.id, removeFile });
+      onSaved(done.fileRemoved ? 'Filen er slettet fra arkivet.' : 'Henvisningen er sluppet. Filen ligger der endnu.');
+    } catch (error) {
+      onError(error instanceof Error ? error.message : String(error));
+    }
+  };
+
+  if (!item.filePath) {
+    return (
+      <p className="attachment">
+        <input type="file" ref={picker} hidden
+          onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void attach(f); }} />
+        <button className="btn small" disabled={busy} onClick={() => picker.current?.click()}>
+          {busy ? 'Lægger ind …' : 'Vedhæft fil'}
+        </button>
+        <span className="dim small">Filen kopieres ind i arkivet ved siden af databasen. Den bliver ikke læst.</span>
+      </p>
+    );
+  }
+
+  const state = FILE_DA[item.fileState ?? 'ok'] ?? FILE_DA['ok']!;
+  return (
+    <div className="attachment">
+      <span className={`chip ${state.chip}`}>{state.text}</span>
+      <a href={`/api/fil/${item.id}`} target="_blank" rel="noreferrer">
+        {item.originalName ?? item.filePath}
+      </a>
+      <span className="dim small">{[item.mimeType, size(item.byteSize)].filter(Boolean).join(' · ')}</span>
+      <button className="btn small" onClick={() => void detach(false)}>Slip filen</button>
+      <button className="btn small" onClick={() => void detach(true)}>Slet filen</button>
+    </div>
+  );
+}
 
 export function Continuity({
   nonce, notify, onChanged,
@@ -39,6 +133,30 @@ export function Continuity({
       failed(error instanceof Error ? error.message : String(error));
     }
   };
+  /**
+   * Den grundige prøve, som ingen skal betale for uden at bede om den:
+   * hver fil læses tilbage og hashes. Hylden viser i forvejen det billige svar.
+   */
+  const checkFiles = async () => {
+    try {
+      const report = await call('source.check');
+      const bad = report.files.filter((row) => row.state !== 'ok');
+      const parts = [
+        report.files.length === 0
+          ? 'Ingen kilder har en fil vedhæftet.'
+          : `${report.files.length} filer prøvet, ${report.files.length - bad.length} uændrede.`,
+        ...bad.map((row) => `${row.title}: ${row.note}`),
+        report.orphans.length > 0
+          ? `${report.orphans.length} fil(er) i arkivet peger ingen kilde på.`
+          : '',
+      ].filter(Boolean);
+      notify({ text: parts.join(' '), bad: bad.length > 0 });
+      setOwn((n) => n + 1);
+    } catch (error) {
+      failed(error instanceof Error ? error.message : String(error));
+    }
+  };
+
   const edit = (table: string, id: string, field: string, value: string | null, multiline = false) => (
     <Editable table={table} id={id} field={field} value={value} multiline={multiline}
       onSaved={saved} onError={failed} />
@@ -201,6 +319,12 @@ export function Continuity({
             to spørgsmål, den er til for: hvad har du markeret som en mulig modstrid, og hvad blev
             gemt og aldrig knyttet til noget.
           </p>
+          <p className="attachment">
+            <button className="btn small" onClick={() => void checkFiles()}>Tjek filerne</button>
+            <span className="dim small">
+              Læser hver vedhæftet fil tilbage og sammenligner bytes med det, der blev lagt ind.
+            </span>
+          </p>
           <div className="continuity-grid">
             {data.sources.map((item) => (
               <article className="continuity-card source-card" key={item.id}>
@@ -208,7 +332,7 @@ export function Continuity({
                 {item.conflicts > 0 && <span className="chip alert">mulig modstrid</span>}
                 {item.unused && <span className="chip disc">bakker ikke noget op</span>}
                 <h3>{item.url ? <a href={item.url} target="_blank" rel="noreferrer">{item.title}</a> : item.title}</h3>
-                {item.filePath && <p className="mono dim">{item.filePath}</p>}
+                <Attachment item={item} onSaved={saved} onError={failed} />
                 <div>{edit('source', item.id, 'note', item.note, true)}</div>
                 <h4>Henviser til</h4>
                 {item.backs.map((link) => (

@@ -36,6 +36,10 @@ navn i en tabel eller et felt er også en fejl.
 | Vidensbærer | `carrier` | Et faktum skrevet ned i en genstand: polaroid, tatovering, brev |
 | Lov | `law` | Evne (undtagelse) eller påbud (forbud), hård eller blød |
 | Kilde | `source` | Research: note, link, PDF, artikel, billede |
+| Projektarkiv | `fabula-filer/` | Mappen ved siden af databasen, som vedhæftede filer kopieres ind i |
+| Vedhæftet fil | `attachment` | Kildens fil i arkivet: originalt navn, type, størrelse og kontrolsum |
+| Kontrolsum | `checksum` | SHA-256 af de bytes, der blev lagt ind. Bruges til at se, om filen er en anden |
+| Forældreløs fil | `orphan file` | En fil i arkivet, ingen kilde længere peger på |
 | Kildehenvisning | `source_link` | Hvad kilden understøtter, giver kontekst til eller muligvis modsiger |
 | Gren | `branch` | Udviklingslinje. Forældregren plus forgreningspunkt |
 | Værk | `work` | Bogen |
@@ -98,10 +102,11 @@ der ikke noget galt — så har forfatteren bare ikke besluttet sig endnu.
 | `mention_ahead_of_time` | Omtale før sin tid — bunden narration peger på noget, der ikke er sket | 10 ✓ |
 | `mention_name_not_yet` | Navn uden for sin tid — prosaen bruger en identitet uden for dens gyldighed | 10 ✓ |
 | `mention_reader_ahead` | Omtale før læseren ved det — prosaen peger på et faktum, læseren ikke har fået | 10 ✓ |
+| `attachment_missing` | Fil væk fra arkivet — kilden peger på en fil, der mangler eller har skiftet størrelse | 12 ✓ |
 
 ## MCP-fladen
 
-75 værktøjer. Navnene og argumenterne er danske, fordi du skal tale til dem.
+83 værktøjer. Navnene og argumenterne er danske, fordi du skal tale til dem.
 Alt indenfor er engelsk.
 
 | Gruppe | Værktøj |
@@ -111,7 +116,7 @@ Alt indenfor er engelsk.
 | Entiteter | `opret_entitet` · `opret_identitet` · `opret_ben` · `registrer_hukommelse` · `registrer_tilstedevaerelse` · `registrer_besiddelse` · `registrer_tilstand` · `opret_relation` · `registrer_forsvinding` · `opret_rejseforbindelse` · `flet_entiteter` |
 | Events | `opret_event` · `tilfoej_tidsbaand` · `tilfoej_deltager` · `knyt_event_til_faktum` |
 | Viden | `registrer_faktum` · `registrer_overbevisning` · `registrer_udsagn` · `knyt_faktum_til_baerer` |
-| Love og kilder | `opret_lov` · `opret_kilde` · `knyt_kilde` · `vis_kilder` |
+| Love og kilder | `opret_lov` · `opret_kilde` · `knyt_kilde` · `vis_kilder` · `vedhaeft_fil` · `fjern_fil` · `tjek_vedhaeftninger` |
 | Fortælling | `opret_plottraad` · `tilfoej_slag` · `opret_kapitel` · `opret_scene` · `knyt_scene_til_event` · `opret_afsloering` · `gem_scenetekst` · `vis_kapitler` · `saet_tekstanker` · `vis_skrivebord` · `vis_baand` |
 | Ret og fjern | `opdater` · `slet` · `fortryd` · `gentag` · `saet_nedslag` · `rul_tilbage_til` · `historik` · `vis_aendringer` |
 | Spørg | `vis_serieoversigt` · `vis_referencer` · `vis_omtaler` · `hvem_vidste_hvad` · `hvem_var_hvor` · `hvad_ved_laeseren` · `vis_verdenslinje` · `find` · `koer_tidsloesning` |

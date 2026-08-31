@@ -71,6 +71,13 @@
       "when": 1790000005000,
       "tag": "0009_thread_scope",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1790000006000,
+      "tag": "0010_source_file",
+      "breakpoints": true
     }
   ]
 }

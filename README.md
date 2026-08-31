@@ -24,7 +24,7 @@ indfriet i bind to.
 
 ```bash
 npm install
-npm test                              # 263 prøver
+npm test                              # 284 prøver
 npm run fixtures -- ./fabula.db       # læg de fire prøvecases ind
 npm run build && npm run dev          # interfacet på http://localhost:4173
 npm run ask -- ./fabula.db hent_kontekst
@@ -126,7 +126,9 @@ forsvinding gør en sikker optræden midt i hullet synlig.
 Researchkilder er fortsat **kun gemt og vist**. En henvisning kan markeres som
 støtte, kontekst eller mulig modstrid, men programmet åbner, udtrækker eller
 fortolker aldrig filens indhold. Det er markeringen — ikke et maskinelt gæt —
-der bliver vist i gennemgangen.
+der bliver vist i gennemgangen. Selve filen kan lægges ind i projektets arkiv,
+så henvisningen holder, og en fil, der forsvinder eller bliver en anden, bliver
+opdaget.
 
 ### Gennemgangen
 
@@ -313,12 +315,31 @@ argumentet for at vælge den ene.
 
 ### Kilderne og det udtrykkelige ja
 
-Research bliver aldrig læst maskinelt. En kilde gemmes og vises: titel, sti,
+Research bliver aldrig læst maskinelt. En kilde gemmes og vises: titel, fil,
 link og forfatterens egen note. Det er ikke en mangel, det er hele holdningen —
 programmet skal ikke lade som om, det har forstået en fotograferet protokolside.
 Det, der arbejdes videre på, er forfatterens egen markering: **understøtter**,
 **kontekst** eller **mulig modstrid**. Den sidste bliver til en bemærkning i
 gennemgangen, med navnet på det, den strider mod.
+
+**Filen ligger i projektets arkiv, ikke i en sti.** En sti er et løfte, ingen har
+givet: flytter du mappen, peger henvisningen ud i luften, og programmet opdager
+det aldrig. Så filen kopieres ind i `fabula-filer/` ved siden af databasen, og
+originalt navn, type, størrelse og kontrolsum bliver gemt. At kopiere og hashe
+bytes er ikke at læse dem — der bliver hverken udtrukket tekst, genkendt sider
+eller fortolket noget som helst.
+
+To ting følger af det. **Fil og henvisning er to ting:** at slippe henvisningen
+kan fortrydes og lader filen ligge; at slette filen kan ikke fortrydes og bliver
+bedt om for sig. Og **filen vises kun, hvor det er sikkert:** typen kommer fra
+navnet, den bliver aldrig gættet ud fra indholdet, og alt, der kan køre kode —
+en SVG, en HTML-side — bliver hentet ned frem for vist på stedet.
+
+Den billige prøve er en regel, der kører hver gang: ligger filen der, og har den
+stadig sin størrelse. Den grundige læser hver fil tilbage og sammenligner
+kontrolsummen, og den bliver bedt om — «Tjek filerne» på hylden eller
+`tjek_vedhaeftninger`. Den nævner også filer i arkivet, ingen kilde peger på, og
+sletter dem aldrig selv.
 
 **Kildehylden** står under Kontinuitet og er sorteret efter de to spørgsmål, den
 er til for: hvad er markeret som en mulig modstrid, og hvad blev gemt og aldrig
@@ -538,17 +559,14 @@ siger den det og lader være med at fylde en side.
 
 ## Næste skridt
 
-**Fase 11 er færdig.** Tråde med rækkevidde, én læseorden for hele serien, en
-gennemgang der regner på tværs af bindene, et Greb der måler forberedelse og
-spor over hele serien, og en serieoversigt.
+**Fase 12 er færdig.** Filer kopieres ind i projektets arkiv med navn, type,
+størrelse og kontrolsum, mangler og ændringer opdages, og filen vises kun, hvor
+det er sikkert.
 
-**Fase 12 er den næste:** holdbare kildevedhæftninger. `source.file_path` peger
-i dag på en sti, ingen har lovet holder.
+**Fase 13 er den næste:** eksport, backup og genoprettelse — bog eller serie som
+Markdown og DOCX uden arbejds-id'er, og en versionsmærket backup med
+vedhæftningerne i.
 
 **Fra fase 10, bevidst udskudt:** tilstedeværelse, besiddelse og
 genstandstilstand kan ikke udledes af en omtale, og det kræver et anker, der
 siger, hvordan passagen bruger sit mål. Det ligger i fase 15.
-
-**Kildefiler som vedhæftninger.** `source.file_path` peger på en sti, ingen har
-lovet holder. En egentlig vedhæftningsmappe med kopi ved indlæggelse ville gøre
-en kilde lige så holdbar som resten af modellen — stadig uden at læse den.

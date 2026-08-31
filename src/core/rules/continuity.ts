@@ -1,8 +1,11 @@
+import { existsSync, statSync } from 'node:fs';
+import { join } from 'node:path';
 import { and, eq } from 'drizzle-orm';
 import {
   beat, disappearance, entityState, identity, participation, relationship,
   source, sourceLink, thread,
 } from '../../db/schema';
+import { archiveRoot } from '../attachments';
 import { readingOrder } from '../queries/order';
 import { labelForTarget } from '../queries/sources';
 import { fingerprint, type Finding, type Rule, type Snapshot } from './kit';
@@ -299,6 +302,61 @@ export const sourceConflict: Rule = {
   },
 };
 
+/**
+ * The cheap half of the attachment check, and it runs every time.
+ *
+ * Only two questions are asked of the disk: is the file there, and is it still
+ * the size it was. Both are one `stat`. Reading and hashing every attachment
+ * on every review would cost seconds for an answer that changes about once a
+ * year -- that is `tjek_vedhaeftninger`, and it is asked for.
+ *
+ * Nothing here opens the file. A size that has changed is reported as exactly
+ * what it is: the bytes are not the ones that were filed, and the program does
+ * not know what they say now.
+ */
+export const attachmentMissing: Rule = {
+  code: 'attachment_missing',
+  title: 'Fil væk fra arkivet',
+  run: (snap) => {
+    const root = archiveRoot(snap.store);
+    // Uden et arkiv er der ingenting at savne. En database i hukommelsen har
+    // aldrig haft filerne, og det er ikke en fejl at melde.
+    if (!root) return [];
+    const findings: Finding[] = [];
+    for (const row of snap.store.db.select().from(source)
+      .where(eq(source.worldId, snap.ctx.worldId)).all()) {
+      if (!row.filePath) continue;
+      const path = join(root, row.filePath);
+      const lifted = snap.lifted({ ruleCode: 'attachment_missing' });
+      const found = existsSync(path) ? statSync(path) : null;
+      if (!found) {
+        findings.push({
+          ruleCode: 'attachment_missing', severity: 'warning',
+          message: `Kilden «${row.title}» peger på filen «${row.originalName ?? row.filePath}», `
+            + 'som ikke ligger i arkivet længere. Henvisningen og filen er to ting: '
+            + 'læg filen ind igen, eller slip den med vilje.',
+          subjects: { rows: [row.id] },
+          fingerprint: fingerprint('attachment_missing', row.id),
+          ...(lifted ? { lifted } : {}),
+        });
+        continue;
+      }
+      if (row.byteSize != null && found.size !== row.byteSize) {
+        findings.push({
+          ruleCode: 'attachment_missing', severity: 'warning',
+          message: `Filen «${row.originalName ?? row.filePath}» under kilden «${row.title}» fylder `
+            + `${found.size} byte og fyldte ${row.byteSize}, da den blev lagt ind. `
+            + 'Det er ikke længere den samme fil. Programmet har ikke læst den.',
+          subjects: { rows: [row.id] },
+          fingerprint: fingerprint('attachment_missing', 'size', row.id),
+          ...(lifted ? { lifted } : {}),
+        });
+      }
+    }
+    return findings;
+  },
+};
+
 export const continuityRules: Rule[] = [
   objectContinuity,
   relationshipState,
@@ -306,4 +364,5 @@ export const continuityRules: Rule[] = [
   nameOrIdentity,
   disappearanceRule,
   sourceConflict,
+  attachmentMissing,
 ];
