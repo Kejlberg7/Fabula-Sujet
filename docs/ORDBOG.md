@@ -58,6 +58,7 @@ navn i en tabel eller et felt er også en fejl.
 | Slag | `beat` | Setup, komplikation eller payoff i en tråd |
 | Bruger | `app_user` | |
 | Arbejdssted | `app_state` | Hvilken verden, bog og gren der er valgt lige nu |
+| Den, der arbejder | `current_user` | Én række: hvem programmet regner for forfatteren |
 | Tur | `turn` | Én samtaletur eller én handling i UI'et. Ændringer grupperes herefter |
 | Ændring | `change` | Én skrivning, med sin modsatte |
 | Nedslag | `checkpoint` | Navngivet punkt at rulle tilbage til eller forgrene fra |
@@ -73,7 +74,8 @@ navn i en tabel eller et felt er også en fejl.
 ## Regelkoder
 
 Koden står i `finding.rule_code`, og en `law` med `hardness = 'hard'` peger på
-den samme kode, når den løfter reglen. Fase-tallet er, hvornår reglen bygges;
+den samme kode, når den løfter reglen. Et brudt løfte har ingen egen kode: en
+lov, der ikke holder, viser sig som den regel, loven hører til. Fase-tallet er, hvornår reglen bygges;
 ✓ betyder, at den kører.
 
 Alle reglerne beviser umulighed, før de siger noget. En uskarp dato kan lægges
@@ -88,7 +90,6 @@ der ikke noget galt — så har forfatteren bare ikke besluttet sig endnu.
 | `knowledge_gap` | Vidensbrud — handler på en plads, hun ikke har bundet | 3 ✓ |
 | `missing_carrier` | Bæreren mangler | 3 ✓ |
 | `travel_time` | Rejsetid — hård grænse, kun en evne løfter den | 3 ✓ |
-| `law_violation` | Lovbrud — bløde fritekstlove vurderes af AI og bliver til margennoter | 4 AI/margen ✓ |
 | `realm_leak` | Lagbrud — en scene dramatiserer et event i et andet lag | 4 ✓ |
 | `self_meeting_leak` | Selvmøde-lækage — manglende POV-ben ved mødet med sig selv | 4 ✓ |
 | `pov_leak` | POV-lækage | 4 ✓ |
@@ -102,12 +103,36 @@ der ikke noget galt — så har forfatteren bare ikke besluttet sig endnu.
 | `mention_ahead_of_time` | Omtale før sin tid — bunden narration peger på noget, der ikke er sket | 10 ✓ |
 | `mention_name_not_yet` | Navn uden for sin tid — prosaen bruger en identitet uden for dens gyldighed | 10 ✓ |
 | `mention_reader_ahead` | Omtale før læseren ved det — prosaen peger på et faktum, læseren ikke har fået | 10 ✓ |
+| `unanchored_realm` | Ufæstnet lag — et lag uden noget, der binder det til verdens tid | 3 ✓ |
 | `attachment_missing` | Fil væk fra arkivet — kilden peger på en fil, der mangler eller har skiftet størrelse | 12 ✓ |
+
+## Værdier
+
+Modellens egne enum-værdier er engelske i basen og danske på skærmen. Ordene
+står ét sted i koden, `src/core/words.ts`, og begge flader læser derfra — ellers
+kommer de til at sige hver sit, og så betyder det samme danske ord to ting.
+
+| Felt | Engelsk | Dansk |
+|---|---|---|
+| `reveal.strength` | `hinted` · `implied` · `stated` · `confirmed` | vink · antydet · fortalt · bekræftet |
+| `belief.strength` | `knows` · `convinced` · `suspects` · `mistaken` · `denies` · `unaware` | ved · overbevist · mistænker · tror fejlagtigt · benægter · uvidende |
+| `belief.source` | `stated` · `derived` · `carried` | nedskrevet · var til stede · bærer det på sig |
+| `scene_event.mode` | `dramatised` · `mentioned` · `implied` | dramatiseret · omtalt · antydet |
+| `source.kind` | `note` · `link` · `pdf` · `article` · `image` · `file` | note · link · PDF · artikel · billede · fil |
+
+«Antydet» hører til `implied` og kun der. En afsløring, der kun er strejfet, er
+et **vink**.
 
 ## MCP-fladen
 
 83 værktøjer. Navnene og argumenterne er danske, fordi du skal tale til dem.
-Alt indenfor er engelsk.
+Alt indenfor er engelsk. Enum-værdier i argumenterne er modellens egne engelske
+værdier — se **Værdier** ovenfor; det er modellen, der skriver dem, ikke
+forfatteren.
+
+Ét værktøj spørger om lov: `gem_scenetekst` stiller forfatteren spørgsmålet selv,
+hver gang, og skriver kun ved et ja. Alt andet på fladen kan fortrydes; prosaen
+er ikke programmets at tage tilbage.
 
 | Gruppe | Værktøj |
 |---|---|

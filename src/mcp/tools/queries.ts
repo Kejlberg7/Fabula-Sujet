@@ -10,6 +10,7 @@ import {
   referenceBacklinks, referenceByCode, referenceCatalog,
 } from '../../core/queries/references';
 import { solveTime } from '../../core/solve';
+import { BELIEF_DA, REVEAL_DA, say } from '../../core/words';
 import { formatInstant } from '../../core/time/gregorian';
 import { asInstant, defineTool, timeArg, type ToolDef } from '../kit';
 import { resolveEntity, resolveSeries, resolveWork } from '../resolve';
@@ -71,7 +72,7 @@ export const queryTools: ToolDef[] = [
       blocks.push(view.reveals.length === 0
         ? 'AFSLØRINGER\n  Ingen afsløringer i serien endnu.'
         : ['AFSLØRINGER (i læserækkefølge)', ...view.reveals.map((item) =>
-          `  ${item.volume} · ${item.sceneTitle} — ${item.summary} [${item.strength}]`
+          `  ${item.volume} · ${item.sceneTitle} — ${item.summary} [${say(REVEAL_DA, item.strength)}]`
           + (item.carriedFrom ? `\n    Læseren har det med fra «${item.carriedFrom}».` : ''),
         )].join('\n'));
 
@@ -161,7 +162,7 @@ export const queryTools: ToolDef[] = [
         const detail = binds.length ? `  [${binds.map(([k, v]) => `${k}: ${v}`).join(', ')}]` : '';
         const via = item.viaObject ? ` — på "${item.viaObject}"` : '';
         const unsure = item.timeUnknown ? ' (eventet har ingen plads i tiden endnu)' : '';
-        return `• ${item.summary} — ${item.strength} (${label[item.source]}${via})${unsure}\n${detail}`;
+        return `• ${item.summary} — ${say(BELIEF_DA, item.strength)} (${label[item.source]}${via})${unsure}\n${detail}`;
       });
       return `${result.entityName} ved:\n${lines.join('\n')}`;
     },
@@ -214,7 +215,13 @@ export const queryTools: ToolDef[] = [
       if (facts.length === 0) return `Læseren har intet fået at vide til og med kapitel ${args.gennem_kapitel}.`;
       return facts.map((f) => {
         const part = f.complete ? 'helt' : f.slots.length ? `kun: ${f.slots.join(', ')}` : 'antydet';
-        return `• ${f.summary} — ${part} (${f.strength}, fra kapitel ${f.firstChapter}: ${f.firstChapterTitle})`;
+                // Kapitler tæller fra et i hver bog, så et nøgent kapitelnummer peger
+        // to steder hen i en serie. Kommer det fra et tidligere bind, skal
+        // bindet stå der.
+        const where = f.fromEarlierWork
+          ? `fra «${f.fromEarlierWork}», kapitel ${f.firstChapter}: ${f.firstChapterTitle}`
+          : `fra kapitel ${f.firstChapter}: ${f.firstChapterTitle}`;
+        return `• ${f.summary} — ${part} (${say(REVEAL_DA, f.strength)}, ${where})`;
       }).join('\n');
     },
   }),

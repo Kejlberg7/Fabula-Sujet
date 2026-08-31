@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { call } from '../client';
+import { SOURCE_KIND_DA } from '../format';
 import { useQuery } from '../store';
 import type { Notice } from '../main';
 import { Editable } from './Editable';
@@ -328,7 +329,7 @@ export function Continuity({
           <div className="continuity-grid">
             {data.sources.map((item) => (
               <article className="continuity-card source-card" key={item.id}>
-                <span className="chip quiet">{item.kind}</span>
+                <span className="chip quiet">{SOURCE_KIND_DA[item.kind] ?? item.kind}</span>
                 {item.conflicts > 0 && <span className="chip alert">mulig modstrid</span>}
                 {item.unused && <span className="chip disc">bakker ikke noget op</span>}
                 <h3>{item.url ? <a href={item.url} target="_blank" rel="noreferrer">{item.title}</a> : item.title}</h3>

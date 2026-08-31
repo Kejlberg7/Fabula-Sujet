@@ -64,5 +64,24 @@ export function deleteRow(
   const table = resolve(input.table);
   const existing = store.db.select().from(table).where(eq(idColumn(table), input.id)).get();
   if (!existing) throw new Error(`Der findes ingen ${input.table} med id ${input.id}.`);
-  session.remove(table, input.id);
+  try {
+    session.remove(table, input.id);
+  } catch (error) {
+    /**
+     * En fremmednøgle, der siger nej, er et svar -- ikke et nedbrud.
+     *
+     * «FOREIGN KEY constraint failed» er databasens sprog for «der er noget,
+     * der stadig peger herhen». Hvad det er, kan først siges med navne i fase
+     * 15; indtil da skal sætningen i det mindste være dansk og handle om
+     * historien frem for om SQLite.
+     */
+    const message = error instanceof Error ? error.message : String(error);
+    if (/FOREIGN KEY/i.test(message)) {
+      throw new Error(
+        `Kan ikke slette den her ${input.table}: der er stadig noget i historien, der peger på `
+        + 'den. Fjern det, der bruger den, først — så kan den slettes.',
+      );
+    }
+    throw error;
+  }
 }

@@ -1,12 +1,10 @@
+import { REVEAL_DA } from '../format';
 import { useQuery } from '../store';
 
 const REACH_DA: Record<string, string> = {
   work: 'kun sin egen bog', series: 'hele serien', world: 'hele verden',
 };
 
-const STRENGTH_DA: Record<string, string> = {
-  hinted: 'antydet', implied: 'underforstået', stated: 'sagt', confirmed: 'bekræftet',
-};
 
 /**
  * The series read as one thing.
@@ -122,7 +120,7 @@ export function Series({ nonce }: { nonce: number }) {
                       <em className="dim"> · læseren har det med fra «{item.carriedFrom}»</em>
                     )}
                   </td>
-                  <td>{STRENGTH_DA[item.strength] ?? item.strength}</td>
+                  <td>{REVEAL_DA[item.strength] ?? item.strength}</td>
                 </tr>
               ))}
             </tbody>

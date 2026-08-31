@@ -6,7 +6,7 @@ og hvornår de **fortælles**.
 
 ## Status
 
-**Fase 0 til 11 er færdige.** Datamodellen, tidsløseren, ændringsloggen og
+**Fase 0 til 12 er færdige.** Datamodellen, tidsløseren, ændringsloggen og
 MCP-serveren står; oven på dem et interface med værkvælger, tidslinje, lister og
 historik, et skrivebord hvor prosaen bliver til med bibelen åben ved siden af —
 og en motor, der siger fra, når noget ikke kan lade sig gøre. Fortællelaget
@@ -41,15 +41,17 @@ lander i den samme log, som Claude skriver til.
 | Skærm | Viser |
 |---|---|
 | **Forsiden** | Hvor meget der er lagt ind, og hvad der senest skete |
-| **Tidslinjen** | Kronologien i baner. Starter på historiens tætteste område; skift til hele tiden, zoom, panorér eller hop i oversigtsbåndet |
+| **Tidslinje** | Kronologien i baner. Starter på historiens tætteste område; skift til hele tiden, zoom, panorér eller hop i oversigtsbåndet |
 | **Personer · Steder · Ting** | Listerne, med et panel der viser ben, tilstedeværelse og hvad personen ved |
 | **Events** | Hvad der skete, og hvor fast tiden på det er |
 | **Fakta · Love** | Påstande med pladser, og hvad der kan lade sig gøre i verdenen |
 | **Kontinuitet** | Genstandstilstande og besiddelser, relationer, identiteter, forsvindinger, setups/payoffs og researchkilder |
+| **Serien** | Serien som én fortælling: bindene, de gennemgående personer, trådene og de uløste setups |
 | **Kapitler** | Bogen i læserækkefølge, med hvert events kronologiske plads ved siden af |
 | **Båndet** | De to akser mod hinanden, en tråd for hver gang bogen fortæller noget |
 | **Skrivebordet** | Manuskriptet, og ved siden af det hvad synsvinklen ved her og hvad læseren ved |
 | **Grebet** | Hvor godt afsløringerne virker, læst på otte akser med scenerne som begrundelse |
+| **Alternativer** | Grenene ved siden af hinanden: flyt scener og afsløringer, og se hvad der skiller de to |
 | **Gennemgangen** | Det, der ikke kan lade sig gøre — og det, du har lagt til side, med din grund |
 | **Historik** | Hvem ændrede hvad, og rul tilbage til et hvilket som helst punkt |
 
@@ -93,8 +95,9 @@ derfor ikke forfatterens ord, og en slettet reference står som brudt frem for a
 forsvinde. Koderne er stabile gennem omdøbning, fortryd og historiegrene.
 
 **Prosaen er din.** Skrivebordet gemmer det, du selv skriver, og hver gemning
-lader det forrige udkast blive liggende. Ingenting andet i programmet retter i
-teksten uden at spørge.
+lader det forrige udkast blive liggende. Skal Claude skrive prosa ind, bliver du
+spurgt først — hver eneste gang, med både den gamle og den nye tekst foran dig —
+og der bliver kun skrevet ved et ja.
 
 Fanen **Margen** samler kommentarer til sammenhæng, fortælling, tempo og
 research. En kommentar kan indeholde en foreslået formulering, men formuleringen
@@ -132,11 +135,13 @@ opdaget.
 
 ### Gennemgangen
 
-Seksten regler kører. Ud over **bilokation**, **rejsetid**, **liv og alder**, **vidensbrud**,
+Nitten regler kører. Ud over **bilokation**, **rejsetid**, **liv og alder**, **vidensbrud**,
 **bæreren mangler**, **umulig kronologi**, **POV-lækage**, **lagbrud**,
-**selvmøde-lækage** og **afsløringsrækkefølge** følger de nu
+**selvmøde-lækage** og **afsløringsrækkefølge** følger
 **genstandskontinuitet**, **relationstilstande**, **hængende setups**,
-**navne og identiteter**, **forsvindinger** og **kildemodstrid**. De har alle den samme disciplin:
+**navne og identiteter**, **forsvindinger** og **kildemodstrid** — og fra prosaen
+**omtale før sin tid**, **navn uden for sin tid** og **omtale før læseren ved det**,
+samt **fil væk fra arkivet**. De har alle den samme disciplin:
 
 > Meld kun det, der ikke kan arrangeres anderledes.
 
@@ -199,8 +204,9 @@ Serveren taler dansk: `opret_verden`, `hvem_vidste_hvad`, `fortryd`.
 - **Ændringsloggen.** Hver skrivning er en hændelse med en modsat, grupperet per
   samtaletur, med bruger-id og gren-id fra dag ét.
 - **Bibelen er data, prosaen er din.** Claude arbejder frit i modellen.
-  Manuskriptet røres aldrig uden et ja — og jaet er et klik i editoren, ikke et
-  værktøjskald. Gennemgangen kan foreslå en formulering; den kan ikke skrive den.
+  Manuskriptet røres aldrig uden et ja — enten et klik i editoren, eller et
+  spørgsmål, du selv svarer på, hver gang Claude vil skrive. Gennemgangens
+  forslag er inerte: kun dit klik skriver dem ind.
 - **Kilder gemmes og vises, aldrig læst.** Programmet åbner ikke en PDF for at
   gætte, hvad den siger. Det, der regnes på, er forfatterens egen markering.
 
@@ -214,7 +220,7 @@ dem, kan den holde det meste.
 | **Memento** | Fortællerorden mod kronologi; viden der udløber | 10 kapitler, 22 skrevne scener og 1.034 ord. 18 beskrevne personer, steder og ting; 20 events over to år |
 | **Predestination** | Personlig tid, selvmøder, flere identiteter | 5 kapitler, 10 skrevne scener og 480 ord. Fire ben af det samme liv, fortalt fra tre af dem |
 | **Inception** | Lag inden i lag med hvert sit ur | 4 kapitler, 10 skrevne scener og 504 ord. 13 beskrevne personer, steder og ting fordelt over fire lag |
-| **Havnen** | En serie: to bøger, tres år, tre slægtled | «Saltet» 5 kapitler, 9 scener, 521 ord; «Tidevandet» 4 kapitler, 7 scener, 422 ord. Ingen af de tre film rørte den almindelige sag: at læseren af bind to har bind et med sig |
+| **Havnen** | En serie: to bøger, tres år, tre slægtled | «Saltet» 5 kapitler, 9 scener, 541 ord; «Tidevandet» 4 kapitler, 7 scener, 422 ord. Ingen af de tre film rørte den almindelige sag: at læseren af bind to har bind et med sig |
 
 De er skrevet til at have vægt, ikke til at være korte. Et kapitel med én scene
 og én synsvinkel beviser næsten ingenting — det er først ved den her tæthed, at
@@ -241,7 +247,7 @@ oversættelsen — tilføj dér, før du bruger et nyt ord.
 ## Layout
 
 ```
-src/db/schema/     48 tabeller. Læs index.ts først; den siger i hvilken rækkefølge.
+src/db/schema/     50 tabeller. Læs index.ts først; den siger i hvilken rækkefølge.
 src/core/
   changelog.ts     det eneste, der skriver
   workbench.ts     hvilken verden, bog og gren vi arbejder på
@@ -249,7 +255,7 @@ src/core/
   services/        skrivning, som UI og MCP begge kalder
   queries/         hvem vidste hvad, hvem var hvor, hvad ved læseren
   solve.ts         løseren kørt på databasen
-src/mcp/           75 værktøjer, danske navne
+src/mcp/           83 værktøjer, danske navne
 src/server/        API'et interfacet taler med, og HTTP-serveren
 src/fixtures/      de fire prøvecases
 web/               interfacet: React, egen CSS, ingen komponentbibliotek
@@ -347,9 +353,9 @@ knyttet til noget. En henvisning, hvis mål er slettet, skjules ikke — der st�
 at den peger på ingenting.
 
 Manuskriptgennemgangen kommenterer i margenen. En note må foreslå en formulering,
-og forslaget er inert: der findes ingen vej fra MCP-fladen til prosaen. Hænger
-noten på et anker i teksten, kan forfatteren skrive den ind med ét klik i
-editoren — og det klik *er* tilsagnet:
+og forslaget er inert: en margennote skriver aldrig noget selv, heller ikke en
+markeret som fulgt. Hænger noten på et anker i teksten, kan forfatteren skrive
+den ind med ét klik i editoren — og det klik *er* tilsagnet:
 
 ```
 research   Vejrarkivet noterer kuling den aften. Enten skal Mads tage fejl med
@@ -366,6 +372,28 @@ gemmes i **den samme tur** — ét fortryd tager begge dele tilbage. Serveren
 afviser at gemme en tekst, der ikke indeholder den foreslåede formulering, så en
 gemning kan ikke rejse ind under en notes navn. Er passagen skrevet om, siden
 noten blev lagt, siger den det frem for at gætte, hvor sætningen sad.
+
+Claude kan også skrive prosa direkte — med `gem_scenetekst` — og det gør ingen
+forskel på tilsagnet: **værktøjet spørger dig selv, hver eneste gang.** Spørgsmålet
+går ud gennem MCP's egen elicitation, så det lander i dit program og bliver
+besvaret af dig, ikke af modellen, der gerne vil skrive. Det viser begge tekster:
+den, der bliver til en tidligere udgave, og den, der kommer i stedet.
+
+```
+Må jeg skrive ny prosa ind i «Vandet står ind»?
+
+Det, der står nu (312 ord), bliver til en tidligere udgave:
+Der var ingen storm. Det var det, han nåede at tænke …
+
+Det, jeg vil skrive (298 ord):
+Kulingen stod ind fra nordvest, og alligevel …
+
+                                        [ ja ]  [ nej ]
+```
+
+Et nej skriver ingenting. Et afbrudt spørgsmål er også et nej. Og kan programmet
+i den anden ende slet ikke stille dig et spørgsmål, nægter værktøjet at skrive —
+«spørg først» uden nogen at spørge er bare at skrive.
 
 ### Gennemlæsningen
 

@@ -1,6 +1,6 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
-import { chapter } from '../../db/schema';
+import { chapter, sceneText } from '../../db/schema';
 import {
   createBeat, createChapter, createReveal, createScene, createThread, linkSceneToEvent, saveSceneText,
 } from '../../core/services/narrative';
@@ -9,6 +9,7 @@ import { slotsOf } from '../../core/queries/bindings';
 import { sceneDesk } from '../../core/queries/desk';
 import { bandView } from '../../core/queries/band';
 import { formatInstant } from '../../core/time/gregorian';
+import { BELIEF_DA, BELIEF_SOURCE_DA, REVEAL_DA, say } from '../../core/words';
 import { defineTool, made, write, type ToolDef } from '../kit';
 import {
   resolveChapter, resolveEntity, resolveEvent, resolveFact, resolveRealm, resolveScene,
@@ -192,22 +193,65 @@ export const narrativeTools: ToolDef[] = [
     name: 'gem_scenetekst',
     title: 'Gem scenetekst',
     description:
-      'Gemmer prosaen til en scene. Den forrige udgave bliver liggende, så "hvad stod der, før jeg '
-      + 'skrev om" har et svar.',
+      'Gemmer prosaen til en scene. Forfatteren bliver spurgt først, hver eneste gang, og teksten '
+      + 'bliver kun skrevet ved et ja — prosaen er forfatterens, ikke modellens. Vis teksten frem i '
+      + 'samtalen, før du kalder værktøjet. Den forrige udgave bliver liggende, så "hvad stod der, '
+      + 'før jeg skrev om" har et svar.',
     inputSchema: {
       scene: z.string(),
       tekst: z.string().describe('Markdown'),
       maerkat: z.string().optional(),
     },
-    run: (args, tools) => {
-      const { value } = write(tools, `Tekst til scene`, (session, ctx) =>
-        saveSceneText(session, ctx, tools.store, {
-          sceneId: resolveScene(tools.store, ctx, args.scene).id,
+    run: async (args, tools) => {
+      const ctx = tools.bench.context();
+      const target = resolveScene(tools.store, ctx, args.scene);
+      const name = target.title ?? 'scenen';
+      const words = (text: string) => text.trim().split(/\s+/).filter(Boolean).length;
+      const current = tools.store.db.select().from(sceneText)
+        .where(and(
+          eq(sceneText.sceneId, target.id),
+          eq(sceneText.branchId, ctx.branchId),
+          eq(sceneText.isCurrent, true),
+        )).get();
+
+      /**
+       * Spørgsmålet skal kunne besvares uden at slå noget op.
+       *
+       * Derfor står begge tekster der: den, der bliver til en tidligere udgave,
+       * og den, der kommer i stedet. Er de lange, står begyndelsen — et ja til
+       * noget, man ikke kan se, er ikke et ja.
+       */
+      const opening = (text: string) => {
+        const trimmed = text.trim();
+        return trimmed.length > 400 ? `${trimmed.slice(0, 400)}…` : trimmed;
+      };
+      const answer = await tools.askWriter({
+        question: `Må jeg skrive ny prosa ind i «${name}»?`,
+        detail: [
+          current?.markdown
+            ? `Det, der står nu (${words(current.markdown)} ord), bliver til en tidligere udgave:\n`
+              + `${opening(current.markdown)}\n`
+            : 'Scenen har ingen prosa endnu.\n',
+          `Det, jeg vil skrive (${words(args.tekst)} ord):\n${opening(args.tekst)}`,
+        ].join('\n'),
+      });
+
+      if (answer === 'kan_ikke_spoerge') {
+        throw new Error(
+          'Jeg kan ikke spørge dig om lov herfra, og prosa bliver ikke skrevet uden et ja. '
+          + 'Programmet, jeg taler igennem, kan ikke stille dig et spørgsmål. Skriv teksten i '
+          + 'editoren, eller brug et program, der kan spørge.',
+        );
+      }
+      if (answer === 'nej') return `Ikke skrevet. Prosaen i «${name}» står, som den stod.`;
+
+      const { value } = write(tools, `Tekst til scene`, (session, c) =>
+        saveSceneText(session, c, tools.store, {
+          sceneId: target.id,
           doc: { type: 'markdown', text: args.tekst },
           markdown: args.tekst, label: args.maerkat,
         }));
-      const words = args.tekst.trim().split(/\s+/).filter(Boolean).length;
-      return `Teksten er gemt (${words} ord). (id: ${value})`;
+      return `Du sagde ja. Teksten er gemt (${words(args.tekst)} ord). (id: ${value})`;
     },
   }),
 
@@ -265,7 +309,7 @@ export const narrativeTools: ToolDef[] = [
         lines.push('', `${desk.pov.name}${desk.pov.legLabel ? ` (${desk.pov.legLabel})` : ''} ved her:`);
         lines.push(...(desk.pov.knows.length === 0
           ? ['  ingenting']
-          : desk.pov.knows.map((k) => `  • ${k.summary} — ${k.strength}, ${k.source}`)));
+          : desk.pov.knows.map((k) => `  • ${k.summary} — ${say(BELIEF_DA, k.strength)}, ${say(BELIEF_SOURCE_DA, k.source)}`)));
       } else {
         lines.push('', 'Scenen har ingen synsvinkel, så der er ingen at svare for.');
       }
@@ -274,7 +318,7 @@ export const narrativeTools: ToolDef[] = [
       lines.push(...(desk.readerKnows.length === 0
         ? ['  ingenting endnu']
         : desk.readerKnows.map((f) =>
-          `  • ${f.summary} — fra kapitel ${f.firstChapter}, ${f.strength}`
+          `  • ${f.summary} — fra kapitel ${f.firstChapter}, ${say(REVEAL_DA, f.strength)}`
           + (f.complete ? '' : ' (ikke hele vejen)'))));
 
       if (desk.tells.length > 0) {

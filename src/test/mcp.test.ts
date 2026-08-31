@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { after, before, describe, it } from 'node:test';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
+import { ElicitRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { openStore, type Store } from '../db/client';
 import { createServer } from '../mcp/server';
 
@@ -21,11 +22,23 @@ describe('MCP-fladen', () => {
     return text;
   };
 
+  /** Det, forfatteren svarer, næste gang serveren spørger om lov. */
+  let says: 'ja' | 'nej' | 'afbryd' = 'ja';
+  let asked: string[] = [];
+
   before(async () => {
     store = openStore(':memory:');
     const server = createServer(store);
     const [clientSide, serverSide] = InMemoryTransport.createLinkedPair();
-    client = new Client({ name: 'proeve', version: '1.0.0' });
+    client = new Client({ name: 'proeve', version: '1.0.0' }, {
+      capabilities: { elicitation: {} },
+    });
+    client.setRequestHandler(ElicitRequestSchema, (request) => {
+      asked.push('message' in request.params ? String(request.params.message) : '');
+      return says === 'afbryd'
+        ? { action: 'cancel' as const }
+        : { action: 'accept' as const, content: { svar: says } };
+    });
     await Promise.all([server.connect(serverSide), client.connect(clientSide)]);
   });
 
@@ -157,7 +170,9 @@ describe('MCP-fladen', () => {
     });
 
     const known = await call('hvem_vidste_hvad', { person: 'Anna Berg' });
-    assert.match(known, /suspects/);
+    // Fladen er dansk hele vejen ud: værdien hedder «suspects» i basen og
+    // «mistænker» på skærmen.
+    assert.match(known, /mistænker/);
     assert.match(known, /offer: Peter/);
     assert.ok(!/gerningsmand: Teddy/.test(known), 'hun mistænker, men kender ikke gerningsmanden');
 
@@ -177,6 +192,51 @@ describe('MCP-fladen', () => {
     assert.match(branches, /Et andet spor \[valgt\]/);
     assert.match(branches, /hoved \[hovedspor\]/);
     assert.match(await call('sammenlign_grene', { med: 'hoved' }), /identisk/);
+  });
+
+  /**
+   * Prosaen er forfatterens, og et spørgsmål er ikke det samme som en note i
+   * loggen bagefter. Prøverne her står om, hvad der sker ved nej, ved et
+   * afbrudt spørgsmål, og når der slet ikke er nogen at spørge.
+   */
+  describe('spørger om lov, før den skriver prosa', () => {
+    const prose = () => (store.sqlite.prepare(
+      `select st.markdown from scene_text st join scene s on s.id = st.scene_id
+        where s.title = ? and st.is_current = 1`,
+    ).get('På havnen') as { markdown: string } | undefined)?.markdown;
+
+    it('viser både det, der står, og det, der kommer i stedet', async () => {
+      says = 'ja';
+      asked = [];
+      await call('gem_scenetekst', { scene: 'På havnen', tekst: 'Anna så ud over det mørke vand.' });
+      assert.match(asked[0]!, /Må jeg skrive ny prosa ind i «På havnen»\?/);
+      assert.match(asked[0]!, /ingen prosa endnu/, 'en tom scene har intet at miste');
+
+      await call('gem_scenetekst', { scene: 'På havnen', tekst: 'Regnen kom ind fra vest.' });
+      assert.equal(asked.length, 2, 'der skal spørges hver gang, ikke kun første gang');
+      assert.match(asked[1]!, /Anna så ud over det mørke vand\./, 'den gamle tekst skal med');
+      assert.match(asked[1]!, /Regnen kom ind fra vest\./, 'den nye tekst skal med');
+      assert.equal(prose(), 'Regnen kom ind fra vest.');
+    });
+
+    it('skriver ingenting ved nej', async () => {
+      says = 'nej';
+      assert.match(
+        await call('gem_scenetekst', { scene: 'På havnen', tekst: 'Noget helt andet.' }),
+        /Ikke skrevet/,
+      );
+      assert.equal(prose(), 'Regnen kom ind fra vest.');
+    });
+
+    it('regner et afbrudt spørgsmål som et nej', async () => {
+      says = 'afbryd';
+      assert.match(
+        await call('gem_scenetekst', { scene: 'På havnen', tekst: 'Heller ikke det her.' }),
+        /Ikke skrevet/,
+      );
+      assert.equal(prose(), 'Regnen kom ind fra vest.');
+      says = 'ja';
+    });
   });
 
   it('gennemgår manuskriptet i margenen uden at ændre prosaen', async () => {
@@ -315,5 +375,48 @@ describe('flere verdener i samme database', () => {
       await call('saet_aktivt_vaerk', { verden });
       assert.match(await call('koer_tidsloesning'), /Ingen problemer/);
     }
+  });
+});
+
+/**
+ * Den anden halvdel af reglen: kan der ikke spørges, bliver der ikke skrevet.
+ *
+ * Klienten her har ingen elicitation-evne — som et program, der bare kalder
+ * værktøjer. Så er der ingen at spørge, og så er svaret nej, ikke «så lad os
+ * bare skrive».
+ */
+describe('MCP-fladen uden nogen at spørge', () => {
+  let store: Store;
+  let client: Client;
+
+  before(async () => {
+    store = openStore(':memory:');
+    const server = createServer(store);
+    const [clientSide, serverSide] = InMemoryTransport.createLinkedPair();
+    client = new Client({ name: 'stum', version: '1.0.0' });
+    await Promise.all([server.connect(serverSide), client.connect(clientSide)]);
+    const call = async (name: string, args: Record<string, unknown>) => {
+      await client.callTool({ name, arguments: args });
+    };
+    await call('opret_verden', { navn: 'Tavs' });
+    await call('opret_vaerk', { titel: 'Bogen' });
+    await call('opret_kapitel', { titel: 'Et' });
+    await call('opret_scene', { kapitel: 'Et', titel: 'Kajen' });
+  });
+
+  after(async () => {
+    await client.close();
+    store.close();
+  });
+
+  it('nægter at skrive prosa, når den ikke kan spørge om lov', async () => {
+    const result = await client.callTool({
+      name: 'gem_scenetekst',
+      arguments: { scene: 'Kajen', tekst: 'Skrevet uden at spørge nogen.' },
+    }) as { content: { text: string }[]; isError?: boolean };
+    assert.equal(result.isError, true);
+    assert.match(result.content[0]!.text, /kan ikke spørge dig om lov/);
+    const written = store.sqlite.prepare('select count(*) as n from scene_text').get() as { n: number };
+    assert.equal(written.n, 0, 'der må ikke stå prosa nogen steder');
   });
 });

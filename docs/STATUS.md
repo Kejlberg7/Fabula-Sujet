@@ -13,6 +13,42 @@ og hashe bytes er ikke at læse dem.
 Fase 0–12 er færdige. Næste fase er 13 — eksport, backup og genoprettelse. Den
 aftalte plan ligger i `docs/ROADMAP.md`.
 
+## Efterslæt: prøvet mod dokumentationen
+
+En agent fik de fem dokumenter og ellers ingenting og prøvede at få programmet
+til at modsige dem. Den fandt tre rigtige fejl og en række tal, der ikke passede.
+Alt herunder er rettet.
+
+- **Prosa gennem MCP spørger nu om lov, hver gang.** `gem_scenetekst` blev og
+  bliver, men den skriver ikke længere uden et ja. Spørgsmålet går ud gennem
+  MCP's egen elicitation, så det lander i forfatterens program og besvares af
+  forfatteren — ikke af modellen, der vil skrive. Det viser begge tekster: den,
+  der bliver til en tidligere udgave, og den, der kommer i stedet. Nej skriver
+  ingenting, et afbrudt spørgsmål er også et nej, og en klient, der slet ikke
+  kan spørge, får et afslag: «spørg først» uden nogen at spørge er bare at
+  skrive. `npm run ask` kan svare — den stiller spørgsmålet i terminalen.
+  Løftet i ROADMAP og README var før dette «prosa kan aldrig ændres gennem
+  MCP», og det passede ikke. Nu passer både løftet og programmet.
+- **`dangling_setup` og `source_conflict` spørger lovlaget.** De var de to
+  eneste regler, der ikke gjorde det, så en evne med regelkoden slukkede ikke
+  for dem. Begge har nu en prøve for tavsheden.
+- **`law_violation` er ude af ordbogen.** Koden fandtes ingen steder i
+  programmet, så en hård lov, der pegede på den, løftede ingenting. `unanchored_realm`
+  og `current_user` var omvendt i brug uden at stå i ordbogen; nu står de der.
+- **Ét sted til de danske ord.** `src/core/words.ts`. «Antydet» betød `hinted`
+  på to skærme og `implied` på en tredje — det samme danske ord om to
+  forskellige ting. Nu hedder `hinted` **vink** overalt, og både interfacet og
+  MCP-fladen læser ordene fra den samme fil. Kilde-arter, afsløringsstyrker og
+  vidensstyrker står ikke længere rå på skærmen.
+- Mindre ting: «1 margennoter» hedder nu «1 margennote», en reference til en
+  slettet post står under **Brudte** frem for under Begreber, en sletning, der
+  ikke kan lade sig gøre, svarer på dansk i stedet for «FOREIGN KEY constraint
+  failed», og `hvad_ved_laeseren` sætter bindets navn på et kapitelnummer fra et
+  tidligere bind.
+- READMEs tal var ikke ført ajour siden fase 9: seksten regler var nitten, 48
+  tabeller var 50, 75 værktøjer var 83, «Saltet» har 541 ord, ikke 521, og
+  skærmtabellen manglede Serien og Alternativer.
+
 ## Færdigt i fase 12
 
 - `src/core/attachments.ts`: arkivet. `fabula.db` giver `fabula-filer/`, og en
@@ -266,11 +302,19 @@ intet at se og intet at klikke på.
 
 ## I gang nu
 
-- Ingen halv implementering står åben. Fase 12 er lukket. Næste arbejde er
-  fase 13.
+- Ingen halv implementering står åben. Fase 12 er lukket, og efterslættet fra
+  dokumentationsprøven er ryddet. Næste arbejde er fase 13.
 
 ## Beslutninger
 
+- Prosa må gerne skrives gennem MCP — men der skal spørges om lov, hver gang.
+  Ikke en indstilling, ikke et tilsagn, der gælder resten af samtalen: hver
+  skrivning har sit eget spørgsmål, og forfatteren svarer på det selv.
+- Kan klienten ikke spørge, skrives der ikke. Et afslag er det ærlige svar; at
+  skrive alligevel ville gøre reglen til en formulering.
+- De danske ord bor ét sted i koden. Tre filer, der oversatte de samme fire
+  værdier hver for sig, endte med at sige noget forskelligt — og et dansk ord,
+  der betyder to ting, er værre end det engelske ord.
 - En sti er et løfte, ingen har givet. Filen kopieres ind; den bliver ikke
   linket til der, hvor forfatteren tilfældigvis havde den liggende.
 - Arkivet ligger ved siden af databasen, ikke inde i den. De to følges ad, når
@@ -315,7 +359,7 @@ intet at se og intet at klikke på.
 
 ## Verificering
 
-- 284/284 prøver er grønne.
+- 291/291 prøver er grønne.
 - Typecheck og produktionsbuild er rene. Vite gentager den kendte advarsel om
   en JavaScript-chunk over 500 kB; det er ikke en buildfejl.
 - Migration 0007 er prøvet mod en kopi af den eksisterende database. Prøven
@@ -332,7 +376,7 @@ intet at se og intet at klikke på.
 - Browserprøvet på den rigtige `fabula.db`: «Knyt her» flyttede P6 Mads Krag fra
   «nævnt uden omtale» op i ankrene uden at ændre ordtallet, og «Marie Krag» blev
   oprettet som genstand, fik G2 og blev knyttet i næste klik.
-- `vis_navne_uden_kobling` på hele serien melder fire scener og ingen støj.
+- `vis_navne_uden_kobling` på hele serien melder seks scener og ingen støj.
 - Browserprøvet på den rigtige `fabula.db`: Serien viser de to bind side om
   side, «P5 Karen Krag · Saltet · Tidevandet» som den eneste gennemgående, de
   tre tråde med hver sin rækkevidde, «Ingen. Hvert setup i serien har noget
@@ -343,7 +387,9 @@ intet at se og intet at klikke på.
   serien» med bindets titel på hvert slag i læserækkefølge, gennemgangen melder
   ingen hængende setups, og Grebet skriver «Der går 14 scener fra det første
   setup til den sidste indfrielse — fra «Saltet» til «Tidevandet»» med chippen
-  «6. Jens siger det · Tidevandet». Ingen fejl i konsollen.
+  «6. Jens siger det». Bindtitlen står kun på scener fra et andet bind — «1.
+  Sundvej, september · Saltet» — hvilket er hele pointen med to akser. Ingen
+  fejl i konsollen.
 - Browserprøvet på en kopi af den rigtige database: et anker fra «Sundvej,
   september» til «Marie Krag går ned» giver bemærkningen «Omtale før sin tid» i
   Gennemgangen med Læg til side-knappen, som alle andre fund.

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { call } from '../client';
 import { useQuery } from '../store';
-import { formatInstant, MODE_DA, SOURCE_DA, STRENGTH_DA } from '../format';
+import { formatInstant, MODE_DA, REVEAL_DA, SOURCE_DA, STRENGTH_DA } from '../format';
 import { Prose, type AnchorTarget, type ProseHandle } from '../editor/Prose';
 import type { Notice } from '../main';
 
@@ -11,9 +11,6 @@ const NARRATION_DA: Record<string, string> = {
 };
 const TENSE_DA: Record<string, string> = {
   past: 'datid', present: 'nutid', future: 'fremtid',
-};
-const REVEAL_DA: Record<string, string> = {
-  hinted: 'antydet', implied: 'underforstået', stated: 'sagt', confirmed: 'bekræftet',
 };
 const LEAK_DA: Record<string, string> = {
   absent: 'Ikke til stede',

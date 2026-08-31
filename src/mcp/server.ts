@@ -60,7 +60,10 @@ Nogle vaner, der gør modellen brugbar frem for larmende:
   det, der ikke kan arrangeres anderledes — er noget bare uskarpt, er det ikke en fejl.
 • Før du vurderer en scene, brug vis_scene_til_gennemgang. Den samler POV, viden, love, kildemetadata
   og prosa. Skriv vurderingen med tilfoej_margennote. En margennote — også en markeret som fulgt —
-  må aldrig ændre sceneteksten. Gem kun ny prosa, når forfatteren udtrykkeligt har sagt ja til den.
+  må aldrig ændre sceneteksten.
+• gem_scenetekst spørger forfatteren selv, hver eneste gang, og skriver kun ved et ja. Spørg derfor
+  også i samtalen først, og vis teksten frem, før du kalder værktøjet — prompten skal bekræfte en
+  beslutning, forfatteren allerede har truffet, ikke være første gang de hører om den.
 • Er et fund forkert, fordi verdenen er sådan, så skriv en LOV (opret_lov, evne, med regelkoden)
   frem for at afvise fundet. Afvis kun det enkelte tilfælde, der er en undtagelse i sig selv.
 `.trim();
@@ -75,9 +78,38 @@ export function createServer(store: Store): McpServer {
     store,
     bench: new Workbench(store),
     // Everything arriving over MCP is Claude acting on the writer's behalf, and
-    // the history screen says so. That is the whole safety net: there is no
-    // approval prompt, so what happened has to be easy to see afterwards.
+    // the history screen says so. That is the safety net for the model: there
+    // is no approval prompt in front of it, so what happened has to be easy to
+    // see afterwards, and the change log can take it back.
     actor: { kind: 'assistant' },
+
+    /**
+     * Prose is the one thing that gets a real question first.
+     *
+     * The question goes out over MCP's own elicitation, so it lands in the
+     * writer's client and is answered by the writer -- not by the model that
+     * wants to write. A client that cannot ask gets told so plainly; the tool
+     * then refuses, because «ask first» with no way to ask is just writing.
+     */
+    askWriter: async (request) => {
+      if (!server.server.getClientCapabilities()?.elicitation) return 'kan_ikke_spoerge';
+      const answer = await server.server.elicitInput({
+        message: `${request.question}\n\n${request.detail}`,
+        requestedSchema: {
+          type: 'object',
+          properties: {
+            svar: {
+              type: 'string', enum: ['ja', 'nej'],
+              title: 'Må jeg skrive det ind?',
+              description: 'Svar ja, hvis teksten må gemmes som scenens prosa.',
+            },
+          },
+          required: ['svar'],
+        },
+      });
+      // Anything but a plain yes is a no. A cancelled prompt is not consent.
+      return answer.action === 'accept' && answer.content?.['svar'] === 'ja' ? 'ja' : 'nej';
+    },
   };
 
   for (const tool of allTools) {
@@ -85,9 +117,9 @@ export function createServer(store: Store): McpServer {
       tool.name,
       { title: tool.title, description: tool.description, inputSchema: tool.inputSchema },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ((args: never) => {
+      (async (args: never) => {
         try {
-          return { content: [{ type: 'text' as const, text: tool.run(args, tools) }] };
+          return { content: [{ type: 'text' as const, text: await tool.run(args, tools) }] };
         } catch (error) {
           // A failed call is an answer, not a crash: say what went wrong in
           // words the writer can act on, and let the conversation continue.

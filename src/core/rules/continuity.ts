@@ -157,12 +157,16 @@ export const danglingSetup: Rule = {
         if (kept) continue;
         const reach = line.scope === 'series' ? ' — heller ikke i et senere bind'
           : line.scope === 'world' ? ' — heller ikke i en anden bog i verden' : '';
+        // Spørg lovlaget, før der meldes. En verden, hvor løse ender er meningen,
+        // siger det med en evne, og så er den her ikke en bemærkning.
+        const lifted = snap.lifted({ ruleCode: 'dangling_setup' });
         findings.push({
           ruleCode: 'dangling_setup', severity: 'note',
           message: `Plottråden «${line.name}» sætter «${setup.summary ?? 'noget'}» op, `
             + `men har intet senere payoff endnu${reach}.`,
           subjects: { rows: [line.id, setup.id, ...(setup.sceneId ? [setup.sceneId] : [])] },
           fingerprint: fingerprint('dangling_setup', setup.id),
+          ...(lifted ? { lifted } : {}),
         });
       }
     }
@@ -289,6 +293,10 @@ export const sourceConflict: Rule = {
         // Uden navnet på det, kilden strider mod, er noten ubrugelig: «en mulig
         // modstrid med fact» fortæller ikke, hvilket faktum man skal se på.
         const target = labelForTarget(snap.store, row.targetKind, row.targetId);
+        // Også her spørges lovlaget først. Er en modstrid med kilden husets
+        // egen beslutning, står den som en lov, ikke som en note ved hver
+        // gennemgang.
+        const lifted = snap.lifted({ ruleCode: 'source_conflict' });
         return {
         ruleCode: 'source_conflict', severity: 'note',
         message: `Kilden «${sources.get(row.sourceId)?.title ?? 'Ukendt kilde'}» er markeret som en mulig `
@@ -297,6 +305,7 @@ export const sourceConflict: Rule = {
           + 'Programmet har ikke læst eller fortolket kildens indhold.',
         subjects: { rows: [row.id, row.targetId] },
         fingerprint: fingerprint('source_conflict', row.id),
+        ...(lifted ? { lifted } : {}),
         };
       });
   },

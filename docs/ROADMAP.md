@@ -9,8 +9,9 @@ personlige appvision; fase 17 holder de bevidst udskudte døre åbne.
 - Engelsk indeni, dansk udenpå.
 - UI og MCP bruger de samme domænetjenester.
 - Alle brugerændringer går gennem ændringsloggen og kan fortrydes.
-- Prosa kan aldrig ændres gennem MCP. Kun et synligt ja i editoren må skrive et
-  tekstforslag ind.
+- Prosa skrives aldrig uden forfatterens ja, hver gang. Et tekstforslag skrives
+  kun ind ved et synligt klik i editoren; skriver Claude direkte gennem MCP,
+  spørger værktøjet forfatteren selv og skriver kun ved et ja.
 - Kilder gemmes og vises, men deres indhold fortolkes aldrig maskinelt.
 - Eksisterende databaser migreres uden datatab.
 - Prøvecasene udvides, når en funktion kræver realistiske data.

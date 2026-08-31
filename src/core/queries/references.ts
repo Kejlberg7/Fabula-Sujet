@@ -49,10 +49,13 @@ export function referenceCatalog(store: Store, ctx: Context): ReferenceItem[] {
   const describe = (ref: typeof refs[number]): Omit<ReferenceItem, 'id' | 'code' | 'targetKind' | 'targetId' | 'mentionCount'> => {
     if (ref.targetKind === 'entity') {
       const item = entities.get(ref.targetId);
-      const group = item?.kind === 'person' ? 'Personer'
-        : item?.kind === 'place' ? 'Steder'
-          : item?.kind === 'object' ? 'Genstande'
-            : item?.kind === 'organisation' ? 'Organisationer' : 'Begreber';
+      // Er rækken væk, kan arten ikke læses -- og så hører referencen ikke
+      // til under «Begreber». Den hører til under det, den er blevet: brudt.
+      const group = !item ? 'Brudte'
+        : item.kind === 'person' ? 'Personer'
+          : item.kind === 'place' ? 'Steder'
+            : item.kind === 'object' ? 'Genstande'
+              : item.kind === 'organisation' ? 'Organisationer' : 'Begreber';
       return {
         label: item?.name ?? '(slettet entitet)', group,
         entityKind: item?.kind ?? null, exists: !!item,

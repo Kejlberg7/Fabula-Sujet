@@ -4,10 +4,35 @@ import type { Actor, Session } from '../core/changelog';
 import { Workbench, type Context } from '../core/workbench';
 import { parseInstant, parseSpan } from '../core/time/gregorian';
 
+/** What the writer is being asked, and what they need to see to answer. */
+export interface ConsentRequest {
+  /** One line, ending in a question mark. */
+  question: string;
+  /** The whole of what will happen, in the writer's own words. */
+  detail: string;
+}
+
+/**
+ * «kan_ikke_spoerge» is not a no. It means there is nobody to ask: the client
+ * on the other end of this connection has no way to put a question in front of
+ * a person. A tool that must ask has to stop there rather than guess.
+ */
+export type ConsentAnswer = 'ja' | 'nej' | 'kan_ikke_spoerge';
+
 export interface Tools {
   bench: Workbench;
   store: Store;
   actor: Actor;
+  /**
+   * Asks the writer directly, through the client, and waits for the answer.
+   *
+   * Only prose uses this. Everything else on this surface is model data that
+   * the change log can take back, and asking permission for each of those
+   * would be a prompt nobody reads by the third one. The writer's own
+   * sentences are the exception: they are not the program's to rewrite, and an
+   * undo afterwards is not the same as a yes beforehand.
+   */
+  askWriter: (request: ConsentRequest) => Promise<ConsentAnswer>;
 }
 
 export interface ToolDef {
@@ -16,7 +41,7 @@ export interface ToolDef {
   description: string;
   inputSchema: z.ZodRawShape;
   /** Returns what to say back. Throwing is fine: the wrapper turns it into an answer. */
-  run: (args: never, tools: Tools) => string;
+  run: (args: never, tools: Tools) => string | Promise<string>;
 }
 
 export const defineTool = <S extends z.ZodRawShape>(def: {
@@ -24,7 +49,7 @@ export const defineTool = <S extends z.ZodRawShape>(def: {
   title: string;
   description: string;
   inputSchema: S;
-  run: (args: z.infer<z.ZodObject<S>>, tools: Tools) => string;
+  run: (args: z.infer<z.ZodObject<S>>, tools: Tools) => string | Promise<string>;
 }): ToolDef => def as unknown as ToolDef;
 
 /**

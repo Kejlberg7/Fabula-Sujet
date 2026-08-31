@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { call } from '../client';
+import { plural, REVEAL_DA } from '../format';
 import { useQuery } from '../store';
 import type { Notice } from '../main';
 
@@ -15,9 +16,6 @@ const differenceName: Record<string, string> = {
   reveal_removed: 'Afsløring fjernet',
 };
 
-const strengthName: Record<string, string> = {
-  hinted: 'vink', implied: 'antydet', stated: 'fortalt', confirmed: 'bekræftet',
-};
 
 export function Alternatives({
   nonce, notify, onChanged,
@@ -156,7 +154,7 @@ export function Alternatives({
                   <span className="scene-order">{scene.globalPosition}</span>
                   <div>
                     <strong>{scene.title}</strong>
-                    <span className="small">{scene.wordCount} ord · {scene.revealCount} afsløringer</span>
+                    <span className="small">{scene.wordCount} ord · {plural(scene.revealCount, 'afsløring', 'afsløringer')}</span>
                   </div>
                   <div className="scene-move">
                     <button className="btn arrow" aria-label={`Flyt ${scene.title} op`}
@@ -208,9 +206,9 @@ export function Alternatives({
                   revealId: item.id, sceneId: item.sceneId,
                   strength: event.target.value as 'hinted' | 'implied' | 'stated' | 'confirmed',
                 });
-                return `Afsløringen af «${item.factSummary}» er nu ${strengthName[event.target.value]}.`;
+                return `Afsløringen af «${item.factSummary}» er nu ${REVEAL_DA[event.target.value]}.`;
               })}>
-              {Object.entries(strengthName).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+              {Object.entries(REVEAL_DA).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
             </select>
             <select aria-label={`Scene for ${item.factSummary}`} value={item.sceneId}
               onChange={(event) => act(async () => {
@@ -254,10 +252,10 @@ function Comparison({ branchId, nonce }: { branchId: string; nonce: number }) {
     <div className="branch-comparison">
       <div className="comparison-summary">
         <strong>{data.left.branch.name}</strong>
-        <span>{data.left.scenes.length} scener · {data.left.reveals.length} afsløringer</span>
+        <span>{plural(data.left.scenes.length, 'scene', 'scener')} · {plural(data.left.reveals.length, 'afsløring', 'afsløringer')}</span>
         <span className="comparison-arrow">mod</span>
         <strong>{data.right.branch.name}</strong>
-        <span>{data.right.scenes.length} scener · {data.right.reveals.length} afsløringer</span>
+        <span>{plural(data.right.scenes.length, 'scene', 'scener')} · {plural(data.right.reveals.length, 'afsløring', 'afsløringer')}</span>
       </div>
       {data.differences.length === 0 ? (
         <div className="banner"><p>De to grene er stadig ens.</p></div>

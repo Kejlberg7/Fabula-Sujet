@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { REVEAL_DA } from '../format';
 import { useQuery } from '../store';
 
 const MARK: Record<string, string> = { staerk: '✓', se_efter: '?', tynd: '!' };
@@ -65,7 +66,7 @@ export function Twists({ nonce }: { nonce: number }) {
             {twist.beats.map((b) => (
               <span key={b.id + b.strength} className="beat" title={`${b.chapterTitle} · ${b.title}`}>
                 <i className="num">{b.order}</i>
-                {b.strength}
+                {REVEAL_DA[b.strength] ?? b.strength}
                 {b.slotName && ` · ${b.slotName}`}
               </span>
             ))}

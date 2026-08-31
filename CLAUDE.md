@@ -24,15 +24,26 @@ decisions, verification already run, and the next concrete action.
   mapping lives in `docs/ORDBOG.md` and nowhere else — add there before using a
   new word.
 - **Nothing writes except the change log.** Every insert, update and delete goes
-  through `Session` in `src/core/changelog.ts`, so it can be undone. Two
-  documented exceptions, both derived data that is recomputable at any moment:
-  the time solver's bounds, and the `finding` rows the review writes. A
-  *dismissal* is a person deciding something, so that goes through the log.
+  through `Session` in `src/core/changelog.ts`, so it can be undone. Four
+  documented exceptions. Three are derived data, recomputable at any moment: the
+  time solver's bounds, the `finding` rows the review writes, and `app_state` --
+  which world, book and branch are selected (`src/core/workbench.ts`). The
+  fourth is the other direction: an attached file's *bytes*
+  (`src/core/attachments.ts`), which stay outside the log so that an undo
+  restores the row and never deletes a file the writer put there. A *dismissal*
+  is a person deciding something, so that goes through the log.
 - **The bible is data, the prose is the writer's.** The model may be changed
-  freely; scene text is never written or altered without an explicit yes. A
-  margin note may propose a wording, but only the writer clicking it in the
+  freely; scene text is never written or altered without an explicit yes, and
+  the yes comes from the writer every single time. Two ways in, and only two.
+  A margin note may propose a wording, but only the writer clicking it in the
   editor writes it: `applySuggestion` is on the interface's API and has no MCP
-  tool. Prose and note go in one turn, so one undo takes back both.
+  tool. Prose and note go in one turn, so one undo takes back both. And
+  `gem_scenetekst` over MCP asks the writer first -- through MCP elicitation,
+  so the question lands in their client and is answered by them, showing both
+  the text being replaced and the text replacing it. No is no, a cancelled
+  prompt is no, and a client that cannot ask gets a refusal: «ask first» with
+  nobody to ask is just writing. That is the only thing on the MCP surface that
+  asks, and it is the only thing there that is not the program's to take back.
 - **A source is stored and shown, never read.** No PDF, article or photographed
   page is opened to guess what it says. What the rules act on is the writer's own
   marking -- supports, context, or possible contradiction. The file itself is
@@ -87,7 +98,7 @@ Node 20 (`.nvmrc`). The shell may default to an older nvm version — check
 `node -v` before running anything.
 
 ```bash
-npm test                            # 284 prøver
+npm test                            # 291 prøver
 npm run fixtures -- ./fabula.db     # Memento, Predestination, Inception, Havnen
 npm run build && npm run dev        # interface on :4173
 npm run ask -- ./fabula.db hent_kontekst

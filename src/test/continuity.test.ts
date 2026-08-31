@@ -6,8 +6,9 @@ import {
   recordEntityState, recordPossession,
 } from '../core/services/entities';
 import { addParticipation, createEvent } from '../core/services/events';
-import { createSource, linkSource } from '../core/services/laws';
+import { createLaw, createSource, linkSource } from '../core/services/laws';
 import { createBeat, createThread } from '../core/services/narrative';
+import { deleteRow } from '../core/services/generic';
 import { createWork } from '../core/services/world';
 import { runRules } from '../core/rules';
 import { SECONDS } from '../core/time/gregorian';
@@ -107,6 +108,24 @@ describe('Setups og payoffs', () => {
     assert.equal(found.length, 1);
     assert.match(found[0]!.message, /Nøglen.*rusten nøgle/);
   });
+
+  it('lader en evne løfte reglen', () => {
+    const w = world();
+    build(w, (s) => {
+      const workId = createWork(s, w.ctx, { title: 'Bogen' });
+      const loose = createThread(s, w.ctx, { workId, name: 'Nøglen' });
+      createBeat(s, w.ctx, { threadId: loose, kind: 'setup', summary: 'En rusten nøgle', position: 2 });
+    });
+    assert.equal(runRules(w.store, w.ctx, ['dangling_setup']).findings.length, 1);
+
+    build(w, (s) => createLaw(s, w.ctx, {
+      kind: 'ability', hardness: 'hard', ruleCode: 'dangling_setup',
+      statement: 'Bogen slutter med løse ender. Det er meningen.',
+    }));
+    const out = runRules(w.store, w.ctx, ['dangling_setup']);
+    assert.deepEqual(out.findings, []);
+    assert.equal(out.lifted.length, 1, 'det står stadig, som løftet af en lov');
+  });
 });
 
 describe('Navne og identiteter', () => {
@@ -177,5 +196,45 @@ describe('Researchkilder', () => {
     const found = runRules(w.store, w.ctx, ['source_conflict']).findings;
     assert.equal(found.length, 1);
     assert.match(found[0]!.message, /Lærebogen.*ikke læst/);
+  });
+
+  it('lader en evne løfte reglen', () => {
+    const w = world();
+    build(w, (s) => {
+      const anna = createEntity(s, w.ctx, { name: 'Anna', kind: 'person' });
+      const conflict = createSource(s, w.ctx, { title: 'Lærebogen', kind: 'pdf' });
+      linkSource(s, w.ctx, {
+        sourceId: conflict, targetKind: 'entity', targetId: anna, relation: 'conflicts',
+      });
+      createLaw(s, w.ctx, {
+        kind: 'ability', hardness: 'hard', ruleCode: 'source_conflict',
+        statement: 'Bogen afviger fra kilderne med vilje.',
+      });
+    });
+    const out = runRules(w.store, w.ctx, ['source_conflict']);
+    assert.deepEqual(out.findings, []);
+    assert.equal(out.lifted.length, 1);
+  });
+});
+
+/**
+ * Fladen er dansk, også når databasen siger fra.
+ *
+ * En sletning, der ikke kan lade sig gøre, er et svar til forfatteren. Navnene
+ * på det, der står i vejen, hører til fase 15; sætningen hører til her.
+ */
+describe('En sletning, der ikke kan lade sig gøre', () => {
+  it('svarer på dansk i stedet for at videregive SQLite', () => {
+    const w = world();
+    const anna = build(w, (s) => {
+      const who = createEntity(s, w.ctx, { name: 'Anna', kind: 'person' });
+      const e = createEvent(s, w.ctx, { title: 'Middagen', realmId: w.realmId, earliest: T, latest: T });
+      addParticipation(s, w.ctx, { eventId: e, entityId: who, role: 'actor' });
+      return who;
+    });
+    assert.throws(
+      () => build(w, (s) => deleteRow(s, w.store, { table: 'entity', id: anna })),
+      /stadig noget i historien, der peger på den/,
+    );
   });
 });

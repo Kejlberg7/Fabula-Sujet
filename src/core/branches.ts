@@ -11,6 +11,7 @@ import type { Context } from './workbench';
 import { inTurn, type Actor, type RawRow, type Session } from './changelog';
 import { newId } from './ids';
 import { DIVERGEABLE_TABLES, tableByName } from './tables';
+import { REVEAL_DA, say } from './words';
 
 const COPY_ORDER = [
   'realm', 'entity', 'identity', 'entity_leg', 'place_link',
@@ -381,8 +382,11 @@ export function compareBranches(
     if (item.sceneRootId !== other.sceneRootId) differences.push({
       kind: 'reveal_moved', label: item.factSummary, left: item.sceneTitle, right: other.sceneTitle,
     });
+    // Sammenligningen læses af et menneske, så styrken skal stå på dansk her
+    // og ikke som den engelske værdi, kolonnen gemmer.
     if (item.strength !== other.strength) differences.push({
-      kind: 'reveal_changed', label: item.factSummary, left: item.strength, right: other.strength,
+      kind: 'reveal_changed', label: item.factSummary,
+      left: say(REVEAL_DA, item.strength), right: say(REVEAL_DA, other.strength),
     });
   }
   for (const item of right.reveals) {

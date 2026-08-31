@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { call } from '../client';
+import { plural } from '../format';
 import { useQuery } from '../store';
 import type { Notice } from '../main';
 
@@ -204,7 +205,7 @@ export function Findings({
               <span className="dim small">{WHEN.format(new Date(run.createdAt))}</span>
             </header>
             <p>
-              {run.scenes} scener · {run.notes} margennoter
+              {plural(run.scenes, 'scene', 'scener')} · {plural(run.notes, 'margennote', 'margennoter')}
               {run.openNotes > 0 && ` (${run.openNotes} åbne)`}
             </p>
             <p className="dim">
