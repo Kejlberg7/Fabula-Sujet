@@ -57,12 +57,13 @@ modelændring, og den ligger i fase 15.
 
 ## Fase 11 — Serien som én fortælling
 
-**Status: første snit færdigt.** Implementeret og browserprøvet 31. august 2026.
+**Status: første og andet snit færdige.** Implementeret og browserprøvet
+31. august 2026.
 
 - ~~Plottråde kan høre til en bog, serie eller verden.~~
 - ~~Setup i ét bind kan få payoff i et senere bind.~~
 - ~~Orden regnes som serie → bog → kapitel → scene.~~
-- Grebet medregner forberedelse og læservarviden fra tidligere bind.
+- ~~Grebet medregner forberedelse og læservarviden fra tidligere bind.~~
 - En serieoversigt viser gennemgående personer, plottråde, afsløringer og
   uløste setups uden at blande andre serier i samme verden ind.
 

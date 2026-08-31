@@ -12,7 +12,7 @@ import {
 } from '../core/services/narrative';
 import { createWork } from '../core/services/world';
 import { Workbench } from '../core/workbench';
-import { loadMemento } from '../fixtures';
+import { loadHavnen, loadMemento } from '../fixtures';
 import { makeWorld } from './helpers';
 
 const actor = { kind: 'user' as const };
@@ -165,6 +165,55 @@ describe('Grebet — de tre prøvecases', () => {
   it('sorterer den senest afslørede først', () => {
     const orders = reports.map((r) => r.disclosure?.order ?? 0);
     assert.deepEqual(orders, [...orders].sort((a, b) => b - a));
+  });
+});
+
+describe('Grebet på tværs af bindene', () => {
+  const store = openStore(':memory:');
+  const loaded = loadHavnen(store);
+  const ctx = new Workbench(store)
+    .setActive({ worldId: loaded.worldId, workId: loaded.firstWorkId });
+  const reports = twistReadings(store, ctx, { workId: loaded.firstWorkId });
+  const sinking = reports.find((r) => r.summary.includes('sænket'))!;
+
+  it('måler forberedelsen helt frem til indfrielsen i næste bind', () => {
+    const prep = sinking.readings.find((r) => r.axis === 'forberedelse')!;
+    // «Gælden» sættes op i «Saltet» og indfries i «Tidevandet». Målt på
+    // bindets egne ni scener kunne afstanden aldrig blive større end otte.
+    const scenes = Number(prep.message.match(/går (\d+) scener/)![1]);
+    assert.ok(scenes > 9, `forberedelsen målte kun ${scenes} scener`);
+    assert.match(prep.message, /fra «Saltet» til «Tidevandet»/);
+  });
+
+  it('siger hvilket bind en scene fra et andet bind står i', () => {
+    const prep = sinking.readings.find((r) => r.axis === 'forberedelse')!;
+    const elsewhere = prep.scenes.filter((sc) => sc.otherWork);
+    assert.equal(elsewhere.length, 1);
+    assert.equal(elsewhere[0]!.otherWork, 'Tidevandet');
+    // Nummeret tæller stadig fra et i sit eget bind; det er derfor, bindet skal
+    // stå der. Et nummer på tværs af serien ville ingen kunne slå op.
+    assert.ok(elsewhere[0]!.order <= 9);
+  });
+
+  it('nævner hver scene én gang, hvor mange gange den end tæller med', () => {
+    for (const report of reports) {
+      for (const reading of report.readings) {
+        const ids = reading.scenes.map((sc) => sc.id);
+        assert.equal(new Set(ids).size, ids.length,
+          `${report.summary} · ${reading.axis} nævner den samme scene to gange`);
+      }
+    }
+  });
+
+  it('lader et bind uden serie måle på sig selv alene', () => {
+    const alone = openStore(':memory:');
+    const one = loadMemento(alone);
+    const there = new Workbench(alone).setActive({ worldId: one.worldId, workId: one.workId });
+    const all = twistReadings(alone, there, { workId: one.workId })
+      .flatMap((r) => r.readings).flatMap((r) => r.scenes);
+    assert.ok(all.length > 0);
+    assert.ok(all.every((sc) => sc.otherWork === null));
+    alone.close();
   });
 });
 

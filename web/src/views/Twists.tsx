@@ -85,6 +85,9 @@ export function Twists({ nonce }: { nonce: number }) {
                     <span key={`${reading.axis}:${s.id}`} className="chip quiet"
                       title={`Kapitel ${s.chapterPosition} · ${s.chapterTitle}`}>
                       {s.order}. {s.title}
+                      {/* Scenenummeret tæller fra et i hvert bind, så et spor
+                          eller et setup fra et tidligere bind skal sige hvilket. */}
+                      {s.otherWork && <em> · {s.otherWork}</em>}
                     </span>
                   ))}
                 </div>

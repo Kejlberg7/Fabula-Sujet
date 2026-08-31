@@ -24,7 +24,7 @@ indfriet i bind to.
 
 ```bash
 npm install
-npm test                              # 250 prøver
+npm test                              # 254 prøver
 npm run fixtures -- ./fabula.db       # læg de fire prøvecases ind
 npm run build && npm run dev          # interfacet på http://localhost:4173
 npm run ask -- ./fabula.db hent_kontekst
@@ -493,6 +493,18 @@ ikke en mangel, det er reglen: så længe et payoff kan lægges efter sit setup,
 er der ikke noget galt. Kun det setup, hvis payoff mangler helt eller
 beviseligt ligger for tidligt, bliver meldt.
 
+Grebet regner på den samme akse. Forberedelsen af «Marie Krag blev sænket med
+vilje» målte før seks scener, fordi bogen kun har ni; nu måler den fjorten, fra
+setuppet i «Saltet» til indfrielsen i «Tidevandet», og siger hvilke bind den går
+mellem. Sporene tælles på samme måde: en scene i et tidligere bind, der viser
+tingen uden at pege på den, er et spor som alle andre. Overraskelse, timing og
+konsekvens bliver derimod stående i bogen — «der er to scener tilbage bagefter»
+handler om denne bog og ikke om serien.
+
+Scenenumre tæller fra et i hvert bind. Et spor eller et setup fra et andet bind
+får derfor bindets titel skrevet på, for nummeret alene ville pege på den
+forkerte scene.
+
 Rækkevidden bestemmer også, hvad du får at se. Med «Saltet» valgt viser
 kontinuitetspanelet bogens egen tråd og seriens — men ikke den, der udelukkende
 hører til «Tidevandet». En anden serie i den samme verden arver stadig
@@ -500,10 +512,11 @@ ingenting.
 
 ## Næste skridt
 
-**Fase 11 er i gang.** Første snit er lagt: tråde med rækkevidde, én læseorden
-for hele serien, og en gennemgang, der regner på tværs af bindene. Tilbage står
-Grebet, der skal medregne forberedelse og læserviden fra tidligere bind, og en
-serieoversigt.
+**Fase 11 er i gang.** To snit er lagt: tråde med rækkevidde, én læseorden for
+hele serien, en gennemgang der regner på tværs af bindene, og et Greb der måler
+forberedelse og spor over hele serien. Tilbage står serieoversigten:
+gennemgående personer, tråde, afsløringer og uløste setups — uden at blande en
+anden serie i den samme verden ind.
 
 **Fra fase 10, bevidst udskudt:** tilstedeværelse, besiddelse og
 genstandstilstand kan ikke udledes af en omtale, og det kræver et anker, der

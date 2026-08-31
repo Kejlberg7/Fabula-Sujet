@@ -2,7 +2,7 @@ import { and, eq } from 'drizzle-orm';
 import type { Store } from '../../db/client';
 import {
   beat, belief, carrier, chapter, entity, eventFact, fact, factSlot, reveal, scene,
-  sceneEvent, statement, thread,
+  sceneEvent, statement, thread, work,
 } from '../../db/schema';
 import { readingOrder } from './order';
 import { whatReaderKnows } from './reader';
@@ -42,11 +42,20 @@ export type Verdict = 'staerk' | 'tynd' | 'se_efter';
 export interface ScenePoint {
   id: string;
   title: string;
+  /** The scene's number inside its own book. Chapters restart in every volume. */
   order: number;
   chapterPosition: number;
   chapterTitle: string;
   /** Carried on the point so the axes never have to look a scene up again. */
   povEntityId: string | null;
+  /**
+   * The title of the book, when it is not the one being read.
+   *
+   * Null nearly always, and that is the point: «3. Sundvej, september» means
+   * this book unless something says otherwise. A thread reaching into an
+   * earlier volume is the exception, and there the number alone would lie.
+   */
+  otherWork: string | null;
 }
 
 export interface Reading {
@@ -96,8 +105,13 @@ const AXIS_TITLE: Record<Axis, string> = {
  * Not `readingOrder` from `./order`, which orders whole books against each
  * other. This one measures inside a single volume, in scenes.
  */
-function sceneAxis(store: Store, ctx: Context, workId: string): ScenePoint[] {
+function sceneAxis(
+  store: Store, ctx: Context, workId: string, homeWorkId = workId,
+): ScenePoint[] {
   const { db } = store;
+  const otherWork = workId === homeWorkId
+    ? null
+    : db.select().from(work).where(eq(work.id, workId)).get()?.title ?? null;
   const chapters = db.select().from(chapter)
     .where(and(eq(chapter.workId, workId), eq(chapter.branchId, ctx.branchId))).all()
     .sort((a, b) => a.position - b.position);
@@ -114,6 +128,7 @@ function sceneAxis(store: Store, ctx: Context, workId: string): ScenePoint[] {
         chapterPosition: ch.position,
         chapterTitle: ch.title,
         povEntityId: sc.povEntityId,
+        otherWork,
       });
     }
   }
@@ -151,16 +166,6 @@ export function twistReadings(
   const nameOf = (id: string | null | undefined) =>
     (id ? db.select().from(entity).where(eq(entity.id, id)).get()?.name : null) ?? 'nogen';
 
-  // Which scenes put a given event on the page, so a clue can be located.
-  const scenesOfEvent = new Map<string, string[]>();
-  for (const link of db.select().from(sceneEvent)
-    .where(eq(sceneEvent.branchId, ctx.branchId)).all()) {
-    if (!pointOf.has(link.sceneId)) continue;
-    const list = scenesOfEvent.get(link.eventId) ?? [];
-    list.push(link.sceneId);
-    scenesOfEvent.set(link.eventId, list);
-  }
-
   const byFact = new Map<string, typeof reveals>();
   for (const r of reveals) {
     const list = byFact.get(r.factId) ?? [];
@@ -183,6 +188,57 @@ export function twistReadings(
     whatReaderKnows(store, ctx, { workId: query.workId, throughChapterPosition: 0 })
       .map((f) => [f.factId, f.fromEarlierWork]),
   );
+
+  /**
+   * The same axis, stretched to the whole series.
+   *
+   * Two axes rather than one, because two different questions are being asked.
+   * Overraskelse, timing and konsekvens are about *this book*: how late it
+   * lands, how much room is left afterwards. Forberedelse and the clues are
+   * not -- a promise made in volume one and kept in volume two is one thread
+   * now, and counting its run-up on this volume's scenes made the longest
+   * preparation in the series come out as nothing at all.
+   *
+   * The volumes of a series are contiguous in the reading, which is what makes
+   * counting straight through them mean anything. A book in no series has a
+   * span of one, and then the two axes are the same.
+   */
+  const books = readingOrder(store, ctx);
+  const bookTitle = books.works.find((row) => row.id === query.workId)?.title ?? 'denne bog';
+  const seriesId = books.works.find((row) => row.id === query.workId)?.seriesId ?? null;
+  const span = books.works.filter((row) =>
+    row.id === query.workId || (seriesId != null && row.seriesId === seriesId));
+  const reaching = db.select().from(thread)
+    .where(eq(thread.branchId, ctx.branchId)).all()
+    .filter((row) => books.covers(row, query.workId));
+  const spanPoint = new Map<string, ScenePoint>();
+  const spanOrder = new Map<string, number>();
+  if (span.length > 1) {
+    for (const book of span) {
+      for (const point of sceneAxis(store, ctx, book.id, query.workId)) {
+        spanPoint.set(point.id, point);
+        spanOrder.set(point.id, spanOrder.size + 1);
+      }
+    }
+  } else {
+    for (const point of order) {
+      spanPoint.set(point.id, point);
+      spanOrder.set(point.id, point.order);
+    }
+  }
+
+  /** Where a point falls on the series axis. */
+  const at = (point: ScenePoint) => spanOrder.get(point.id)!;
+
+  /** Which scenes of the whole span put an event on the page, so a clue can be located. */
+  const spanScenesOfEvent = new Map<string, string[]>();
+  for (const link of db.select().from(sceneEvent)
+    .where(eq(sceneEvent.branchId, ctx.branchId)).all()) {
+    if (!spanPoint.has(link.sceneId)) continue;
+    const list = spanScenesOfEvent.get(link.eventId) ?? [];
+    list.push(link.sceneId);
+    spanScenesOfEvent.set(link.eventId, list);
+  }
 
   const reports: TwistReport[] = [];
   for (const [factId, rows] of byFact) {
@@ -212,24 +268,38 @@ export function twistReadings(
      * what makes a twist feel inevitable afterwards.
      */
     const flagged = beats.filter((b) => b.order < cutoff && !DISCLOSED.has(b.strength));
+    // Talt på seriens akse, så en scene i et tidligere bind, der viser tingen
+    // uden at pege på den, er et spor som alle andre. En scene i et *senere*
+    // bind falder efter afsløringen og ryger ud i den samme sammenligning.
+    const cutoffAt = disclosure ? at(disclosure) : Infinity;
     const exposingEvents = db.select().from(eventFact)
       .where(and(eq(eventFact.factId, factId), eq(eventFact.branchId, ctx.branchId))).all();
     const unflagged: ScenePoint[] = [];
     for (const item of exposingEvents) {
-      for (const sceneId of scenesOfEvent.get(item.eventId) ?? []) {
-        const point = pointOf.get(sceneId)!;
-        if (point.order >= cutoff) continue;
+      for (const sceneId of spanScenesOfEvent.get(item.eventId) ?? []) {
+        const point = spanPoint.get(sceneId)!;
+        if (at(point) >= cutoffAt) continue;
         if (beats.some((b) => b.id === sceneId)) continue;
         if (unflagged.some((p) => p.id === sceneId)) continue;
         unflagged.push(point);
       }
     }
-    unflagged.sort((a, b) => a.order - b.order);
+    unflagged.sort((a, b) => at(a) - at(b));
 
     const readings: Reading[] = [];
+    /**
+     * One entry per scene, however many times it earned its place.
+     *
+     * «Sundvej, september» carries a setup on two different threads, and a
+     * scene can hold two reveals of two different slots. Listing it twice says
+     * nothing the first chip did not.
+     */
     const add = (
       axis: Axis, verdict: Verdict, message: string, scenes: ScenePoint[] = [],
-    ) => readings.push({ axis, title: AXIS_TITLE[axis], verdict, message, scenes });
+    ) => readings.push({
+      axis, title: AXIS_TITLE[axis], verdict, message,
+      scenes: scenes.filter((p, i) => scenes.findIndex((q) => q.id === p.id) === i),
+    });
 
     // ------------------------------------------------------------ overraskelse
     const carriedIn = carried.get(factId) ?? null;
@@ -262,7 +332,7 @@ export function twistReadings(
 
     // ----------------------------------------------------------- retfærdighed
     if (disclosure && !carriedIn) {
-      const clues = [...flagged, ...unflagged].sort((a, b) => a.order - b.order);
+      const clues = [...flagged, ...unflagged].sort((a, b) => at(a) - at(b));
       if (clues.length === 0) {
         add('retfaerdighed', 'tynd',
           'Der står intet om det nogen steder, før det bliver sagt. Læseren kunne ikke have gættet det, '
@@ -271,7 +341,8 @@ export function twistReadings(
       } else {
         add('retfaerdighed', 'staerk',
           `${clues.length} ${clues.length === 1 ? 'scene bærer' : 'scener bærer'} sporet, før det bliver sagt — `
-          + `første gang i scene ${clues[0]!.order}.`,
+          + `første gang i scene ${clues[0]!.order}`
+          + (clues[0]!.otherWork ? ` i «${clues[0]!.otherWork}».` : '.'),
           clues);
       }
     }
@@ -351,14 +422,10 @@ export function twistReadings(
     }
 
     // ------------------------------------------------------------ forberedelse
-    const books = readingOrder(store, ctx);
-    const threads = db.select().from(thread)
-      .where(eq(thread.branchId, ctx.branchId)).all()
-      .filter((row) => books.covers(row, query.workId));
     const allBeats = db.select().from(beat)
       .where(eq(beat.branchId, ctx.branchId)).all()
-      .filter((b) => threads.some((t) => t.id === b.threadId))
-      .filter((b) => b.sceneId && pointOf.has(b.sceneId));
+      .filter((b) => reaching.some((t) => t.id === b.threadId))
+      .filter((b) => b.sceneId && spanPoint.has(b.sceneId));
     /**
      * Only threads that actually touch this reveal.
      *
@@ -373,16 +440,21 @@ export function twistReadings(
     );
     const relatedBeats = allBeats.filter((b) => relatedThreads.has(b.threadId));
     const setups = relatedBeats.filter((b) => b.kind === 'setup')
-      .map((b) => pointOf.get(b.sceneId!)!);
+      .map((b) => spanPoint.get(b.sceneId!)!);
     const payoffs = relatedBeats.filter((b) => b.kind === 'payoff')
-      .map((b) => pointOf.get(b.sceneId!)!);
+      .map((b) => spanPoint.get(b.sceneId!)!);
     if (setups.length > 0 && payoffs.length > 0) {
-      const gap = Math.max(...payoffs.map((p) => p.order)) - Math.min(...setups.map((p) => p.order));
+      const first = setups.reduce((a, b) => (at(a) <= at(b) ? a : b));
+      const last = payoffs.reduce((a, b) => (at(a) >= at(b) ? a : b));
+      const gap = at(last) - at(first);
+      const across = first.otherWork ?? last.otherWork
+        ? ` — fra «${first.otherWork ?? bookTitle}» til «${last.otherWork ?? bookTitle}»`
+        : '';
       add('forberedelse', gap <= 1 ? 'se_efter' : 'staerk',
         gap <= 1
           ? 'Setup og indfrielse ligger lige ved siden af hinanden. Der er ikke tid til, at læseren når at glemme det.'
-          : `Der går ${gap} scener fra det første setup til den sidste indfrielse.`,
-        [...setups, ...payoffs].sort((a, b) => a.order - b.order));
+          : `Der går ${gap} scener fra det første setup til den sidste indfrielse${across}.`,
+        [...setups, ...payoffs].sort((a, b) => at(a) - at(b)));
     }
 
     // ------------------------------------------------------ informationskontrol

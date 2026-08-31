@@ -4,14 +4,37 @@ Sidst opdateret: 31. august 2026
 
 ## Aktiv fase
 
-**Fase 11 — Serien som én fortælling. Første snit er færdigt.** En plottråd
-begynder i én bog og når så langt, rækkevidden siger: bogen, serien eller
-verden. Læserækkefølgen serie → bog → kapitel → scene kommer nu ét sted fra.
+**Fase 11 — Serien som én fortælling. Første og andet snit er færdige.** En
+plottråd begynder i én bog og når så langt, rækkevidden siger: bogen, serien
+eller verden. Læserækkefølgen serie → bog → kapitel → scene kommer nu ét sted
+fra, og Grebet måler forberedelse og spor på hele serien.
 
-Fase 0–10 er færdige. Tilbage i fase 11 står andet og tredje snit: Grebet skal
-medregne forberedelse og læserviden fra tidligere bind, og en serieoversigt skal
-vise gennemgående personer, tråde, afsløringer og uløste setups. Den aftalte
-plan ligger i `docs/ROADMAP.md`.
+Fase 0–10 er færdige. Tilbage i fase 11 står tredje snit: serieoversigten. Den
+aftalte plan ligger i `docs/ROADMAP.md`.
+
+## Færdigt i fase 11, andet snit
+
+- Grebet har to akser i stedet for én. Bogens egen akse bærer overraskelse,
+  timing og konsekvens — «der er to scener tilbage bagefter» handler om denne
+  bog. Seriens akse bærer forberedelse og sporene.
+- Seriens akse er bindene i serien, nummereret lige igennem. Bindene ligger i
+  forlængelse af hinanden i læsningen, og det er det, der gør en optælling hen
+  over dem til et rigtigt tal frem for et regnestykke på id'er.
+- Forberedelsen af «Marie Krag blev sænket med vilje» målte seks scener, fordi
+  «Saltet» kun har ni. Den måler nu fjorten og skriver, hvilke bind den går
+  mellem.
+- Sporene tælles på samme akse. En scene i et tidligere bind, der viser tingen
+  uden at pege på den, er et spor som alle andre; en scene i et *senere* bind
+  falder efter afsløringen og ryger ud i den samme sammenligning, så der ikke
+  skal siges noget særskilt om retning.
+- `ScenePoint.otherWork` bærer bindets titel, når scenen ikke står i den bog,
+  der læses. Scenenumre tæller fra et i hvert bind, så nummeret alene ville
+  pege på den forkerte scene.
+- En aflæsning nævner hver scene én gang. «Sundvej, september» bærer et setup på
+  to tråde, og en scene kan holde to afsløringer af hver sin plads — det blev
+  til to ens chips med samme React-nøgle.
+- Læserviden fra tidligere bind var der i forvejen: `whatReaderKnows` tæller
+  serien med, og `carriedIn` siger det rent ud i overraskelsesaksen.
 
 ## Færdigt i fase 11, første snit
 
@@ -179,11 +202,15 @@ intet at se og intet at klikke på.
 
 ## I gang nu
 
-- Ingen halv implementering står åben. Fase 11's første snit er lukket. Næste
-  arbejde er andet snit: Grebet på tværs af bindene.
+- Ingen halv implementering står åben. Fase 11's første og andet snit er
+  lukket. Næste arbejde er tredje snit: serieoversigten.
 
 ## Beslutninger
 
+- Grebet måler på to akser. Bogens egen, når spørgsmålet er «hvor i bogen»;
+  seriens, når spørgsmålet er «hvor lang tid gik der».
+- Et scenenummer gælder inden i sit bind. Står scenen i et andet bind, skal
+  bindet stå der; et gennemløbende serienummer kunne ingen slå op.
 - En tråd begynder ét sted og når et andet. `work_id` er hjemstavnen, `scope`
   er rækkevidden, og alt, der spørger hvad tråden dækker, spørger rækkevidden.
 - Et uskrevet slag har ingen plads i læserækkefølgen. Et manuelt `position`-tal
@@ -205,7 +232,7 @@ intet at se og intet at klikke på.
 
 ## Verificering
 
-- 250/250 prøver er grønne.
+- 254/254 prøver er grønne.
 - Typecheck og produktionsbuild er rene. Vite gentager den kendte advarsel om
   en JavaScript-chunk over 500 kB; det er ikke en buildfejl.
 - Migration 0007 er prøvet mod en kopi af den eksisterende database. Prøven
@@ -223,25 +250,28 @@ intet at se og intet at klikke på.
   «nævnt uden omtale» op i ankrene uden at ændre ordtallet, og «Marie Krag» blev
   oprettet som genstand, fik G2 og blev knyttet i næste klik.
 - `vis_navne_uden_kobling` på hele serien melder fire scener og ingen støj.
+- Browserprøvet på den rigtige `fabula.db`: Kontinuitet viser «Gælden · hele
+  serien» med bindets titel på hvert slag i læserækkefølge, gennemgangen melder
+  ingen hængende setups, og Grebet skriver «Der går 14 scener fra det første
+  setup til den sidste indfrielse — fra «Saltet» til «Tidevandet»» med chippen
+  «6. Jens siger det · Tidevandet». Ingen fejl i konsollen.
 - Browserprøvet på en kopi af den rigtige database: et anker fra «Sundvej,
   september» til «Marie Krag går ned» giver bemærkningen «Omtale før sin tid» i
   Gennemgangen med Læg til side-knappen, som alle andre fund.
 
 ## Næste konkrete handling
 
-Fase 11, andet snit: Grebet på tværs af bindene. `src/core/queries/dramaturgy.ts`
-måler stadig kun inden i én bog — `sceneAxis` lægger bogens egne scener på en
-akse, og `pointOf.has(sceneId)` sorterer derfor ethvert slag i et andet bind
-fra. En serietråd, der bliver sat op i bind et og indfriet i bind to, tæller
-altså nul i forberedelsen, selv om det er den længste forberedelse, bogen har.
-Aksen skal kunne strække sig over hele serien, når tråden gør det, og
-`whatReaderKnows` tæller allerede tidligere bind med, så læserviden er halvdelen
-af arbejdet gjort. Tredje snit er serieoversigten.
+Fase 11, tredje snit: serieoversigten. Den skal vise gennemgående personer,
+plottråde, afsløringer og uløste setups for én serie — og ikke blande en anden
+serie i den samme verden ind. Byggeklodserne findes: `readingOrder` giver
+bindene og rækkefølgen, `reach` giver trådene, `whatReaderKnows` giver
+læserviden hen over bindeskellet, og `dangling_setup` giver de uløste setups.
+Det, der mangler, er en forespørgsel — formentlig `src/core/queries/series.ts` —
+plus et MCP-værktøj og en visning. Afgrænsningen er den samme som alle andre
+steder: en verden kan rumme flere serier, og de arver ingenting fra hinanden.
 
 ## Åbne risici
 
-- Grebet regner endnu kun inden i ét bind. En serietråds forberedelse tæller
-  nul over bindeskellet — se næste konkrete handling.
 - Prøvecasene indlæses altid i en tom database. Der er ingen vej til at hente
   nye eksempler ind i en database, man selv har arbejdet i, uden at få
   verdenerne dobbelt. Det var præcis den fælde, efterslættet ovenfor faldt i.
