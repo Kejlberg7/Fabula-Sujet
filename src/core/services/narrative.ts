@@ -3,6 +3,7 @@ import type { Store } from '../../db/client';
 import {
   beat, chapter, part, reveal, scene, sceneEvent, sceneText, textAnchor, thread,
 } from '../../db/schema';
+import type { ThreadScope } from '../queries/order';
 import type { Session } from '../changelog';
 import type { Context } from '../workbench';
 
@@ -153,13 +154,17 @@ export function createTextAnchor(
   })['id'] as string;
 }
 
+/**
+ * `workId` is the volume the thread begins in; `scope` is how far it reaches.
+ * A thread left at `work` behaves exactly as it did before scope existed.
+ */
 export function createThread(
   session: Session, ctx: Context,
-  input: { workId: string; name: string; summary?: string },
+  input: { workId: string; name: string; summary?: string; scope?: ThreadScope },
 ): string {
   return session.insert(thread, {
     workId: input.workId, branchId: ctx.branchId,
-    name: input.name, summary: input.summary ?? null,
+    name: input.name, summary: input.summary ?? null, scope: input.scope ?? 'work',
   })['id'] as string;
 }
 

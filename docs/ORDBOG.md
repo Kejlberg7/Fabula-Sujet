@@ -47,7 +47,9 @@ navn i en tabel eller et felt er også en fejl.
 | Afsløring | `reveal` | Hvornår **læseren** får noget at vide |
 | Tekstanker | `text_anchor` | Et stykke prosa bundet til det, det udtrykker |
 | Arbejdsreference | `story_reference` | Stabil, kort adresse som P1, G1 eller E4 til et mål i biblen |
-| Tråd | `thread` | Plotlinje |
+| Tråd | `thread` | Plotlinje. Begynder i én bog og når så langt, rækkevidden siger |
+| Rækkevidde | `thread.scope` | Hvor langt en tråd når: `bog`, `serie` eller `verden` |
+| Læseorden | `readingOrder` | Serie → bog → kapitel → scene, som én stigende orden |
 | Slag | `beat` | Setup, komplikation eller payoff i en tråd |
 | Bruger | `app_user` | |
 | Arbejdssted | `app_state` | Hvilken verden, bog og gren der er valgt lige nu |

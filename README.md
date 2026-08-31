@@ -6,7 +6,7 @@ og hvornår de **fortælles**.
 
 ## Status
 
-**Fase 0 til 9 er færdige, og fase 10 er begyndt.** Datamodellen, tidsløseren, ændringsloggen og
+**Fase 0 til 10 er færdige, og fase 11 er begyndt.** Datamodellen, tidsløseren, ændringsloggen og
 MCP-serveren står; oven på dem et interface med værkvælger, tidslinje, lister og
 historik, et skrivebord hvor prosaen bliver til med bibelen åben ved siden af —
 og en motor, der siger fra, når noget ikke kan lade sig gøre. Fortællelaget
@@ -18,11 +18,13 @@ bundet sammen med stabile arbejdsreferencer, der kan skrives som `@G1` og vises
 som det naturlige navn på siden. En gennemlæsning af manuskriptet ved, hvilken
 version af hver scene den faktisk læste, skrivebordet siger til, når et navn
 står i prosaen uden at hænge sammen med bibelen, og de omtaler, der *er* knyttet,
-bliver prøvet mod tid, navnegyldighed og læserens rækkefølge.
+bliver prøvet mod tid, navnegyldighed og læserens rækkefølge. En plottråd kan
+nu nå ud over den bog, den begynder i, så et løfte givet i bind et kan blive
+indfriet i bind to.
 
 ```bash
 npm install
-npm test                              # 238 prøver
+npm test                              # 250 prøver
 npm run fixtures -- ./fabula.db       # læg de fire prøvecases ind
 npm run build && npm run dev          # interfacet på http://localhost:4173
 npm run ask -- ./fabula.db hent_kontekst
@@ -115,8 +117,9 @@ Tilstande er brugerdefinerede frem for hårdkodede. Kategorien kan være
 gælder relationer, når du giver dem en kategori som «alliance» eller «forhold».
 Uden en kategori gætter programmet ikke på, hvilke ord der udelukker hinanden.
 
-Plottråde samler setups, komplikationer og payoffs i bogens rækkefølge. Et setup
-uden et senere payoff bliver en bemærkning i gennemgangen. Identiteter kan have
+Plottråde samler setups, komplikationer og payoffs i læserækkefølgen. Et setup
+uden et senere payoff bliver en bemærkning i gennemgangen. En tråd kan nå
+længere end den bog, den begynder i — se «Serien som én fortælling». Identiteter kan have
 deres eget tidsrum og knyttes til en konkret deltagelse, og en registreret
 forsvinding gør en sikker optræden midt i hullet synlig.
 
@@ -462,19 +465,49 @@ fase 15, ikke som noget, der er glemt.
 Alle fire prøvecases er tavse under de tre regler, og der er en vægtprøve pr. bog
 på netop den tavshed.
 
+### Serien som én fortælling
+
+En plottråd har altid haft en bog. Nu har den to ting: den bog, den **begynder**
+i, og hvor langt den **når** — kun bogen, hele serien eller hele verden.
+
+```
+Gælden  ·  hele serien
+  SETUP          Valdemar tager imod pengene            Sundvej, september · Saltet
+  KOMPLIKATION   Ingeborg bliver medvider og bliver     Han fortæller hende det · Saltet
+  PAYOFF         Barnebarnet betaler tres år efter      Jens siger det · Tidevandet
+```
+
+Før kunne det her ikke skrives. Setuppet lå i bind et og indfrielsen i bind to,
+så de måtte være to tråde, og gennemgangen så et løfte, der aldrig blev holdt, og
+en indfrielse, der aldrig var blevet lovet. Nu er det én tråd, og gennemgangen
+tier — fordi løftet faktisk bliver holdt.
+
+Det krævede en rækkefølge, der gælder på tværs af bindene. Kapitler tæller fra
+et i hver bog, så en sammenligning, der kun så på kapitel og scene, lagde bind
+to's første kapitel før bind et's andet. `readingOrder` i
+`src/core/queries/order.ts` lægger serie → bog → kapitel → scene i én stigende
+orden, og alt, der skal sige hvilken af to scener læseren når først, spørger der.
+
+Et slag, der endnu ikke er skrevet ind i en scene, bliver ikke placeret. Det er
+ikke en mangel, det er reglen: så længe et payoff kan lægges efter sit setup,
+er der ikke noget galt. Kun det setup, hvis payoff mangler helt eller
+beviseligt ligger for tidligt, bliver meldt.
+
+Rækkevidden bestemmer også, hvad du får at se. Med «Saltet» valgt viser
+kontinuitetspanelet bogens egen tråd og seriens — men ikke den, der udelukkende
+hører til «Tidevandet». En anden serie i den samme verden arver stadig
+ingenting.
+
 ## Næste skridt
 
-**Fase 10 er færdig, med én bevidst undtagelse:** tilstedeværelse, besiddelse og
+**Fase 11 er i gang.** Første snit er lagt: tråde med rækkevidde, én læseorden
+for hele serien, og en gennemgang, der regner på tværs af bindene. Tilbage står
+Grebet, der skal medregne forberedelse og læserviden fra tidligere bind, og en
+serieoversigt.
+
+**Fra fase 10, bevidst udskudt:** tilstedeværelse, besiddelse og
 genstandstilstand kan ikke udledes af en omtale, og det kræver et anker, der
 siger, hvordan passagen bruger sit mål. Det ligger i fase 15.
-
-**Fase 11 er den næste:** serien som én fortælling. En plottråd skal kunne høre
-til en bog, en serie eller en verden, så et setup i bind et kan få sin
-indfrielse i bind to.
-
-**Kendt grænse:** en plottråd hører til én bog (`thread.work_id`), så et setup i
-bind et og en indfrielse i bind to kan ikke skrives som én tråd. Hver bog må have
-sin egen. Det er værd at rette, hvis serier bliver den normale arbejdsform.
 
 **Kildefiler som vedhæftninger.** `source.file_path` peger på en sti, ingen har
 lovet holder. En egentlig vedhæftningsmappe med kopi ved indlæggelse ville gøre

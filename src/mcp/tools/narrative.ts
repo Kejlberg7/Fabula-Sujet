@@ -27,17 +27,23 @@ export const narrativeTools: ToolDef[] = [
     name: 'opret_plottraad',
     title: 'Opret plottråd',
     description:
-      'En udviklingslinje gennem bogen. Setups, komplikationer og payoffs hænger på tråden, så '
-      + 'gennemgangen kan finde et løfte til læseren, der aldrig bliver indfriet.',
+      'En udviklingslinje. Setups, komplikationer og payoffs hænger på tråden, så '
+      + 'gennemgangen kan finde et løfte til læseren, der aldrig bliver indfriet. '
+      + 'Rækkevidden siger, hvor langt tråden når: kun bogen den begynder i, hele serien, '
+      + 'eller verden. Et setup i bind et kan først få sit payoff i bind to, når tråden '
+      + 'når serien.',
     inputSchema: {
       navn: z.string(),
       resume: z.string().optional(),
       vaerk: z.string().optional(),
+      raekkevidde: z.enum(['bog', 'serie', 'verden']).optional(),
     },
     run: (args, tools) => {
+      const scope = args.raekkevidde === 'serie' ? 'series'
+        : args.raekkevidde === 'verden' ? 'world' : 'work';
       const { value } = write(tools, `Plottråd: ${args.navn}`, (session, ctx) =>
         createThread(session, ctx, {
-          workId: activeWork(tools, args.vaerk), name: args.navn, summary: args.resume,
+          workId: activeWork(tools, args.vaerk), name: args.navn, summary: args.resume, scope,
         }));
       return made('Plottråden', args.navn, value);
     },

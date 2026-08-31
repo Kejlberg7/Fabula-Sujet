@@ -190,7 +190,22 @@ export const textAnchor = sqliteTable('text_anchor', {
   byTarget: index('text_anchor_target_idx').on(t.targetKind, t.targetId, t.branchId),
 }));
 
-/** A plot line, and the beats that carry it. Dangling setups are a finding. */
+/**
+ * A plot line, and the beats that carry it. Dangling setups are a finding.
+ *
+ * Two different questions, and they used to be one column. `workId` is the
+ * volume the thread *begins* in, and it is always set, because a thread is
+ * always begun somewhere. `scope` is how far it *reaches*: this book alone,
+ * the whole series the book belongs to, or the world.
+ *
+ * The distinction is the point of phase eleven. A promise made in volume one
+ * and kept in volume two is one thread, not two halves that nothing joins --
+ * and until it could be written that way, the dangling-setup rule had no way
+ * to tell a promise kept from one still owed.
+ *
+ * Everything that asks what a thread covers asks `scope`. `workId` answers the
+ * other question: where it started.
+ */
 export const thread = sqliteTable('thread', {
   id: pk(),
   workId: text('work_id').notNull().references(() => work.id),
@@ -198,6 +213,7 @@ export const thread = sqliteTable('thread', {
   originId: originId(),
   name: text('name').notNull(),
   summary: text('summary'),
+  scope: text('scope', { enum: ['work', 'series', 'world'] }).notNull().default('work'),
 });
 
 export const beat = sqliteTable('beat', {

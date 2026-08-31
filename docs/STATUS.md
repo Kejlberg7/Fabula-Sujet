@@ -1,16 +1,48 @@
 # Arbejdsstatus
 
-Sidst opdateret: 30. august 2026
+Sidst opdateret: 31. august 2026
 
 ## Aktiv fase
 
-**Fase 10 — Prosaen kontrolleres mod bibelen. Færdig, med én bevidst
-undtagelse.** Alle tre snit er implementeret, prøvet og browserprøvet:
-den versionsbundne gennemlæsning, navnene uden kobling, og omtalen som en
-påstand, motoren kan prøve.
+**Fase 11 — Serien som én fortælling. Første snit er færdigt.** En plottråd
+begynder i én bog og når så langt, rækkevidden siger: bogen, serien eller
+verden. Læserækkefølgen serie → bog → kapitel → scene kommer nu ét sted fra.
 
-Fase 0–10 er færdige. Næste fase er 11 — serien som én fortælling. Den aftalte
+Fase 0–10 er færdige. Tilbage i fase 11 står andet og tredje snit: Grebet skal
+medregne forberedelse og læserviden fra tidligere bind, og en serieoversigt skal
+vise gennemgående personer, tråde, afsløringer og uløste setups. Den aftalte
 plan ligger i `docs/ROADMAP.md`.
+
+## Færdigt i fase 11, første snit
+
+- `thread.scope` (`work` | `series` | `world`) og migration 0009. `work_id` blev
+  stående og betyder nu den bog, tråden **begynder** i.
+- Tabellen kunne ikke bygges om, og det er prøvet, ikke gættet: SQLite slipper
+  ikke NOT NULL uden at genskabe tabellen, og en genskabelse fejler ved COMMIT,
+  selv med `defer_foreign_keys = ON` og et tomt `foreign_key_check`. `beat`s
+  fremmednøgle tæller `DROP TABLE`s implicitte sletninger med og tæller dem
+  aldrig tilbage. En tilføjet kolonne med default er derfor både den mulige og
+  den rigtige vej: enhver eksisterende tråd får `work` og opfører sig præcis som
+  før.
+- `src/core/queries/order.ts` med `readingOrder`: bøgerne i serieorden, én
+  stigende `sceneRank` på tværs af hele grenen, og `reach`/`covers`, der siger,
+  hvilke bøger en tråd når.
+- `danglingSetup` regner nu i den orden. Før lagde den `kapitel × 100.000 +
+  scene`, som kun gælder inden i ét bind — bind to's første kapitel kom før bind
+  et's andet, og et løfte holdt i bind to så ud som et løfte brudt.
+- Et slag uden scene er **ikke placeret**. Et `position`-tal sorterer det mod
+  trådens andre uskrevne slag og siger intet om, hvor i bogen det havner. Så
+  længe et payoff kan lægges efter sit setup, tier reglen — det er den samme
+  regel som alle de andre: kun det umulige meldes.
+- `resolveThread`, `continuity.get`, `continuity.thread.create`, `createThread`,
+  `opret_plottraad` (nyt argument `raekkevidde`: bog/serie/verden) og
+  `twistReadings` spørger alle rækkevidden i stedet for at sammenligne
+  `work_id`.
+- Kontinuitetspanelet viser rækkevidden som chip og skriver bindets titel på
+  hvert slag, når tråden når længere end sin egen bog. Slagene sorteres i
+  læserækkefølge, ikke efter et manuelt tal, der kun gjaldt inden i ét bind.
+- Havnen har fået tråden «Gælden» med setup i «Saltet» og payoff i
+  «Tidevandet» — den tråd, der ikke kunne skrives før.
 
 ## Færdigt i fase 10 indtil nu
 
@@ -147,11 +179,16 @@ intet at se og intet at klikke på.
 
 ## I gang nu
 
-- Ingen halv implementering står åben. Fase 10 er lukket. Næste arbejde er
-  fase 11.
+- Ingen halv implementering står åben. Fase 11's første snit er lukket. Næste
+  arbejde er andet snit: Grebet på tværs af bindene.
 
 ## Beslutninger
 
+- En tråd begynder ét sted og når et andet. `work_id` er hjemstavnen, `scope`
+  er rækkevidden, og alt, der spørger hvad tråden dækker, spørger rækkevidden.
+- Et uskrevet slag har ingen plads i læserækkefølgen. Et manuelt `position`-tal
+  er en sortering inden i tråden, ikke en påstand om, hvor i bogen det ligger.
+- En løs ende i en serietråd er seriens sag og vises fra alle dens bind.
 - En gennemlæsning er bundet til den version, den læste. Uden det kan en gammel
   læsning ikke skelnes fra en aktuel.
 - «Forældet» er en oplysning, ikke en spærring. Prosa gemmes, mens man skriver.
@@ -168,11 +205,15 @@ intet at se og intet at klikke på.
 
 ## Verificering
 
-- 238/238 prøver er grønne.
+- 250/250 prøver er grønne.
 - Typecheck og produktionsbuild er rene. Vite gentager den kendte advarsel om
   en JavaScript-chunk over 500 kB; det er ikke en buildfejl.
 - Migration 0007 er prøvet mod en kopi af den eksisterende database. Prøven
   fandt og rettede migrationsjournalens fremskudte tidsstempler.
+- Migration 0009 er prøvet mod en kopi af den rigtige `fabula.db`: ni tråde, 23
+  slag, 294 arbejdsreferencer og alt andet står uændret, og hver tråd har fået
+  `work`. Journalens tidsstempel er 1790000005000; migrationerne køres i
+  tidsstempelorden, ikke i journalens indeksorden.
 - Browserprøvet på en kopi af den rigtige database: en rettelse i «Vandet står
   ind» giver margennoten mærket «tidligere version», og Gennemgangen skifter fra
   «ingen af scenerne er skrevet om siden» til «1 af scenerne».
@@ -188,17 +229,19 @@ intet at se og intet at klikke på.
 
 ## Næste konkrete handling
 
-Fase 11 — serien som én fortælling. Den kendte grænse er `thread.work_id`: en
-plottråd hører til én bog, så et setup i bind et og en indfrielse i bind to kan
-ikke skrives som den samme tråd. Første snit er derfor at lade en tråd høre til
-en bog, en serie eller en verden, med migration og uden datatab, og at regne
-orden som serie → bog → kapitel → scene. Derefter skal Grebet medregne
-forberedelse og læservarviden fra tidligere bind, og en serieoversigt skal vise
-gennemgående personer, tråde, afsløringer og uløste setups — uden at blande en
-anden serie i den samme verden ind.
+Fase 11, andet snit: Grebet på tværs af bindene. `src/core/queries/dramaturgy.ts`
+måler stadig kun inden i én bog — `sceneAxis` lægger bogens egne scener på en
+akse, og `pointOf.has(sceneId)` sorterer derfor ethvert slag i et andet bind
+fra. En serietråd, der bliver sat op i bind et og indfriet i bind to, tæller
+altså nul i forberedelsen, selv om det er den længste forberedelse, bogen har.
+Aksen skal kunne strække sig over hele serien, når tråden gør det, og
+`whatReaderKnows` tæller allerede tidligere bind med, så læserviden er halvdelen
+af arbejdet gjort. Tredje snit er serieoversigten.
 
 ## Åbne risici
 
+- Grebet regner endnu kun inden i ét bind. En serietråds forberedelse tæller
+  nul over bindeskellet — se næste konkrete handling.
 - Prøvecasene indlæses altid i en tom database. Der er ingen vej til at hente
   nye eksempler ind i en database, man selv har arbejdet i, uden at få
   verdenerne dobbelt. Det var præcis den fælde, efterslættet ovenfor faldt i.

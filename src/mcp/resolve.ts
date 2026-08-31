@@ -6,6 +6,7 @@ import {
   work, world,
 } from '../db/schema';
 import type { Context } from '../core/workbench';
+import { readingOrder } from '../core/queries/order';
 import { referenceByCode } from '../core/queries/references';
 
 /**
@@ -144,8 +145,11 @@ export function resolveSource(store: Store, ctx: Context, needle: string) {
 }
 
 export function resolveThread(store: Store, ctx: Context, needle: string) {
+  const order = readingOrder(store, ctx);
+  // A thread that reaches into the chosen book is addressable from it, even
+  // when it began in an earlier volume.
   const rows = rowsIn(store, thread, thread.branchId as never, ctx.branchId)
-    .filter((row) => !ctx.workId || row.workId === ctx.workId);
+    .filter((row) => !ctx.workId || order.covers(row, ctx.workId));
   const addressed = referenceByCode(store, ctx, needle, ['thread']);
   if (addressed) {
     const row = rows.find((item) => item.id === addressed.targetId);

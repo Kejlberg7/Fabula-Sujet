@@ -13,6 +13,7 @@ import { bandView } from '../core/queries/band';
 import { compareTwists, twistReadings } from '../core/queries/dramaturgy';
 import { readBindings } from '../core/queries/bindings';
 import { manuscriptPacket } from '../core/queries/manuscript';
+import { readingOrder, type ThreadScope } from '../core/queries/order';
 import { proseGaps } from '../core/queries/proseGaps';
 import { sourceShelf } from '../core/queries/sources';
 import { knowledgeTrack } from '../core/queries/track';
@@ -253,8 +254,18 @@ export function createApi(store: Store) {
       const relations = db.select().from(relationship).where(eq(relationship.branchId, c.branchId)).all();
       const absences = db.select().from(disappearance)
         .where(eq(disappearance.branchId, c.branchId)).all();
+      const order = readingOrder(store, c);
       const lines = db.select().from(thread).where(eq(thread.branchId, c.branchId)).all()
-        .filter((row) => !c.workId || row.workId === c.workId);
+        .filter((row) => !c.workId || order.covers(row, c.workId));
+      // A thread reaching past its own volume needs to say which book each
+      // beat sits in; otherwise «Brevet findes» and «Jens siger det» read as
+      // two scenes in the same book.
+      const workTitles = new Map(order.works.map((row) => [row.id, row.title] as const));
+      const workOfChapter = new Map(db.select().from(chapter)
+        .where(eq(chapter.branchId, c.branchId)).all()
+        .map((row) => [row.id, row.workId] as const));
+      const bookOfScene = new Map(scenes.map((row) =>
+        [row.id, workTitles.get(workOfChapter.get(row.chapterId) ?? '') ?? null] as const));
       const shelf = sourceShelf(store, c);
 
       const when = (from: number | null, to: number | null) => {
@@ -299,9 +310,15 @@ export function createApi(store: Store) {
           ...line,
           beats: db.select().from(beat).where(eq(beat.threadId, line.id)).all()
             .filter((item) => item.branchId === c.branchId)
-            .sort((a, b) => (a.position ?? Infinity) - (b.position ?? Infinity))
+            // Reading order first: a series thread's beats live in two books,
+            // and a manual position only ever ordered them inside one.
+            .sort((a, b) =>
+              ((a.sceneId ? order.sceneRank(a.sceneId) : null) ?? Infinity)
+              - ((b.sceneId ? order.sceneRank(b.sceneId) : null) ?? Infinity)
+              || (a.position ?? Infinity) - (b.position ?? Infinity))
             .map((item) => ({
               ...item, sceneName: item.sceneId ? sceneNames.get(item.sceneId) ?? '(ukendt)' : null,
+              workTitle: item.sceneId ? bookOfScene.get(item.sceneId) ?? null : null,
             })),
         })),
         // Hylden er den samme her og i gennemgangspakken. Da den fandtes to
@@ -653,7 +670,9 @@ export function createApi(store: Store) {
     }) => bench.run({ actor, summary: 'Registrer forsvinding' }, (session, c) =>
       ({ id: recordDisappearance(session, c, input) })),
 
-    'continuity.thread.create': (input: { name: string; summary?: string; workId?: string }) =>
+    'continuity.thread.create': (input: {
+      name: string; summary?: string; workId?: string; scope?: ThreadScope;
+    }) =>
       bench.run({ actor, summary: `Plottråd: ${input.name}` }, (session, c) => {
         const workId = input.workId ?? c.workId;
         if (!workId) throw new Error('Der er ikke valgt en bog.');

@@ -1,8 +1,9 @@
 import { and, eq } from 'drizzle-orm';
 import {
-  beat, chapter, disappearance, entityState, identity, participation, relationship,
-  scene, source, sourceLink, thread,
+  beat, disappearance, entityState, identity, participation, relationship,
+  source, sourceLink, thread,
 } from '../../db/schema';
+import { readingOrder } from '../queries/order';
 import { labelForTarget } from '../queries/sources';
 import { fingerprint, type Finding, type Rule, type Snapshot } from './kit';
 
@@ -121,31 +122,42 @@ export const danglingSetup: Rule = {
   code: 'dangling_setup',
   title: 'Hængende setup',
   run: (snap) => {
+    const order = readingOrder(snap.store, snap.ctx);
     const threads = snap.store.db.select().from(thread)
       .where(eq(thread.branchId, snap.ctx.branchId)).all()
-      .filter((row) => !snap.ctx.workId || row.workId === snap.ctx.workId);
-    const chapters = snap.store.db.select().from(chapter)
-      .where(eq(chapter.branchId, snap.ctx.branchId)).all();
-    const chapterPosition = new Map(chapters.map((row) => [row.id, row.position]));
-    const scenes = snap.store.db.select().from(scene)
-      .where(eq(scene.branchId, snap.ctx.branchId)).all();
-    const scenePosition = new Map(scenes.map((row) => [
-      row.id, (chapterPosition.get(row.chapterId) ?? 0) * 100_000 + row.position,
-    ]));
+      .filter((row) => !snap.ctx.workId || order.covers(row, snap.ctx.workId));
+    /**
+     * Where a beat lands in the reading, when it lands anywhere. A beat hung on
+     * a scene is placed by that scene; a beat with only a `position` is not
+     * placed at all -- that number sorts it against the thread's other unwritten
+     * beats and says nothing about where in the book it will end up.
+     */
+    const placed = (row: typeof beat.$inferSelect) =>
+      row.sceneId ? order.sceneRank(row.sceneId) : null;
     const findings: Finding[] = [];
     for (const line of threads) {
       const rows = snap.store.db.select().from(beat).where(and(
         eq(beat.threadId, line.id), eq(beat.branchId, snap.ctx.branchId),
       )).all();
-      const order = (row: typeof beat.$inferSelect) =>
-        row.position ?? (row.sceneId ? scenePosition.get(row.sceneId) : null) ?? Infinity;
       const payoffs = rows.filter((row) => row.kind === 'payoff');
       for (const setup of rows.filter((row) => row.kind === 'setup')) {
-        if (payoffs.some((row) => order(row) > order(setup))) continue;
+        const kept = payoffs.some((row) => {
+          const here = placed(row);
+          const there = placed(setup);
+          if (here != null && there != null) return here > there;
+          // One of the two is not written into the book yet, so nothing stops
+          // the writer from putting it after the setup. Only a payoff that is
+          // demonstrably too early -- or missing outright -- is a finding.
+          if (here != null || there != null) return true;
+          return (row.position ?? Infinity) > (setup.position ?? -Infinity);
+        });
+        if (kept) continue;
+        const reach = line.scope === 'series' ? ' — heller ikke i et senere bind'
+          : line.scope === 'world' ? ' — heller ikke i en anden bog i verden' : '';
         findings.push({
           ruleCode: 'dangling_setup', severity: 'note',
           message: `Plottråden «${line.name}» sætter «${setup.summary ?? 'noget'}» op, `
-            + 'men har intet senere payoff endnu.',
+            + `men har intet senere payoff endnu${reach}.`,
           subjects: { rows: [line.id, setup.id, ...(setup.sceneId ? [setup.sceneId] : [])] },
           fingerprint: fingerprint('dangling_setup', setup.id),
         });

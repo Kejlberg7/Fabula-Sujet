@@ -4,6 +4,7 @@ import {
   beat, belief, carrier, chapter, entity, eventFact, fact, factSlot, reveal, scene,
   sceneEvent, statement, thread,
 } from '../../db/schema';
+import { readingOrder } from './order';
 import { whatReaderKnows } from './reader';
 import type { Context } from '../workbench';
 
@@ -89,8 +90,13 @@ const AXIS_TITLE: Record<Axis, string> = {
   informationskontrol: 'Informationskontrol',
 };
 
-/** Every scene of a book in reading order, which is the axis all of this is measured on. */
-function readingOrder(store: Store, ctx: Context, workId: string): ScenePoint[] {
+/**
+ * Every scene of one book, in order: the axis all of this is measured on.
+ *
+ * Not `readingOrder` from `./order`, which orders whole books against each
+ * other. This one measures inside a single volume, in scenes.
+ */
+function sceneAxis(store: Store, ctx: Context, workId: string): ScenePoint[] {
   const { db } = store;
   const chapters = db.select().from(chapter)
     .where(and(eq(chapter.workId, workId), eq(chapter.branchId, ctx.branchId))).all()
@@ -130,7 +136,7 @@ export function twistReadings(
   store: Store, ctx: Context, query: { workId: string },
 ): TwistReport[] {
   const { db } = store;
-  const order = readingOrder(store, ctx, query.workId);
+  const order = sceneAxis(store, ctx, query.workId);
   const pointOf = new Map(order.map((p) => [p.id, p]));
   const total = order.length;
   if (total === 0) return [];
@@ -345,8 +351,10 @@ export function twistReadings(
     }
 
     // ------------------------------------------------------------ forberedelse
+    const books = readingOrder(store, ctx);
     const threads = db.select().from(thread)
-      .where(and(eq(thread.workId, query.workId), eq(thread.branchId, ctx.branchId))).all();
+      .where(eq(thread.branchId, ctx.branchId)).all()
+      .filter((row) => books.covers(row, query.workId));
     const allBeats = db.select().from(beat)
       .where(eq(beat.branchId, ctx.branchId)).all()
       .filter((b) => threads.some((t) => t.id === b.threadId))

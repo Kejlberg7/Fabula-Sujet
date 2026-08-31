@@ -12,6 +12,10 @@ const RELATION_DA: Record<string, string> = {
 const BEAT_DA: Record<string, string> = {
   setup: 'setup', complication: 'komplikation', payoff: 'payoff',
 };
+/** Kun vist, når tråden når længere end den bog, den begynder i. */
+const SCOPE_DA: Record<string, string> = {
+  series: 'hele serien', world: 'hele verden',
+};
 
 export function Continuity({
   nonce, notify, onChanged,
@@ -164,14 +168,20 @@ export function Continuity({
         <div className="continuity-grid">
           {data.threads.map((line) => (
             <article className="continuity-card thread-card" key={line.id}>
-              <h3>{line.name}</h3>
+              <h3>{line.name} {line.scope !== 'work'
+                && <span className="chip quiet">{SCOPE_DA[line.scope] ?? line.scope}</span>}</h3>
               <div className="dim">{edit('thread', line.id, 'summary', line.summary, true)}</div>
               <div className="beat-line">
                 {line.beats.map((item) => (
                   <div className={`beat ${item.kind}`} key={item.id}>
                     <span className="chip quiet">{BEAT_DA[item.kind] ?? item.kind}</span>
                     <strong>{item.summary ?? '(uden beskrivelse)'}</strong>
-                    {item.sceneName && <small>{item.sceneName}</small>}
+                    {item.sceneName && (
+                      <small>
+                        {item.sceneName}
+                        {line.scope !== 'work' && item.workTitle && ` · ${item.workTitle}`}
+                      </small>
+                    )}
                     <button className="icon-delete" aria-label="Slet plotslaget"
                       onClick={() => void remove('beat', item.id, 'plotslaget')}>×</button>
                   </div>

@@ -678,13 +678,14 @@ export function loadHavnen(store: Store): {
     ]);
 
     /**
-     * Plottråde, og den grænse de løber ind i.
+     * Plottråde: to der bliver i deres bog, og en der ikke gør.
      *
-     * Tråden hører til én bog -- `thread.work_id` -- så et setup i «Saltet» og
-     * en indfrielse i «Tidevandet» kan ikke skrives som én tråd. Det er en
-     * rigtig begrænsning i modellen for en serie, og den står her med vilje:
-     * hver bog får sin egen tråd, og afstanden mellem dem er noget, man kun kan
-     * se ved at læse begge.
+     * «Skibet» og «Brevet» hører hver til sit bind. «Gælden» gør ikke: den
+     * bliver sat op i «Saltet» og først indfriet i «Tidevandet», og det er
+     * netop den slags løfte en serie lever af. Med rækkevidden `series` er de
+     * to ting én tråd, og gennemgangen kan se, at løftet bliver holdt -- før
+     * fase elleve kunne den kun se et setup uden payoff i bind et og et payoff
+     * uden setup i bind to.
      */
     const thread1 = createThread(s, ctx, {
       workId: firstWorkId, name: 'Skibet',
@@ -718,6 +719,23 @@ export function loadHavnen(store: Store): {
     createBeat(s, ctx, {
       threadId: thread2, kind: 'payoff', sceneId: second.get('Jens siger det'),
       summary: 'Det bliver sagt højt.',
+    });
+
+    const acrossBooks = createThread(s, ctx, {
+      workId: firstWorkId, scope: 'series', name: 'Gælden',
+      summary: 'Det Valdemar skylder, og den der ender med at betale.',
+    });
+    createBeat(s, ctx, {
+      threadId: acrossBooks, kind: 'setup', sceneId: first.get('Sundvej, september'),
+      summary: 'Valdemar tager imod pengene.',
+    });
+    createBeat(s, ctx, {
+      threadId: acrossBooks, kind: 'complication', sceneId: first.get('Han fortæller hende det'),
+      summary: 'Ingeborg bliver medvider og bliver.',
+    });
+    createBeat(s, ctx, {
+      threadId: acrossBooks, kind: 'payoff', sceneId: second.get('Jens siger det'),
+      summary: 'Barnebarnet betaler regningen tres år efter.',
     });
 
     /**
