@@ -1,17 +1,38 @@
 # Arbejdsstatus
 
-Sidst opdateret: 31. august 2026
+Sidst opdateret: 5. september 2026
 
 ## Aktiv fase
 
-**Fase 12 — Holdbare kildevedhæftninger. Færdig.** En sti er et løfte, ingen
-har givet. Filen kopieres nu ind i projektets arkiv ved siden af databasen, og
-navn, type, størrelse og kontrolsum bliver gemt, så en fil, der forsvinder eller
-bliver en anden, kan opdages. Kilden bliver stadig kun gemt og vist — at kopiere
-og hashe bytes er ikke at læse dem.
+**Fase 13 — Eksport, backup og genoprettelse. I gang.** Bogen skal kunne
+forlade programmet. Første snit er færdigt: læseudgaven som Markdown og DOCX,
+uden arbejds-id'er og uden ankermærker, med et valgfrit appendiks.
 
-Fase 0–12 er færdige. Næste fase er 13 — eksport, backup og genoprettelse. Den
-aftalte plan ligger i `docs/ROADMAP.md`.
+Fase 0–12 er færdige. Den aftalte plan ligger i `docs/ROADMAP.md`.
+
+### Færdigt i fase 13, første snit
+
+- `src/core/export/document.ts`: den neutrale model. Markdown og DOCX er to
+  gengivelser af det samme, og bygges de hver for sig, begynder de at være
+  uenige. Blokke og løb; en gengiver laver bytes og bestemmer intet om teksten.
+- **Ét sted, der fjerner apparatet.** `fromProse` beholder ordene og taber
+  mærkerne, og hele læseudgaven går derigennem. Editorens egen Markdown gik før
+  gennem sin egen kopi i `web/`; den kunne eksporten ikke importere, så en bog,
+  der forlod programmet, blev serialiseret af anden kode end den, søgningen
+  læser. Nu kalder begge det samme.
+- `src/core/export/zip.ts`: ZIP skrevet og læst i hånden. En DOCX er et
+  ZIP-arkiv, og det er en backup med vedhæftninger også. Formatets eget hoved
+  er hundrede linjer og har ikke ændret sig siden 1993 — mod en afhængighed i
+  vejen for hver eneste fil, der forlader programmet, er hundrede linjer den
+  billigere side.
+- `src/core/export/docx.ts`: manuskriptets egen form. Times 12 pkt, halvanden
+  linje, indryk på alle afsnit undtagen det, der åbner en scene, og hvert
+  kapitel på en frisk side. Prøvet med Apples egen `textutil`, som åbner filen
+  og læser hele bogen ud igen.
+- `src/core/export/reading.ts`: bog eller serie i læserækkefølge, scenebrud
+  mellem scener i samme kapitel, og et appendiks, der kun kommer med, når der
+  bliver bedt om det. Appendikset dækker det, bogen selv bringer på scenen —
+  ikke hele verdenen.
 
 ## Efterslæt: prøvet mod dokumentationen
 
@@ -302,8 +323,8 @@ intet at se og intet at klikke på.
 
 ## I gang nu
 
-- Ingen halv implementering står åben. Fase 12 er lukket, og efterslættet fra
-  dokumentationsprøven er ryddet. Næste arbejde er fase 13.
+- Fase 13, første snit er færdigt og prøvet. Næste snit er backup,
+  forhåndsoversigt og genoprettelse.
 
 ## Beslutninger
 
