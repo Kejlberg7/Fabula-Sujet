@@ -45,6 +45,10 @@ import {
 import {
   applySuggestion, createSuggestion, decideSuggestion, suggestionsFor,
 } from '../core/services/suggestions';
+import { backupBundle, backupJson, inspectBackup, restoreBackup } from '../core/export/backup';
+import { toDocx } from '../core/export/docx';
+import { toMarkdown } from '../core/export/markdown';
+import { readingEdition, type AppendixPart } from '../core/export/reading';
 import { solveTime } from '../core/solve';
 import { formatInstant, formatSpan } from '../core/time/gregorian';
 import { Workbench } from '../core/workbench';
@@ -65,6 +69,10 @@ import {
  */
 
 const actor: Actor = { kind: 'user' };
+
+/** A title is a title; a file name has to survive a file system. */
+const fileName = (title: string) =>
+  title.replace(/[/\\:*?"<>|]/g, '-').trim().slice(0, 80) || 'bog';
 
 export interface TimelineLane {
   id: string;
@@ -149,7 +157,7 @@ export function createApi(store: Store) {
         works: db.select().from(work).where(eq(work.worldId, current.worldId)).all()
           .filter((w) => w.branchId === current.branchId)
           .map((w) => ({
-            id: w.id, title: w.title, summary: w.summary,
+            id: w.id, title: w.title, summary: w.summary, seriesId: w.seriesId,
             seriesName: w.seriesId
               ? db.select().from(series).where(eq(series.id, w.seriesId)).get()?.name ?? null
               : null,
@@ -740,6 +748,70 @@ export function createApi(store: Store) {
       files: checkAttachments(store, ctx()),
       orphans: orphanFiles(store),
     }),
+
+    /**
+     * The book, as a file the writer can hand to someone else.
+     *
+     * The bytes come back base64 in the ordinary JSON answer, the same way an
+     * attachment goes the other way. The interface makes a Blob of it and
+     * hands it to the browser: no download route, no temporary file on the
+     * server, and nothing left lying around afterwards.
+     */
+    'export.reading': (input: {
+      workId?: string; seriesId?: string;
+      format?: 'markdown' | 'docx';
+      sceneTitles?: boolean; gaps?: boolean; appendix?: AppendixPart[];
+    }) => {
+      const c = ctx();
+      const target = input.seriesId
+        ? { seriesId: input.seriesId }
+        : { workId: input.workId ?? c.workId ?? '' };
+      const { document, stats } = readingEdition(store, c, target, {
+        sceneTitles: input.sceneTitles, gaps: input.gaps, appendix: input.appendix,
+      });
+      const docx = input.format === 'docx';
+      const bytes = docx ? toDocx(document) : Buffer.from(toMarkdown(document), 'utf8');
+      return {
+        name: `${fileName(document.title)}.${docx ? 'docx' : 'md'}`,
+        mimeType: docx
+          ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+          : 'text/markdown',
+        base64: bytes.toString('base64'),
+        stats,
+      };
+    },
+
+    /** Everything, in one file: the rows, and -- unless asked otherwise -- the files. */
+    'export.backup': (input: { withFiles?: boolean } | undefined) => {
+      const withFiles = input?.withFiles !== false;
+      const stamp = new Date().toISOString().slice(0, 10);
+      const made = withFiles ? backupBundle(store) : null;
+      const bytes = made ? made.bytes : backupJson(store);
+      return {
+        name: `fabula-backup-${stamp}.${withFiles ? 'zip' : 'json'}`,
+        mimeType: withFiles ? 'application/zip' : 'application/json',
+        base64: bytes.toString('base64'),
+        rows: made?.rows ?? null,
+        files: made?.files ?? 0,
+        missing: made?.missing ?? [],
+      };
+    },
+
+    /** What is in the file, before anything happens to this database. */
+    'backup.inspect': (input: { base64: string }) =>
+      inspectBackup(store, Buffer.from(input.base64, 'base64')),
+
+    /**
+     * And then the writer says yes.
+     *
+     * Only into an empty database, which is also why this is the one call in
+     * here that does not go through the change log: it restores the log. The
+     * refusal is the guard, and it comes from the core rather than from here.
+     */
+    'backup.restore': (input: { base64: string; allowOtherSchema?: boolean }) =>
+      restoreBackup(store, Buffer.from(input.base64, 'base64'), {
+        allowOtherSchema: input.allowOtherSchema,
+      }),
 
     /**
      * The writing desk: one scene, its prose, and the two answers that stop a

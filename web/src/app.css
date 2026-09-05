@@ -857,3 +857,51 @@ h3.section {
 }
 .attachment a { word-break: break-all; }
 .btn.small { padding: 3px 9px; font-size: 12px; }
+
+/* Eksport: to paneler ved siden af hinanden, og et sæt afkrydsninger der ikke
+   larmer mere end de skal. */
+.export-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+.export-field {
+  display: block;
+  margin: 0.9rem 0 0.25rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+.export-grid select { width: 100%; }
+.export-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+  margin: 0.5rem 0 1rem;
+}
+.export-checks label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.export-preview {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--line);
+}
+.export-preview ul { margin: 0.5rem 0; padding-left: 1.1rem; }
+/* En hel sætning med versaler er at råbe. Chippen beholder sin farve og
+   taber sin skrigen. */
+.export-preview .chip {
+  display: block;
+  margin: 0.35rem 0;
+  padding: 6px 8px;
+  white-space: normal;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.45;
+}

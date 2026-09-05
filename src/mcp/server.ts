@@ -14,6 +14,7 @@ import { queryTools } from './tools/queries';
 import { reviewTools } from './tools/review';
 import { branchTools } from './tools/branches';
 import { dramaturgyTools } from './tools/dramaturgy';
+import { exportTools } from './tools/export';
 
 export const allTools: ToolDef[] = [
   ...worldTools,
@@ -26,6 +27,7 @@ export const allTools: ToolDef[] = [
   ...queryTools,
   ...reviewTools,
   ...dramaturgyTools,
+  ...exportTools,
 ];
 
 const INSTRUCTIONS = `

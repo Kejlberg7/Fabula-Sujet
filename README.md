@@ -6,7 +6,7 @@ og hvornår de **fortælles**.
 
 ## Status
 
-**Fase 0 til 12 er færdige.** Datamodellen, tidsløseren, ændringsloggen og
+**Fase 0 til 13 er færdige.** Datamodellen, tidsløseren, ændringsloggen og
 MCP-serveren står; oven på dem et interface med værkvælger, tidslinje, lister og
 historik, et skrivebord hvor prosaen bliver til med bibelen åben ved siden af —
 og en motor, der siger fra, når noget ikke kan lade sig gøre. Fortællelaget
@@ -20,11 +20,14 @@ version af hver scene den faktisk læste, skrivebordet siger til, når et navn
 står i prosaen uden at hænge sammen med bibelen, og de omtaler, der *er* knyttet,
 bliver prøvet mod tid, navnegyldighed og læserens rækkefølge. En plottråd kan
 nu nå ud over den bog, den begynder i, så et løfte givet i bind et kan blive
-indfriet i bind to.
+indfriet i bind to. Og bogen kan forlade programmet: en læseudgave som Markdown
+eller Word med forfatterens ord og ingenting andet, og en versionsmærket backup,
+der kan hentes hel tilbage — prosa, historik og vedhæftede filer — i en tom
+database.
 
 ```bash
 npm install
-npm test                              # 284 prøver
+npm test                              # 308 prøver
 npm run fixtures -- ./fabula.db       # læg de fire prøvecases ind
 npm run build && npm run dev          # interfacet på http://localhost:4173
 npm run ask -- ./fabula.db hent_kontekst
@@ -54,6 +57,7 @@ lander i den samme log, som Claude skriver til.
 | **Alternativer** | Grenene ved siden af hinanden: flyt scener og afsløringer, og se hvad der skiller de to |
 | **Gennemgangen** | Det, der ikke kan lade sig gøre — og det, du har lagt til side, med din grund |
 | **Historik** | Hvem ændrede hvad, og rul tilbage til et hvilket som helst punkt |
+| **Eksport** | Læseudgaven ud som Markdown eller Word, backup ud, og backup ind igen |
 
 Redigering sker i panelerne: ret et felt, klik væk, og det er gemt — og ét
 fortryd væk. Der er ingen gem-knap, fordi der ikke er noget at fortryde ved.
@@ -255,7 +259,7 @@ src/core/
   services/        skrivning, som UI og MCP begge kalder
   queries/         hvem vidste hvad, hvem var hvor, hvad ved læseren
   solve.ts         løseren kørt på databasen
-src/mcp/           83 værktøjer, danske navne
+src/mcp/           87 værktøjer, danske navne
 src/server/        API'et interfacet taler med, og HTTP-serveren
 src/fixtures/      de fire prøvecases
 web/               interfacet: React, egen CSS, ingen komponentbibliotek
@@ -585,15 +589,70 @@ ingenting fra hinanden — læseren af den ene har ikke læst den anden. Oversig
 samler derfor fra seriens bind og ingen andre. Står du i en bog uden serie,
 siger den det og lader være med at fylde en side.
 
+### Bogen ud af programmet
+
+Alt, hvad programmet ved om bogen, er apparat: arbejds-id'er, ankermærker,
+margennoter, fund, afsløringsregnskabet. Intet af det hører til i den tekst, en
+forlægger eller en første læser får. Så **læseudgaven** går ét sted igennem —
+`fromProse`, der beholder ordene og taber mærkerne — og der er ikke en gengiver
+i programmet, der kan komme til at glemme det.
+
+```
+Eksport ▸ Læseudgave ▸ Hele serien: Krag ▸ Word (.docx)
+Krag.docx: 9 kapitler, 16 af 16 scener, 963 ord.
+```
+
+Markdown og DOCX er to gengivelser af den **samme** neutrale model, bygget én
+gang af scenens egen ProseMirror-JSON. Bygges de hver for sig, begynder de før
+eller siden at være uenige om, hvad bogen er. DOCX'en er manuskriptets egen form:
+Times 12 pkt, halvanden linje, indryk på alle afsnit undtagen det, der åbner en
+scene, scenebrud som ⁂, og hvert kapitel på en frisk side. ZIP og DOCX er skrevet
+i hånden — formaterne har ikke ændret sig siden 1993, og en afhængighed i vejen
+for hver eneste fil, der forlader programmet, er den dyrere side.
+
+Et **appendiks** kan bedes om: personer, steder, tidslinje, kilder. Det dækker
+det, den eksporterede bog selv bringer på scenen — personerne i dens events,
+stederne de sker i, den kronologi og den research, der hænger på noget af det.
+En appendiks til bind to skal ikke præsentere alle dem, bind fem får brug for.
+Vage datoer bliver stående som intervaller; tidslinjen finder ikke på en dag,
+forfatteren ikke har besluttet.
+
+**Backuppen** er det modsatte af læseudgaven: hver eneste række i hver eneste
+tabel, med et versionsstempel for den skemaudgave, den er lavet på. Som ZIP
+følger arkivets filer med i samme fil — en backup af en bog uden den
+fotograferede side, den bygger på, er kun en halv backup.
+
+En **genoprettelse** er den femte dokumenterede undtagelse fra «kun
+ændringsloggen skriver», og den kan kun være det, fordi den siger nej: den
+genopretter loggen, så den kan ikke gå gennem den, og derfor lægger den sig
+aldrig oven i noget. Er databasen ikke tom, bliver den stoppet, før den rører
+noget. Er backuppen lavet på en anden skemaudgave, det samme. Først vises en
+forhåndsoversigt — verdener, bøger, scener, ord, filer — læst ud af filen uden
+at databasen bliver rørt:
+
+```
+fabula-backup-2026-09-05.zip
+Lavet 2026-09-05 16:15 · udgave 1 · 2855 rækker · 2 filer pakket med
+  Memento — Memento (44 scener, 2068 ord, 2 grene)
+  Havnen — Saltet, Tidevandet (16 scener, 963 ord)
+```
+
+Prøven for det er ikke to halve: der bliver skrevet en bog med en vedhæftet fil,
+pakket, hentet ind i en anden, tom database — og bagefter læst ud igen og
+sammenlignet ord for ord med den, der gik ind, byte for byte på filen, og tur for
+tur på historikken.
+
 ## Næste skridt
 
-**Fase 12 er færdig.** Filer kopieres ind i projektets arkiv med navn, type,
-størrelse og kontrolsum, mangler og ændringer opdages, og filen vises kun, hvor
-det er sikkert.
+**Fase 13 er færdig.** Bogen kan forlade programmet som læseudgave i Markdown
+eller Word uden arbejds-id'er og ankermærker, med et valgfrit appendiks, og hele
+databasen kan pakkes versionsmærket med sine filer og hentes hel tilbage i en tom
+database.
 
-**Fase 13 er den næste:** eksport, backup og genoprettelse — bog eller serie som
-Markdown og DOCX uden arbejds-id'er, og en versionsmærket backup med
-vedhæftningerne i.
+**Fase 14 er den næste:** alternativer uden blinde vinkler — sammenligningen skal
+også dække events, fakta, personer, love, relationer, plottråde og tid, vise
+konkrete prosaforskelle, og kunne overføre én valgt ændring mellem grene med
+synlige konflikter.
 
 **Fra fase 10, bevidst udskudt:** tilstedeværelse, besiddelse og
 genstandstilstand kan ikke udledes af en omtale, og det kræver et anker, der

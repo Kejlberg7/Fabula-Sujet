@@ -4,13 +4,17 @@ Sidst opdateret: 5. september 2026
 
 ## Aktiv fase
 
-**Fase 13 — Eksport, backup og genoprettelse. I gang.** Bogen skal kunne
-forlade programmet. Første snit er færdigt: læseudgaven som Markdown og DOCX,
-uden arbejds-id'er og uden ankermærker, med et valgfrit appendiks.
+**Ingen. Fase 13 — eksport, backup og genoprettelse — er færdig** og
+browserprøvet 5. september 2026. Bogen kan forlade programmet som læseudgave,
+hele databasen kan pakkes med sine filer, og en backup kan hentes hel tilbage i
+en tom database.
 
-Fase 0–12 er færdige. Den aftalte plan ligger i `docs/ROADMAP.md`.
+Fase 0–13 er færdige. Næste er fase 14, alternativer uden blinde vinkler. Den
+aftalte plan ligger i `docs/ROADMAP.md`.
 
-### Færdigt i fase 13, første snit
+## Færdigt i fase 13
+
+### Første snit — læseudgaven
 
 - `src/core/export/document.ts`: den neutrale model. Markdown og DOCX er to
   gengivelser af det samme, og bygges de hver for sig, begynder de at være
@@ -33,6 +37,41 @@ Fase 0–12 er færdige. Den aftalte plan ligger i `docs/ROADMAP.md`.
   mellem scener i samme kapitel, og et appendiks, der kun kommer med, når der
   bliver bedt om det. Appendikset dækker det, bogen selv bringer på scenen —
   ikke hele verdenen.
+
+### Andet snit — backup og genoprettelse
+
+- `src/core/export/backup.ts`: hver række i hver tabel, sorteret, med et
+  versionsstempel — sha256 af `__drizzle_migrations`' hashes, tolv tegn, plus
+  antallet af migreringer. `backupBundle` pakker data og arkivets filer i ét
+  ZIP-arkiv; `backupJson` er data alene.
+- `inspectBackup` læser filen og siger, hvad der er i den — verdener, bøger,
+  scener, ord, grene og filer — uden at røre databasen. Titler tælles per
+  verden og dubletteres ikke: to grene af den samme bog er «Memento, 2 grene»,
+  ikke «Memento, Memento».
+- `restoreBackup` er **den femte dokumenterede undtagelse fra «kun
+  ændringsloggen skriver»**. Den kan ikke gå gennem loggen, fordi den
+  genopretter loggen. Det, der gør undtagelsen sikker, er et afslag: er
+  databasen ikke tom, eller er skemastemplet et andet, bliver den stoppet, før
+  den rører noget — så der findes aldrig en historik, den kan skade. Afslaget
+  ligger i kernen, ikke i fladerne. Indsættelsen kører i én transaktion med
+  `pragma defer_foreign_keys = on`, samme greb som `undoTurn`.
+- `holdsSomething` springer `app_state` over. Hvilken verden der er valgt, er en
+  indstilling og ikke arbejde; ellers ville en database, der havde været åbnet
+  én gang, aldrig kunne tage imod en backup.
+
+### Tredje snit — fladerne
+
+- MCP: `eksporter_bog`, `lav_backup`, `se_backup`, `genopret_backup`. **87
+  værktøjer** i alt. De skriver til projektets eksportmappe — `fabula.db` giver
+  `fabula-eksport/` — af samme grund som arkivet ligger der: eksporten hører til
+  projektet.
+- API: `export.reading`, `export.backup`, `backup.inspect`, `backup.restore`.
+  Bytes går base64 i den almindelige JSON-krop, som vedhæftninger allerede gør,
+  og bliver til en fil i browseren. Ingen nedhentningsrute, ingen midlertidig
+  fil, der bliver liggende.
+- UI: skærmen **Eksport** under «Arbejdet». Læseudgavens valg, to backupknapper,
+  og en filvælger, der viser forhåndsoversigten, før noget hentes ind. Skærmen
+  findes også i en helt tom database — det er dér, en genoprettelse skal bruges.
 
 ## Efterslæt: prøvet mod dokumentationen
 
@@ -323,11 +362,35 @@ intet at se og intet at klikke på.
 
 ## I gang nu
 
-- Fase 13, første snit er færdigt og prøvet. Næste snit er backup,
-  forhåndsoversigt og genoprettelse.
+- Ingenting. Fase 13 er lukket: alle tre snit er implementeret, prøvet og
+  dokumenteret. Næste fase er 14.
 
 ## Beslutninger
 
+- Markdown og DOCX er to gengivelser af den samme model, ikke to formater. Det
+  ene bygget af det andet ville kræve en Markdown-parser og ville drive fra
+  hinanden; scenens ProseMirror-JSON er sandheden, og begge gengivere læser den.
+- Ét sted fjerner apparatet. `fromProse` er den eneste vej til en læseudgave, så
+  «ingen ankermærker» kan prøves i stedet for at huskes af hver gengiver.
+- Ét sted serialiserer Markdown. Editorens kopi i `web/` er nu en videreeksport
+  af kernens; ellers blev en færdig bog skrevet af anden kode end den,
+  søgningen læser.
+- ZIP og DOCX skrives i hånden. En afhængighed ligger i vejen for hver eneste
+  fil, der forlader programmet, og formaternes hoveder har ikke ændret sig siden
+  1993.
+- En genoprettelse lægger sig aldrig oven i noget. Fletning ville betyde to
+  historikker, der skal forliges, og der findes ikke et rigtigt svar på det —
+  en tom database er den eneste tilstand, hvor genoprettelsen er entydig.
+- Afslaget ligger i kernen. Både MCP og interfacet kalder det samme; en flade,
+  der glemte at spørge, ville ikke kunne komme udenom.
+- Appendikset dækker det, bogen selv bringer på scenen. Et verdensbredt register
+  ville være længere og mindre brugbart — bind to skal ikke præsentere alle dem,
+  bind fem får brug for.
+- Appendiksets dele siges på dansk. MCP-fladens enum-værdier er ellers modellens
+  egne engelske, fordi det er modellen, der skriver dem — men de her gemmes ingen
+  steder og er en menu, forfatteren vælger i.
+- Vag tid bliver stående vag, også i tidslinjen. Intervallet skrives som
+  interval på eventets egen præcision; to ender på samme dag skrives én gang.
 - Prosa må gerne skrives gennem MCP — men der skal spørges om lov, hver gang.
   Ikke en indstilling, ikke et tilsagn, der gælder resten af samtalen: hver
   skrivning har sit eget spørgsmål, og forfatteren svarer på det selv.
@@ -380,7 +443,7 @@ intet at se og intet at klikke på.
 
 ## Verificering
 
-- 291/291 prøver er grønne.
+- 308/308 prøver er grønne.
 - Typecheck og produktionsbuild er rene. Vite gentager den kendte advarsel om
   en JavaScript-chunk over 500 kB; det er ikke en buildfejl.
 - Migration 0007 er prøvet mod en kopi af den eksisterende database. Prøven
@@ -428,17 +491,32 @@ intet at se og intet at klikke på.
   `sandbox`. PNG'en vises i browserruden; se den åbne risiko om PDF.
 - Prøvecasens to filer er rigtige: `file` genkender dem, `sips` læser PNG'ens
   4×4, og PDF'en tegner sin side i en miniature med teksten i.
+- DOCX'en er læst tilbage af Apples egen `textutil`, som åbner filen og skriver
+  hele bogen ud igen. Formatet er altså ikke bare vores egen antagelse om ZIP.
+- Roundtrip på den rigtige `fabula.db`: 2855 rækker i 45 tabeller, fire verdener
+  og to filer pakket, hentet ind i en frisk database — den samme bog eksporteret
+  igen er ord for ord identisk, vedhæftningerne er byte for byte de samme, og
+  historikken kom med som historik. Prøven `src/test/backup.test.ts` gør det
+  samme i det små ved hver kørsel.
+- MCP end-to-end: `eksporter_bog` skrev bogen, `lav_backup` pakkede arkivet,
+  `se_backup` afviste korrekt at hente ind i en database, der ikke var tom, og
+  `genopret_backup` hentede 2849 rækker i 45 tabeller og 2 filer ind i en tom.
+- Browserprøvet: læseudgaven hentes ned med den rigtige besked («9 kapitler, 16
+  af 16 scener, 963 ord»), forhåndsoversigten viser de fire verdener og siger
+  «Kan ikke hentes ind her» i en database med arbejde i — og en genoprettelse
+  gennem interfacet i en tom database ender med forsiden på «Havnen / Du
+  arbejder på Saltet» og den oprindelige historik. Ingen fejl i konsollen.
 
 ## Næste konkrete handling
 
-Fase 13 — eksport, backup og genoprettelse. En bog eller en serie skal kunne
-forlade programmet som Markdown og DOCX, uden arbejds-id'er og uden de skjulte
-ankermærker: læseudgaven er forfatterens ord og ingenting andet. Dertil et
-valgfrit appendiks med personer, steder, tidslinje og kilder, en
-versionsmærket JSON-backup og en samlet ZIP, som arkivets filer følger med i —
-de ligger allerede samlet ét sted, så vejen er kort. Genoprettelsen skal vise
-en forhåndsoversigt, før den rører noget, og et helt roundtrip skal prøves i en
-tom database.
+Fase 14 — alternativer uden blinde vinkler. `sammenlign_grene` og
+Alternativ-skærmen ser i dag kun scenernes og afsløringernes plads. De skal også
+dække events, fakta, personer, love, relationer, plottråde og tid, og vise
+konkrete prosaforskelle frem for «scenen er ændret». Dertil overførsel af én
+valgt ændring mellem grene med synlige konflikter — aldrig en tavs automatisk
+fletning; hver overførsel er én tur og dermed ét fortryd væk. Start med at læse
+`sammenlign_grene` i `src/mcp/tools/branches.ts` og sammenligningen, den kalder,
+og se hvor langt den nuværende model rækker, før der skrives noget nyt.
 
 ## Åbne risici
 

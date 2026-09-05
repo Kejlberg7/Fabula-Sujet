@@ -94,12 +94,32 @@ som læser hver fil tilbage og sammenligner kontrolsummen, bliver bedt om.
 
 ## Fase 13 — Eksport, backup og genoprettelse
 
-- Eksportér bog eller serie som Markdown og DOCX.
-- Arbejds-id'er og skjulte ankermærker er ikke med i læseudgaven.
-- Et valgfrit appendiks kan indeholde personer, steder, tidslinje og kilder.
-- Eksportér en versionsmærket JSON-backup og en samlet ZIP med vedhæftninger.
-- Vis en forhåndsoversigt før genoprettelse, og prøv et komplet roundtrip i en
-  tom database.
+**Status: færdig.** Implementeret og browserprøvet 5. september 2026.
+
+- ~~Eksportér bog eller serie som Markdown og DOCX.~~
+- ~~Arbejds-id'er og skjulte ankermærker er ikke med i læseudgaven.~~
+- ~~Et valgfrit appendiks kan indeholde personer, steder, tidslinje og kilder.~~
+- ~~Eksportér en versionsmærket JSON-backup og en samlet ZIP med vedhæftninger.~~
+- ~~Vis en forhåndsoversigt før genoprettelse, og prøv et komplet roundtrip i en
+  tom database.~~
+
+Markdown og DOCX er to gengivelser af den samme neutrale model, bygget én gang
+af scenens egen ProseMirror-JSON. Bygges de hver for sig, begynder de før eller
+siden at være uenige om, hvad bogen er. Læseudgaven går ét sted igennem —
+`fromProse`, der beholder ordene og taber mærkerne — så «ingen apparat» kan
+prøves frem for at huskes. Editorens Markdown lå før i `web/` og kunne ikke
+importeres af eksporten; den er flyttet til `src/core/export/prose.ts`, og
+begge flader kalder nu den samme.
+
+ZIP og DOCX er skrevet i hånden. En afhængighed i vejen for hver eneste fil, der
+forlader programmet, er den dyrere side af hundrede linjer, der ikke har ændret
+sig siden 1993.
+
+Genoprettelsen er den femte dokumenterede undtagelse fra «kun ændringsloggen
+skriver» — den genopretter loggen, så den kan ikke gå gennem den. Det, der gør
+undtagelsen sikker, er et afslag og ikke et løfte: den bliver stoppet, før den
+rører noget, hvis databasen holder arbejde, eller hvis backuppen er lavet på en
+anden skemaudgave. Afslaget ligger i kernen, ikke i fladerne.
 
 ## Fase 14 — Alternativer uden blinde vinkler
 

@@ -18,11 +18,12 @@ import { History } from './views/History';
 import { Continuity } from './views/Continuity';
 import { Alternatives } from './views/Alternatives';
 import { Twists } from './views/Twists';
+import { Export } from './views/Export';
 
 export type View =
   | 'overblik' | 'tidslinje' | 'serien' | 'personer' | 'steder' | 'ting'
   | 'events' | 'fakta' | 'love' | 'kontinuitet' | 'kapitler' | 'baand' | 'skrivebord'
-  | 'alternativer' | 'grebet' | 'gennemgang' | 'historik';
+  | 'alternativer' | 'grebet' | 'gennemgang' | 'historik' | 'eksport';
 
 export interface Notice { text: string; bad?: boolean }
 
@@ -183,18 +184,28 @@ function App() {
     </button>
   );
 
+  // Den tomme database er også det ene sted, en genoprettelse faktisk kan lade
+  // sig gøre, så vejen dertil hører hjemme her frem for bag en menu, der ikke
+  // er tegnet endnu.
   if (context && !context.active) {
     return (
       <div className="app">
         <TopBar nonce={dataNonce} notify={notify} onChanged={bump} />
-        <div className="page">
-          <h2>Ingen verden endnu</h2>
-          <p className="lede">
-            Der er ikke oprettet en verden i denne database. Tal med Claude og sig
-            «opret en verden», eller kør <span className="mono">npm run fixtures</span> for at
-            lægge prøvecasene ind.
-          </p>
-        </div>
+        {view === 'eksport' ? (
+          <Export nonce={dataNonce} notify={notify} />
+        ) : (
+          <div className="page">
+            <h2>Ingen verden endnu</h2>
+            <p className="lede">
+              Der er ikke oprettet en verden i denne database. Tal med Claude og sig
+              «opret en verden», eller kør <span className="mono">npm run fixtures</span> for at
+              lægge prøvecasene ind.
+            </p>
+            <button className="btn" onClick={() => setView('eksport')}>
+              Hent en backup ind
+            </button>
+          </div>
+        )}
       </div>
     );
   }
@@ -226,6 +237,7 @@ function App() {
           {item('gennemgang', 'Gennemgangen',
             findings?.filter((f) => f.dismissedReason == null).length || undefined)}
           {item('historik', 'Historik')}
+          {item('eksport', 'Eksport')}
         </nav>
         <main>
           {view === 'overblik' && <Overview nonce={dataNonce} onGo={setView} />}
@@ -253,6 +265,7 @@ function App() {
             <Findings nonce={dataNonce} notify={notify} onChanged={bump} />
           )}
           {view === 'historik' && <History nonce={dataNonce} notify={notify} onChanged={bump} />}
+          {view === 'eksport' && <Export nonce={dataNonce} notify={notify} />}
         </main>
       </div>
       {notice && (

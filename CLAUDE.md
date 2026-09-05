@@ -24,14 +24,19 @@ decisions, verification already run, and the next concrete action.
   mapping lives in `docs/ORDBOG.md` and nowhere else — add there before using a
   new word.
 - **Nothing writes except the change log.** Every insert, update and delete goes
-  through `Session` in `src/core/changelog.ts`, so it can be undone. Four
+  through `Session` in `src/core/changelog.ts`, so it can be undone. Five
   documented exceptions. Three are derived data, recomputable at any moment: the
   time solver's bounds, the `finding` rows the review writes, and `app_state` --
   which world, book and branch are selected (`src/core/workbench.ts`). The
   fourth is the other direction: an attached file's *bytes*
   (`src/core/attachments.ts`), which stay outside the log so that an undo
   restores the row and never deletes a file the writer put there. A *dismissal*
-  is a person deciding something, so that goes through the log.
+  is a person deciding something, so that goes through the log. The fifth is
+  `restoreBackup` in `src/core/export/backup.ts`: it cannot write through the
+  log because it *restores* the log, rows and turns and all. What makes that
+  safe is a refusal, not a promise -- it is stopped before it touches anything
+  if the database holds any work at all, so there is never an existing history
+  for it to damage, and the refusal lives in core rather than in the surfaces.
 - **The bible is data, the prose is the writer's.** The model may be changed
   freely; scene text is never written or altered without an explicit yes, and
   the yes comes from the writer every single time. Two ways in, and only two.
@@ -98,7 +103,7 @@ Node 20 (`.nvmrc`). The shell may default to an older nvm version — check
 `node -v` before running anything.
 
 ```bash
-npm test                            # 291 prøver
+npm test                            # 308 prøver
 npm run fixtures -- ./fabula.db     # Memento, Predestination, Inception, Havnen
 npm run build && npm run dev        # interface on :4173
 npm run ask -- ./fabula.db hent_kontekst

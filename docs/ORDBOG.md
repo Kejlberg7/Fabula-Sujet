@@ -70,6 +70,13 @@ navn i en tabel eller et felt er også en fejl.
 | Navn uden kobling | `prose gap` | Et navn i prosaen, som ingen omtale i scenen peger på |
 | Ingen post svarer til navnet | `unknown name` | Et navn i prosaen, bibelen slet ikke kender |
 | Kildehylde | `sourceShelf` | Al research, og hvad hver kilde faktisk holder oppe |
+| Læseudgave | `readingEdition` | Bogen som en læser får den: forfatterens ord, uden arbejds-id'er og ankermærker |
+| Appendiks | `appendix` | Personer, steder, tidslinje og kilder efter historien. Kommer kun med, når der bedes om det |
+| Eksportmappe | `fabula-eksport/` | Mappen ved siden af databasen, som eksporter og backups skrives i |
+| Backup | `backup` | Hver række i hver tabel, versionsmærket. Som ZIP med arkivets filer, som JSON uden |
+| Skemastempel | `schemaStamp` | Fingeraftryk af de kørte migreringer. Siger, om en backup passer på den her udgave |
+| Forhåndsoversigt | `inspectBackup` | Hvad der er i en backupfil, læst uden at røre databasen |
+| Genoprettelse | `restoreBackup` | En backup hentet ind i en tom database. Lægger sig aldrig oven i noget |
 
 ## Regelkoder
 
@@ -119,13 +126,18 @@ kommer de til at sige hver sit, og så betyder det samme danske ord to ting.
 | `belief.source` | `stated` · `derived` · `carried` | nedskrevet · var til stede · bærer det på sig |
 | `scene_event.mode` | `dramatised` · `mentioned` · `implied` | dramatiseret · omtalt · antydet |
 | `source.kind` | `note` · `link` · `pdf` · `article` · `image` · `file` | note · link · PDF · artikel · billede · fil |
+| `appendiks` (kun i eksporten) | `people` · `places` · `timeline` · `sources` | personer · steder · tidslinje · kilder |
 
 «Antydet» hører til `implied` og kun der. En afsløring, der kun er strejfet, er
 et **vink**.
 
+Den sidste række er undtagelsen, der bekræfter reglen: appendiksets dele
+gemmes ingen steder — de er en menu over afsnit, man kan bede om — så de bliver
+sagt på dansk hele vejen ud og oversat i `src/mcp/tools/export.ts`.
+
 ## MCP-fladen
 
-83 værktøjer. Navnene og argumenterne er danske, fordi du skal tale til dem.
+87 værktøjer. Navnene og argumenterne er danske, fordi du skal tale til dem.
 Alt indenfor er engelsk. Enum-værdier i argumenterne er modellens egne engelske
 værdier — se **Værdier** ovenfor; det er modellen, der skriver dem, ikke
 forfatteren.
@@ -150,6 +162,7 @@ er ikke programmets at tage tilbage.
 | Navne uden kobling | `vis_navne_uden_kobling` |
 | Grene | `vis_grene` · `opret_gren` · `sammenlign_grene` · `vaelg_hovedgren` · `arkiver_gren` · `genaabn_gren` · `flyt_scene` · `flyt_afsloering` |
 | Grebet | `vurder_afsloeringer` · `sammenlign_afsloeringer` |
+| Eksport | `eksporter_bog` · `lav_backup` · `se_backup` · `genopret_backup` |
 
 `opdater` og `slet` tager et engelsk tabelnavn fra listen ovenfor. Oprettelse er
 typet per slags, fordi felterne er vidt forskellige, når noget skabes — mens en
