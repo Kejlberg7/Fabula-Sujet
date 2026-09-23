@@ -1,6 +1,6 @@
 # Arbejdsstatus
 
-Sidst opdateret: 5. september 2026
+Sidst opdateret: 23. september 2026
 
 ## Aktiv fase
 
@@ -11,6 +11,20 @@ en tom database.
 
 Fase 0–13 er færdige. Næste er fase 14, alternativer uden blinde vinkler. Den
 aftalte plan ligger i `docs/ROADMAP.md`.
+
+## Aktuelt efterslæt — omtalerne skal kunne findes
+
+- Memento havde allerede fem omtaler på hovedgrenen, men Skrivebordets
+  læserækkefølge viste kun scenetitel og ordtal. Funktionen fandtes; eksemplerne
+  var skjult i 22 scener.
+- `scene.list` leverer nu antal ankre og deres arbejdsreferencer. Skrivebordet
+  viser, hvor mange scener der har omtaler, og mærker de konkrete scener med
+  eksempelvis `@G2` eller `@P6`.
+- Memento-eksemplerne ligger i «Han skriver på bagsiden», «Natten, i glimt»,
+  «Han vågner hos Natalie», «Nålen» og «Natalie kommer forbi».
+- 309/309 prøver, typecheck og build er grønne. Browserprøven er kørt mod den
+  rigtige `fabula.db`: alle fem mærker står i scenelisten, og `@G2` åbner
+  «Polaroid af Teddy» med det korrekte uddrag under **Ankre**.
 
 ## Færdigt i fase 13
 
@@ -443,7 +457,7 @@ intet at se og intet at klikke på.
 
 ## Verificering
 
-- 308/308 prøver er grønne.
+- 309/309 prøver er grønne.
 - Typecheck og produktionsbuild er rene. Vite gentager den kendte advarsel om
   en JavaScript-chunk over 500 kB; det er ikke en buildfejl.
 - Migration 0007 er prøvet mod en kopi af den eksisterende database. Prøven

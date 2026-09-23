@@ -14,6 +14,7 @@ import { SECONDS, formatSpan } from '../core/time/gregorian';
 import { Workbench } from '../core/workbench';
 import { loadHavnen, loadInception, loadMemento, loadPredestination } from '../fixtures';
 import { realm } from '../db/schema';
+import { createApi } from '../server/api';
 
 /**
  * The fixtures are the point of the fixtures: each film presses on a different
@@ -107,6 +108,15 @@ describe('Memento — fortællerorden mod kronologi', () => {
       .where(eq(textAnchor.targetId, polaroid.id)).get();
     assert.equal(anchor?.targetKind, 'entity');
     assert.match(anchor?.excerpt ?? '', /Stol ikke/);
+  });
+
+  it('viser hvilke scener der har omtaler allerede i skrivebordets indholdsfortegnelse', () => {
+    const scenes = createApi(store)['scene.list']({});
+    const withMentions = scenes.filter((item) => item.anchorCount > 0);
+    assert.equal(withMentions.length, 5);
+    assert.ok(withMentions.some((item) =>
+      item.title === 'Han skriver på bagsiden' && item.referenceCodes.length > 0));
+    assert.ok(withMentions.every((item) => item.referenceCodes.length > 0));
   });
 });
 

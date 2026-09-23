@@ -425,6 +425,25 @@ main { overflow: auto; min-width: 0; }
 .scene-pick[aria-current='true'] { background: var(--disc-wash); color: var(--ink); }
 .scene-pick .num { color: var(--muted); font-family: var(--mono); font-size: 11px; }
 .scene-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.scene-pick-meta { display: inline-flex; align-items: center; gap: 5px; }
+.scene-reference {
+  display: inline-block;
+  padding: 1px 4px;
+  border: 1px solid color-mix(in srgb, var(--story) 42%, transparent);
+  border-radius: 3px;
+  color: var(--story);
+  background: var(--story-wash);
+  font: 10px/1.35 var(--mono);
+  white-space: nowrap;
+}
+.scene-reference-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 8px 9px;
+  color: var(--muted);
+  font-size: 11px;
+}
 
 .desk-main {
   display: flex;

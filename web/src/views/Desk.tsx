@@ -213,11 +213,18 @@ export function Desk({
   }
 
   const known = new Set(desk.pov?.knows.map((k) => k.factId) ?? []);
+  const scenesWithMentions = scenes?.filter((s) => s.anchorCount > 0).length ?? 0;
 
   return (
     <div className="desk">
       <aside className="desk-scenes">
         <h3>Læserækkefølge</h3>
+        {scenesWithMentions > 0 && (
+          <p className="scene-reference-hint">
+            <span className="scene-reference">@</span>
+            {scenesWithMentions} scene{scenesWithMentions === 1 ? '' : 'r'} har omtaler
+          </p>
+        )}
         {scenes?.map((s) => (
           <button
             key={s.id} className="scene-pick" aria-current={s.id === sceneId}
@@ -225,7 +232,15 @@ export function Desk({
           >
             <span className="num">{s.chapterPosition}.{s.position}</span>
             <span className="scene-name">{s.title}</span>
-            <span className="dim mono">{s.wordCount || '—'}</span>
+            <span className="scene-pick-meta">
+              {s.referenceCodes.length > 0 && (
+                <span
+                  className="scene-reference"
+                  title={`${s.anchorCount} omtale${s.anchorCount === 1 ? '' : 'r'}: ${s.referenceCodes.join(', ')}`}
+                >@{s.referenceCodes[0]}{s.referenceCodes.length > 1 && `+${s.referenceCodes.length - 1}`}</span>
+              )}
+              <span className="dim mono">{s.wordCount || '—'}</span>
+            </span>
           </button>
         ))}
       </aside>

@@ -27,7 +27,7 @@ database.
 
 ```bash
 npm install
-npm test                              # 308 prøver
+npm test                              # 309 prøver
 npm run fixtures -- ./fabula.db       # læg de fire prøvecases ind
 npm run build && npm run dev          # interfacet på http://localhost:4173
 npm run ask -- ./fabula.db hent_kontekst
@@ -93,6 +93,10 @@ for kun læses om: `@G1` er Ingeborgs brev i Havnen, `@S1` er Fyret, og de tre
 film har hver deres. Prøvecasene indlæses i en tom database — `npm run fixtures`
 opretter verdenerne forfra, så en database, der allerede har dem, får dem én
 gang til.
+
+På Skrivebordet står et grønt `@G2`, `@P6` eller tilsvarende ud for de scener,
+der allerede har omtaler. Dermed kan eksemplerne findes direkte i
+læserækkefølgen; vælg scenen og åbn fanen **Ankre** for at se mål og uddrag.
 
 Koden er et arbejdsredskab, ikke en del af bogens ordlyd. En omdøbning ændrer
 derfor ikke forfatterens ord, og en slettet reference står som brudt frem for at

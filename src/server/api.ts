@@ -877,6 +877,23 @@ export function createApi(store: Store) {
       const c = ctx();
       const workId = input.workId ?? c.workId;
       if (!workId) return [];
+      // The scene list is also the desk's map. A reference hidden twenty
+      // scenes down is no example at all, so show the codes beside every scene
+      // that already contains one. The catalogue is sorted; keeping the first
+      // code also keeps merged aliases from turning one mention into a row of
+      // badges.
+      const codeByTarget = new Map<string, string>();
+      for (const ref of referenceCatalog(store, c)) {
+        const key = `${ref.targetKind}:${ref.targetId}`;
+        if (!codeByTarget.has(key)) codeByTarget.set(key, ref.code);
+      }
+      const anchorsByScene = new Map<string, typeof textAnchor.$inferSelect[]>();
+      for (const anchor of db.select().from(textAnchor)
+        .where(eq(textAnchor.branchId, c.branchId)).all()) {
+        const rows = anchorsByScene.get(anchor.sceneId) ?? [];
+        rows.push(anchor);
+        anchorsByScene.set(anchor.sceneId, rows);
+      }
       return db.select().from(chapter)
         .where(eq(chapter.workId, workId)).all()
         .filter((ch) => ch.branchId === c.branchId)
@@ -886,11 +903,17 @@ export function createApi(store: Store) {
           .map((s) => {
             const current = db.select().from(sceneText)
               .where(and(eq(sceneText.sceneId, s.id), eq(sceneText.isCurrent, true))).get();
+            const anchors = anchorsByScene.get(s.id) ?? [];
+            const referenceCodes = [...new Set(anchors.map((anchor) =>
+              codeByTarget.get(`${anchor.targetKind}:${anchor.targetId}`))
+              .filter((code): code is string => !!code))];
             return {
               id: s.id, title: s.title ?? ch.title, position: s.position,
               chapterId: ch.id, chapterTitle: ch.title, chapterPosition: ch.position,
               pov: nameOf(s.povEntityId),
               wordCount: current?.wordCount ?? 0,
+              anchorCount: anchors.length,
+              referenceCodes,
             };
           }));
     },
