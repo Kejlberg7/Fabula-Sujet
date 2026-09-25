@@ -123,11 +123,19 @@ anden skemaudgave. Afslaget ligger i kernen, ikke i fladerne.
 
 ## Fase 14 — Alternativer uden blinde vinkler
 
-- Sammenlign også events, fakta, personer, love, relationer, plottråde og tid.
-- Vis konkrete prosaforskelle.
-- Overfør en valgt ændring mellem grene med synlige konflikter.
-- Ingen tavs automatisk sammenfletning; hver overførsel er én fortrydelig tur.
-- Grebet og gennemgangen kan sammenligne grene på samme grundlag.
+- ~~Sammenlign også events, fakta, personer, love, relationer, plottråde og tid.~~
+- ~~Vis konkrete prosaforskelle.~~
+- ~~Overfør en valgt ændring mellem grene med synlige konflikter.~~
+- ~~Ingen tavs automatisk sammenfletning; hver overførsel er én fortrydelig tur.~~
+- ~~Grebet og gennemgangen kan sammenligne grene på samme grundlag.~~
+
+Sammenligningen finder den sidste tilstand, de to veje med sikkerhed delte, og
+bruger den som tredje side. En konflikt betyder derfor ikke bare «værdierne er
+forskellige», men «den aktive vej er også ændret siden det fælles punkt».
+Overførslen går altid fra den sammenlignede gren til den aktive og tager én
+navngiven forskel ad gangen. Prosa bliver en ny tekstudgave; den gamle bliver
+stående. En hel scene, person, event, faktum eller plottråd med underposter
+udgiver sig ikke for at være én række og kan derfor ikke overføres alene.
 
 ## Fase 15 — Hele modellen kan betjenes i UI'et
 

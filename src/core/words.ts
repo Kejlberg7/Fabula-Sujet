@@ -41,6 +41,31 @@ export const MODE_DA: Record<string, string> = {
   dramatised: 'dramatiseret', mentioned: 'omtalt', implied: 'antydet',
 };
 
+/** Enum words used by the whole-model branch comparison. */
+export const BRANCH_VALUE_DA: Record<string, Record<string, string>> = {
+  'entity.kind': {
+    person: 'person', place: 'sted', object: 'genstand', organisation: 'organisation', concept: 'begreb',
+  },
+  'event.precision': {
+    minute: 'minut', hour: 'time', day: 'dag', month: 'måned', year: 'år', unknown: 'ukendt',
+  },
+  'fact.truth': {
+    true: 'sand', false: 'falsk', disputed: 'omstridt', undecided: 'uafgjort',
+  },
+  'law.kind': { ability: 'evne', prohibition: 'forbud' },
+  'law.hardness': { hard: 'hård', soft: 'blød' },
+  'law.scope_kind': { world: 'verden', series: 'serie', work: 'bog', realm: 'lag' },
+  'law.subject_kind': {
+    everyone: 'alle', entity: 'person eller ting', entity_kind: 'slags',
+    carrier_holder: 'den, der bærer genstanden',
+  },
+  'temporal_link.kind': {
+    before: 'før', after: 'efter', same_time: 'samtidig', offset: 'afstand', during: 'under',
+  },
+  'temporal_link.axis': { world: 'verdenstid', personal: 'personlig tid' },
+  'thread.scope': { work: 'bog', series: 'serie', world: 'verden' },
+};
+
 /** Looks a value up and says it plainly when the word is missing. */
 export const say = (words: Record<string, string>, value: string | null | undefined): string =>
   (value == null ? '' : words[value] ?? value);

@@ -3,16 +3,22 @@ import { describe, it } from 'node:test';
 import { and, eq, sql } from 'drizzle-orm';
 import {
   compareBranches, createBranchFromHistory, lineageRoot, moveReveal, moveScene,
-  setBranchArchived, setDefaultBranch, workInBranch,
+  setBranchArchived, setDefaultBranch, transferBranchDifference, workInBranch,
 } from '../core/branches';
-import { inTurn } from '../core/changelog';
+import { inTurn, undoTurn } from '../core/changelog';
+import { createEntity, createRelationship } from '../core/services/entities';
+import { addTemporalLink, createEvent } from '../core/services/events';
 import { createFact } from '../core/services/knowledge';
+import { createLaw } from '../core/services/laws';
 import {
-  createChapter, createReveal, createScene, saveSceneText,
+  createChapter, createReveal, createScene, createThread, saveSceneText,
 } from '../core/services/narrative';
 import { createWork } from '../core/services/world';
 import { Workbench, type Context } from '../core/workbench';
-import { branch, change, chapter, reveal, scene, sceneText, turn, work } from '../db/schema';
+import {
+  branch, change, chapter, entity, event, fact, law, relationship, reveal, scene,
+  sceneText, temporalLink, thread, turn, work,
+} from '../db/schema';
 import { makeWorld } from './helpers';
 
 const actor = { kind: 'user' as const };
@@ -26,6 +32,13 @@ function story() {
   let firstSceneId = '';
   let secondSceneId = '';
   let revealId = '';
+  let factId = '';
+  let entityId = '';
+  let eventId = '';
+  let relationId = '';
+  let lawId = '';
+  let threadId = '';
+  let temporalLinkId = '';
   let initialSeq = 0;
   inTurn(world.store, { branchId: ctx.branchId, actor, summary: 'Grundfortællingen' }, (session) => {
     workId = createWork(session, ctx, { title: 'Gåden' });
@@ -41,14 +54,38 @@ function story() {
     const secret = createFact(session, ctx, {
       predicate: 'portal', summary: 'Døren er en portal', realmId: world.realmId, slots: [],
     });
+    factId = secret.factId;
     revealId = createReveal(session, ctx, {
       factId: secret.factId, sceneId: secondSceneId, strength: 'confirmed',
+    });
+    entityId = createEntity(session, ctx, {
+      name: 'Ada', kind: 'person', summary: 'Hun finder døren.',
+    });
+    const otherEntityId = createEntity(session, ctx, { name: 'Bo', kind: 'person' });
+    eventId = createEvent(session, ctx, {
+      title: 'Ada finder døren', realmId: world.realmId, earliest: 100, latest: 200,
+    });
+    const otherEventId = createEvent(session, ctx, {
+      title: 'Døren åbner', realmId: world.realmId, earliest: 300, latest: 400,
+    });
+    temporalLinkId = addTemporalLink(session, ctx, {
+      fromEventId: eventId, toEventId: otherEventId, kind: 'before',
+    });
+    relationId = createRelationship(session, ctx, {
+      fromEntityId: entityId, toEntityId: otherEntityId, kind: 'stoler på',
+    });
+    lawId = createLaw(session, ctx, {
+      kind: 'prohibition', hardness: 'soft', statement: 'Døren åbner kun én gang.',
+    });
+    threadId = createThread(session, ctx, {
+      workId, name: 'Den låste dør', summary: 'Hvorfor døren står åben.',
     });
   });
   initialSeq = world.store.db.select({ max: sql<number>`max(${change.seq})` }).from(change).get()!.max;
   ctx = bench.setActive({ worldId: world.worldId, workId, branchId: ctx.branchId });
   return {
-    ...world, bench, ctx, workId, chapterId, firstSceneId, secondSceneId, revealId, initialSeq,
+    ...world, bench, ctx, workId, chapterId, firstSceneId, secondSceneId, revealId,
+    factId, entityId, eventId, relationId, lawId, threadId, temporalLinkId, initialSeq,
   };
 }
 
@@ -139,6 +176,130 @@ describe('Fortællegrene', () => {
     assert.ok(compared.differences.some((item) => item.kind === 'scene_moved'));
     assert.ok(compared.differences.some((item) => item.kind === 'reveal_moved'));
     assert.ok(compared.differences.some((item) => item.kind === 'reveal_changed'));
+  });
+
+  it('sammenligner hele historiemodellen og markerer en ægte trevejskonflikt', () => {
+    const base = story();
+    const made = fork(base);
+    const copied = <T extends { id: string; originId: string | null; branchId: string }>(
+      rows: T[], originId: string,
+    ) => rows.find((row) => row.branchId === made.branchId && row.originId === originId)!;
+    const childEntity = copied(base.store.db.select().from(entity).all(), base.entityId);
+    const childEvent = copied(base.store.db.select().from(event).all(), base.eventId);
+    const childFact = copied(base.store.db.select().from(fact).all(), base.factId);
+    const childLaw = copied(base.store.db.select().from(law).all(), base.lawId);
+    const childRelation = copied(base.store.db.select().from(relationship).all(), base.relationId);
+    const childThread = copied(base.store.db.select().from(thread).all(), base.threadId);
+    const childLink = copied(base.store.db.select().from(temporalLink).all(), base.temporalLinkId);
+    const childScene = copied(base.store.db.select().from(scene).all(), base.firstSceneId);
+
+    inTurn(base.store, { branchId: made.branchId, actor, summary: 'Prøv en anden verden' }, (session) => {
+      session.update(entity, childEntity.id, { description: 'Hun har allerede været her.' });
+      session.update(event, childEvent.id, { title: 'Ada genfinder døren', earliest: 500 });
+      session.update(fact, childFact.id, { truth: 'disputed' });
+      session.update(law, childLaw.id, { statement: 'Døren åbner to gange.' });
+      createLaw(session, { ...base.ctx, branchId: made.branchId, workId: made.workId }, {
+        kind: 'prohibition', hardness: 'soft', statement: 'Ada må ikke sige navnet.',
+        scopeKind: 'work', scopeId: made.workId!, subjectKind: 'entity',
+        subjectEntityId: childEntity.id,
+      });
+      session.update(relationship, childRelation.id, { kind: 'mistænker' });
+      session.update(thread, childThread.id, { summary: 'Hvem lukkede døren første gang?' });
+      session.update(temporalLink, childLink.id, { kind: 'offset', offsetMin: 60, offsetMax: 60 });
+      saveSceneText(session, { ...base.ctx, branchId: made.branchId, workId: made.workId }, base.store, {
+        sceneId: childScene.id,
+        doc: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Døren stod på klem.' }] }] },
+        markdown: 'Døren stod på klem.',
+      });
+    });
+    inTurn(base.store, { branchId: base.branchId, actor, summary: 'Ada ændres også' }, (session) =>
+      session.update(entity, base.entityId, { description: 'Hun har aldrig set stedet.' }));
+
+    const compared = compareBranches(base.store, {
+      leftBranchId: base.branchId, rightBranchId: made.branchId, workId: base.workId,
+    });
+    for (const section of ['personer', 'events', 'tid', 'fakta', 'love', 'relationer', 'plottraade', 'prosa']) {
+      assert.ok(compared.differences.some((item) => item.section === section), `mangler ${section}`);
+    }
+    assert.equal(compared.differences.find((item) => item.kind === 'entity_changed')?.conflict, true);
+    assert.equal(compared.differences.find((item) => item.kind === 'time_changed')?.conflict, false);
+    const prose = compared.differences.find((item) => item.kind === 'scene_prose_changed');
+    assert.match(prose?.detail?.removed ?? '', /åben/);
+    assert.match(prose?.detail?.added ?? '', /på klem/);
+
+    const timeDifference = compared.differences.find((item) => item.kind === 'time_changed')!;
+    inTurn(base.store, { branchId: base.branchId, actor, summary: 'Overfør tiden' }, (session) =>
+      transferBranchDifference(session, base.store, {
+        leftBranchId: base.branchId, rightBranchId: made.branchId,
+        workId: base.workId, differenceId: timeDifference.id,
+      }));
+    assert.equal(base.store.db.select().from(event).where(eq(event.id, base.eventId)).get()!.earliest, 500);
+    const transferTurn = base.store.db.select().from(turn).all()
+      .find((item) => item.summary === 'Overfør tiden')!;
+    undoTurn(base.store, transferTurn.id, actor);
+    assert.equal(base.store.db.select().from(event).where(eq(event.id, base.eventId)).get()!.earliest, 100);
+
+    const relationDifference = compared.differences.find((item) => item.kind === 'relationship_changed')!;
+    inTurn(base.store, { branchId: base.branchId, actor, summary: 'Overfør relationen' }, (session) =>
+      transferBranchDifference(session, base.store, {
+        leftBranchId: base.branchId, rightBranchId: made.branchId,
+        workId: base.workId, differenceId: relationDifference.id,
+      }));
+    const transferredRelation = base.store.db.select().from(relationship)
+      .where(eq(relationship.id, base.relationId)).get()!;
+    assert.equal(transferredRelation.kind, 'mistænker');
+    assert.equal(transferredRelation.fromEntityId, base.entityId,
+      'en overført forbindelse skal pege på målgrenens person');
+
+    const lawDifference = compared.differences.find((item) => item.kind === 'law_changed')!;
+    inTurn(base.store, { branchId: base.branchId, actor, summary: 'Overfør loven' }, (session) =>
+      transferBranchDifference(session, base.store, {
+        leftBranchId: base.branchId, rightBranchId: made.branchId,
+        workId: base.workId, differenceId: lawDifference.id,
+      }));
+    assert.equal(base.store.db.select().from(law).where(eq(law.id, base.lawId)).get()!.statement,
+      'Døren åbner to gange.');
+
+    const addedLaw = compared.differences.find((item) => item.kind === 'law_added')!;
+    inTurn(base.store, { branchId: base.branchId, actor, summary: 'Overfør ny lov' }, (session) =>
+      transferBranchDifference(session, base.store, {
+        leftBranchId: base.branchId, rightBranchId: made.branchId,
+        workId: base.workId, differenceId: addedLaw.id,
+      }));
+    const insertedLaw = base.store.db.select().from(law)
+      .where(and(eq(law.branchId, base.branchId), eq(law.statement, 'Ada må ikke sige navnet.'))).get()!;
+    assert.equal(insertedLaw.scopeId, base.workId);
+    assert.equal(insertedLaw.subjectEntityId, base.entityId);
+    assert.equal(base.store.sqlite.pragma('integrity_check', { simple: true }), 'ok');
+  });
+
+  it('overfører prosa som en ny udgave og lader én fortrydelse tage hele turen tilbage', () => {
+    const base = story();
+    const made = fork(base);
+    const childScene = base.store.db.select().from(scene).all()
+      .find((item) => item.branchId === made.branchId && item.originId === base.firstSceneId)!;
+    inTurn(base.store, { branchId: made.branchId, actor, summary: 'Skriv alternativ prosa' }, (session) =>
+      saveSceneText(session, { ...base.ctx, branchId: made.branchId, workId: made.workId }, base.store, {
+        sceneId: childScene.id,
+        doc: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Døren var låst.' }] }] },
+        markdown: 'Døren var låst.',
+      }));
+    const compared = compareBranches(base.store, {
+      leftBranchId: base.branchId, rightBranchId: made.branchId, workId: base.workId,
+    });
+    const prose = compared.differences.find((item) => item.kind === 'scene_prose_changed')!;
+    inTurn(base.store, { branchId: base.branchId, actor, summary: 'Overfør prosa' }, (session) =>
+      transferBranchDifference(session, base.store, {
+        leftBranchId: base.branchId, rightBranchId: made.branchId,
+        workId: base.workId, differenceId: prose.id,
+      }));
+    const current = () => base.store.db.select().from(sceneText)
+      .where(and(eq(sceneText.sceneId, base.firstSceneId), eq(sceneText.isCurrent, true))).get()!;
+    assert.equal(current().markdown, 'Døren var låst.');
+    const transferTurn = base.store.db.select().from(turn).all()
+      .find((item) => item.summary === 'Overfør prosa')!;
+    undoTurn(base.store, transferTurn.id, actor);
+    assert.equal(current().markdown, 'Døren stod åben.');
   });
 
   /**

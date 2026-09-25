@@ -53,7 +53,7 @@ import { solveTime } from '../core/solve';
 import { formatInstant, formatSpan } from '../core/time/gregorian';
 import { Workbench } from '../core/workbench';
 import {
-  branchWorkspace, compareBranches, createBranchFromHistory, lineageRoot, moveChapter, moveReveal, moveScene, setBranchArchived, setDefaultBranch, workInBranch,
+  branchWorkspace, compareBranches, createBranchFromHistory, lineageRoot, moveChapter, moveReveal, moveScene, setBranchArchived, setDefaultBranch, transferBranchDifference, workInBranch,
 } from '../core/branches';
 
 /**
@@ -596,6 +596,18 @@ export function createApi(store: Store) {
         rightBranchId: input.otherBranchId,
         workId: c.workId,
       });
+    },
+
+    'branch.transfer': (input: { otherBranchId: string; differenceId: string }) => {
+      const c = ctx();
+      if (!c.workId) throw new Error('Der er ikke valgt en bog.');
+      return bench.run({ actor, summary: 'Overfør ændring fra alternativ' }, (session) =>
+        transferBranchDifference(session, store, {
+          leftBranchId: c.branchId,
+          rightBranchId: input.otherBranchId,
+          workId: c.workId!,
+          differenceId: input.differenceId,
+        }));
     },
 
     'branch.choose': (input: { branchId: string }) => {

@@ -126,6 +126,16 @@ kommer de til at sige hver sit, og så betyder det samme danske ord to ting.
 | `belief.source` | `stated` · `derived` · `carried` | nedskrevet · var til stede · bærer det på sig |
 | `scene_event.mode` | `dramatised` · `mentioned` · `implied` | dramatiseret · omtalt · antydet |
 | `source.kind` | `note` · `link` · `pdf` · `article` · `image` · `file` | note · link · PDF · artikel · billede · fil |
+| `fact.truth` | `true` · `false` · `disputed` · `undecided` | sand · falsk · omstridt · uafgjort |
+| `entity.kind` | `person` · `place` · `object` · `organisation` · `concept` | person · sted · genstand · organisation · begreb |
+| `event.precision` | `minute` · `hour` · `day` · `month` · `year` · `unknown` | minut · time · dag · måned · år · ukendt |
+| `law.kind` | `ability` · `prohibition` | evne · forbud |
+| `law.hardness` | `hard` · `soft` | hård · blød |
+| `law.scope_kind` | `world` · `series` · `work` · `realm` | verden · serie · bog · lag |
+| `law.subject_kind` | `everyone` · `entity` · `entity_kind` · `carrier_holder` | alle · person eller ting · slags · den, der bærer genstanden |
+| `temporal_link.kind` | `before` · `after` · `same_time` · `offset` · `during` | før · efter · samtidig · afstand · under |
+| `temporal_link.axis` | `world` · `personal` | verdenstid · personlig tid |
+| `thread.scope` | `work` · `series` · `world` | bog · serie · verden |
 | `appendiks` (kun i eksporten) | `people` · `places` · `timeline` · `sources` | personer · steder · tidslinje · kilder |
 
 «Antydet» hører til `implied` og kun der. En afsløring, der kun er strejfet, er
@@ -137,14 +147,15 @@ sagt på dansk hele vejen ud og oversat i `src/mcp/tools/export.ts`.
 
 ## MCP-fladen
 
-87 værktøjer. Navnene og argumenterne er danske, fordi du skal tale til dem.
+88 værktøjer. Navnene og argumenterne er danske, fordi du skal tale til dem.
 Alt indenfor er engelsk. Enum-værdier i argumenterne er modellens egne engelske
 værdier — se **Værdier** ovenfor; det er modellen, der skriver dem, ikke
 forfatteren.
 
-Ét værktøj spørger om lov: `gem_scenetekst` stiller forfatteren spørgsmålet selv,
-hver gang, og skriver kun ved et ja. Alt andet på fladen kan fortrydes; prosaen
-er ikke programmets at tage tilbage.
+To handlinger kan skrive prosa, og begge spørger om lov: `gem_scenetekst`
+stiller forfatteren spørgsmålet selv hver gang, og `overfoer_forskel` gør det,
+når den valgte forskel er prosa. De skriver kun ved et ja. Alt andet på fladen
+kan fortrydes; prosaen er ikke programmets at tage tilbage.
 
 | Gruppe | Værktøj |
 |---|---|
@@ -160,7 +171,7 @@ er ikke programmets at tage tilbage.
 | Gennemgang | `koer_gennemgang` · `vis_fund` · `afvis_fund` · `genaabn_fund` · `vis_regler` · `vis_scene_til_gennemgang` · `tilfoej_margennote` · `vis_margennoter` · `afgoer_margennote` |
 | Gennemlæsning | `start_gennemlaesning` · `afslut_gennemlaesning` · `vis_gennemlaesninger` |
 | Navne uden kobling | `vis_navne_uden_kobling` |
-| Grene | `vis_grene` · `opret_gren` · `sammenlign_grene` · `vaelg_hovedgren` · `arkiver_gren` · `genaabn_gren` · `flyt_scene` · `flyt_afsloering` |
+| Grene | `vis_grene` · `opret_gren` · `sammenlign_grene` · `overfoer_forskel` · `vaelg_hovedgren` · `arkiver_gren` · `genaabn_gren` · `flyt_scene` · `flyt_afsloering` |
 | Grebet | `vurder_afsloeringer` · `sammenlign_afsloeringer` |
 | Eksport | `eksporter_bog` · `lav_backup` · `se_backup` · `genopret_backup` |
 

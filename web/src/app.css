@@ -334,12 +334,34 @@ main { overflow: auto; min-width: 0; }
 }
 .comparison-arrow { color: var(--muted); font-family: var(--mono); font-size: 11px; text-transform: uppercase; }
 .difference-list { border: 1px solid var(--line); border-radius: 4px; overflow: hidden; margin-top: 8px; }
+.difference-sections { display: grid; gap: 16px; margin-top: 10px; }
+.difference-section h4 {
+  margin: 0 0 4px; font-size: 11px; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--muted);
+}
 .difference {
   display: grid; grid-template-columns: 130px minmax(180px, 1fr) minmax(90px, auto) 24px minmax(90px, auto);
   gap: 9px; align-items: center; padding: 8px 10px; border-bottom: 1px solid var(--line); background: var(--surface);
 }
+.difference.conflict { box-shadow: inset 3px 0 var(--alert); }
+.difference > .chip { white-space: normal; line-height: 1.2; overflow-wrap: anywhere; }
 .difference:last-child { border-bottom: 0; }
 .difference-arrow { color: var(--story); text-align: center; }
+.difference-value { white-space: pre-wrap; overflow-wrap: anywhere; }
+.prose-difference {
+  grid-column: 2 / -1; padding: 9px 11px; border-radius: 3px;
+  background: var(--surface-2); font-family: var(--serif); line-height: 1.55;
+  white-space: pre-wrap; overflow-wrap: anywhere;
+}
+.prose-difference del { background: var(--alert-wash); color: var(--alert); }
+.prose-difference ins { background: var(--story-wash); color: var(--story); text-decoration: none; }
+.difference-transfer {
+  grid-column: 2 / -1; display: flex; justify-content: flex-end;
+  align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.difference-transfer .small { color: var(--muted); flex: 1; }
+.btn.danger { border-color: color-mix(in srgb, var(--alert) 45%, var(--line)); color: var(--alert); }
+.btn.danger:hover { background: var(--alert-wash); }
 @media (max-width: 900px) {
   .turn { grid-template-columns: 50px minmax(0, 1fr); }
   .history-actions { grid-column: 2; }
@@ -349,6 +371,7 @@ main { overflow: auto; min-width: 0; }
   .comparison-summary { grid-template-columns: 1fr; }
   .difference { grid-template-columns: 1fr; }
   .difference-arrow { text-align: left; }
+  .prose-difference, .difference-transfer { grid-column: 1; }
 }
 
 .banner {

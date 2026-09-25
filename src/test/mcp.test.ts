@@ -58,7 +58,7 @@ describe('MCP-fladen', () => {
       'vis_scene_til_gennemgang', 'tilfoej_margennote', 'vis_margennoter', 'afgoer_margennote',
       'vis_referencer', 'vis_omtaler',
       'registrer_tilstand', 'registrer_forsvinding', 'opret_plottraad', 'tilfoej_slag',
-      'vis_grene', 'opret_gren', 'sammenlign_grene', 'vaelg_hovedgren', 'arkiver_gren',
+      'vis_grene', 'opret_gren', 'sammenlign_grene', 'overfoer_forskel', 'vaelg_hovedgren', 'arkiver_gren',
       'genaabn_gren', 'flyt_scene', 'flyt_afsloering',
     ]) {
       assert.ok(names.includes(expected), `mangler værktøjet ${expected}`);
@@ -192,6 +192,22 @@ describe('MCP-fladen', () => {
     assert.match(branches, /Et andet spor \[valgt\]/);
     assert.match(branches, /hoved \[hovedspor\]/);
     assert.match(await call('sammenlign_grene', { med: 'hoved' }), /identisk/);
+  });
+
+  it('sammenligner og overfører én bibelforskel gennem samtalen', async () => {
+    const found = await call('find', { tekst: 'Anna Berg' });
+    const id = /\(([0-9a-z]{16})\)/.exec(found)![1]!;
+    await call('opdater', { tabel: 'entity', id, felter: { summary: 'Hun har set døren før.' } });
+    const compared = await call('sammenlign_grene', { med: 'hoved' });
+    assert.match(compared, /Anna Berg.*Hun har set døren før/s);
+    const differenceId = /forskel-id: (entity_changed:[0-9a-z]+)/.exec(compared)?.[1];
+    assert.ok(differenceId, compared);
+    assert.match(await call('overfoer_forskel', {
+      fra: 'hoved', forskel: differenceId,
+    }), /overført.*én handling/i);
+    const row = store.sqlite.prepare('select summary from entity where id = ?').get(id) as
+      { summary: string | null };
+    assert.equal(row.summary, null);
   });
 
   /**

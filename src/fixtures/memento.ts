@@ -1,7 +1,9 @@
 import { inTurn } from '../core/changelog';
 import { eq, sql } from 'drizzle-orm';
 import type { Store } from '../db/client';
-import { change, chapter, reveal, scene } from '../db/schema';
+import {
+  change, chapter, entity, event, fact, relationship, reveal, scene, thread,
+} from '../db/schema';
 import { createBranchFromHistory, moveReveal, moveScene } from '../core/branches';
 import { SECONDS, parseInstant } from '../core/time/gregorian';
 import {
@@ -14,7 +16,7 @@ import {
   createBeat, createChapter, createReveal, createScene, createThread, linkSceneToEvent,
   createTextAnchor, saveSceneText,
 } from '../core/services/narrative';
-import { createSource, linkSource } from '../core/services/laws';
+import { createLaw, createSource, linkSource } from '../core/services/laws';
 import { createWorld, createWork } from '../core/services/world';
 import { Workbench } from '../core/workbench';
 import { markdownOf, paragraphs, type Passage } from './prose';
@@ -136,6 +138,11 @@ export function loadMemento(store: Store): { worldId: string; workId: string } {
   const realmId = created.realmId;
   let workId = '';
   let earlyNameRevealId = '';
+  let teddyId = '';
+  let teddyTrustFactId = '';
+  let teddyTruthEventId = '';
+  let teddyAllianceId = '';
+  let teddyThreadId = '';
   const sceneIds = new Map<string, string>();
 
   // Fire strækninger af kronologi. Sammy-sporet ligger halvandet år før alt
@@ -164,6 +171,7 @@ export function loadMemento(store: Store): { worldId: string; workId: string } {
     const teddy = createEntity(s, ctx, {
       name: 'Teddy', kind: 'person', summary: 'Politibetjent under navnet Teddy, som både hjælper Leonard, bruger hans tilstand og forsøger at fortælle ham en sandhed, han ikke ønsker.',
     });
+    teddyId = teddy;
     const natalie = createEntity(s, ctx, {
       name: 'Natalie', kind: 'person', summary: 'Bartender og Jimmys kæreste, som hurtigt forstår Leonards begrænsning og bruger hans system til at få løst sit eget problem med Dodd.',
     });
@@ -249,6 +257,7 @@ export function loadMemento(store: Store): { worldId: string; workId: string } {
       truth: 'undecided',
       slots: [{ name: 'person', valueKind: 'entity', value: { entityId: teddy } }],
     });
+    teddyTrustFactId = teddyFact.factId;
     const sammyFact = createFact(s, ctx, {
       predicate: 'sammy_findes', summary: 'Sammy Jankis er en anden end Leonard', realmId,
       truth: 'disputed',
@@ -316,7 +325,7 @@ export function loadMemento(store: Store): { worldId: string; workId: string } {
       fromEntityId: natalie, toEntityId: jimmy, kind: 'kærester', category: 'forhold',
       fromTime: assault, toTime: colourStart + 20 * MIN,
     });
-    createRelationship(s, ctx, {
+    teddyAllianceId = createRelationship(s, ctx, {
       fromEntityId: leonard, toEntityId: teddy, kind: 'samarbejder', category: 'alliance',
       fromTime: assault, toTime: colourStart + 18 * HOUR,
     });
@@ -375,6 +384,7 @@ export function loadMemento(store: Store): { worldId: string; workId: string } {
       earliest: colourStart + entry.at, latest: colourStart + entry.at + 10 * MIN,
       durationMin: 20 * MIN, precision: 'minute',
     }));
+    teddyTruthEventId = colour[8]!;
 
     recordDisappearance(s, ctx, {
       entityId: jimmy, disappearsEventId: colour[0]!,
@@ -736,6 +746,7 @@ export function loadMemento(store: Store): { worldId: string; workId: string } {
       workId, name: 'Hvem er Teddy?',
       summary: 'Mistanken på fotografiet bliver til afsløringen af hans navn og rolle.',
     });
+    teddyThreadId = teddyThread;
     createBeat(s, ctx, {
       threadId: teddyThread, kind: 'setup', sceneId: sceneIds.get('Nogen har ringet'),
       summary: 'En ukendt hjælper styrer samtalen og ved mere end Leonard.',
@@ -792,6 +803,17 @@ export function loadMemento(store: Store): { worldId: string; workId: string } {
     .where(eq(scene.originId, sourceId)).all().find((item) => item.branchId === variant.branchId)!;
   const opening = copiedScene(sceneIds.get('Nogen har ringet')!);
   const confession = copiedScene(sceneIds.get('Teddy siger det hele')!);
+  const copiedEntity = store.db.select().from(entity)
+    .where(eq(entity.originId, teddyId)).all().find((item) => item.branchId === variant.branchId)!;
+  const copiedFact = store.db.select().from(fact)
+    .where(eq(fact.originId, teddyTrustFactId)).all().find((item) => item.branchId === variant.branchId)!;
+  const copiedEvent = store.db.select().from(event)
+    .where(eq(event.originId, teddyTruthEventId)).all().find((item) => item.branchId === variant.branchId)!;
+  const copiedAlliance = store.db.select().from(relationship)
+    .where(eq(relationship.originId, teddyAllianceId)).all()
+    .find((item) => item.branchId === variant.branchId)!;
+  const copiedThread = store.db.select().from(thread)
+    .where(eq(thread.originId, teddyThreadId)).all().find((item) => item.branchId === variant.branchId)!;
   const openingChapter = store.db.select().from(chapter)
     .where(eq(chapter.id, opening.chapterId)).get()!;
   const nameReveal = store.db.select().from(reveal)
@@ -807,6 +829,36 @@ export function loadMemento(store: Store): { worldId: string; workId: string } {
     });
     moveReveal(session, store, variantCtx, {
       revealId: nameReveal.id, sceneId: opening.id, strength: 'hinted',
+    });
+    // Fase 14 skal kunne ses uden først at opfinde prøveforskelle. Varianten
+    // ændrer derfor også et lille, sammenhængende udsnit af biblen og prosaen.
+    // Det er en hypotese, ikke en rettelse af hovedsporet.
+    session.update(entity, copiedEntity.id, {
+      description: 'I dette spor fremstår Teddy tidligere som den mand, der styrer jagten.',
+    });
+    session.update(fact, copiedFact.id, { truth: 'false' });
+    session.update(event, copiedEvent.id, {
+      summary: 'Teddy giver forklaringen, før Leonard når at gøre ham til næste mål.',
+      latest: copiedEvent.earliest == null ? null : copiedEvent.earliest + 5 * MIN,
+    });
+    session.update(relationship, copiedAlliance.id, { kind: 'fører Leonard' });
+    session.update(thread, copiedThread.id, {
+      summary: 'Teddys navn og rolle lægges åbent frem allerede ved telefonen.',
+    });
+    createLaw(session, variantCtx, {
+      kind: 'prohibition', hardness: 'soft',
+      statement: 'I dette spor må Teddy ikke skjule sit navn efter den første telefonsamtale.',
+      scopeKind: 'work', scopeId: variant.workId!, subjectKind: 'entity',
+      subjectEntityId: copiedEntity.id,
+    });
+    const openingProse = [
+      'Telefonen står på natbordet med røret ved siden af. Stemmen har sagt navnet Teddy, og Leonard skriver det ned, før det kan forsvinde.',
+      'Han begynder forfra: navnet, værelset, hvorfor han er her. Denne gang står hjælperens navn allerede mellem ham og historien om Sammy Jankis.',
+    ];
+    saveSceneText(session, variantCtx, store, {
+      sceneId: opening.id,
+      doc: paragraphs(...openingProse), markdown: markdownOf(...openingProse),
+      label: 'Teddy afsløres tidligere',
     });
   });
 

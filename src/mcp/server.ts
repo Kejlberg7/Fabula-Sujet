@@ -66,6 +66,8 @@ Nogle vaner, der gør modellen brugbar frem for larmende:
 • gem_scenetekst spørger forfatteren selv, hver eneste gang, og skriver kun ved et ja. Spørg derfor
   også i samtalen først, og vis teksten frem, før du kalder værktøjet — prompten skal bekræfte en
   beslutning, forfatteren allerede har truffet, ikke være første gang de hører om den.
+• overfoer_forskel spørger på samme måde, hvis forskellen er prosa. Sammenlign først, og overfør kun
+  det konkrete forskel-id forfatteren har valgt; værktøjet fletter aldrig resten af grenen med.
 • Er et fund forkert, fordi verdenen er sådan, så skriv en LOV (opret_lov, evne, med regelkoden)
   frem for at afvise fundet. Afvis kun det enkelte tilfælde, der er en undtagelse i sig selv.
 `.trim();

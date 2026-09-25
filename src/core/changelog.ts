@@ -169,6 +169,27 @@ export class Session {
     });
   }
 
+  /**
+   * Replaces a row from its driver-shaped representation while still recording
+   * an ordinary update. Branch transfer uses this for tables selected at run
+   * time: the comparison already speaks SQLite column names, and translating
+   * those names back through dozens of table-specific mappers would make the
+   * copy less exact than undo itself.
+   */
+  replaceRaw<T extends SQLiteTable>(table: T, id: string, row: RawRow): RawRow {
+    this.assertOpen();
+    const name = getTableName(table);
+    tableByName(name);
+    return this.db.transaction((tx) => {
+      const before = rawRow(this.store.sqlite, name, id);
+      if (!before) throw new Error(`Cannot update missing row ${id}`);
+      rawReplace(this.store.sqlite, name, id, { ...row, id });
+      const after = rawRow(this.store.sqlite, name, id)!;
+      this.record(tx as unknown as Db, 'update', name, id, before, after);
+      return after;
+    });
+  }
+
   remove<T extends SQLiteTable>(table: T, id: string): void {
     this.assertOpen();
     const name = getTableName(table);

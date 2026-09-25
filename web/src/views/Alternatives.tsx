@@ -10,10 +10,45 @@ const differenceName: Record<string, string> = {
   scene_added: 'Scene tilføjet',
   scene_removed: 'Scene fjernet',
   scene_changed: 'Scene ændret',
+  scene_prose_changed: 'Prosa ændret',
   reveal_moved: 'Afsløring flyttet',
   reveal_changed: 'Afsløring ændret',
   reveal_added: 'Afsløring tilføjet',
   reveal_removed: 'Afsløring fjernet',
+  entity_changed: 'Person eller ting ændret',
+  entity_added: 'Person eller ting tilføjet',
+  entity_removed: 'Person eller ting fjernet',
+  event_changed: 'Event ændret',
+  event_added: 'Event tilføjet',
+  event_removed: 'Event fjernet',
+  time_changed: 'Tid ændret',
+  temporal_link_changed: 'Tidsbånd ændret',
+  temporal_link_added: 'Tidsbånd tilføjet',
+  temporal_link_removed: 'Tidsbånd fjernet',
+  fact_changed: 'Faktum ændret',
+  fact_added: 'Faktum tilføjet',
+  fact_removed: 'Faktum fjernet',
+  law_changed: 'Lov ændret',
+  law_added: 'Lov tilføjet',
+  law_removed: 'Lov fjernet',
+  relationship_changed: 'Relation ændret',
+  relationship_added: 'Relation tilføjet',
+  relationship_removed: 'Relation fjernet',
+  thread_changed: 'Plottråd ændret',
+  thread_added: 'Plottråd tilføjet',
+  thread_removed: 'Plottråd fjernet',
+};
+
+const sectionName: Record<string, string> = {
+  fortaelling: 'Fortællingen',
+  prosa: 'Prosaen',
+  events: 'Events',
+  tid: 'Tiden',
+  fakta: 'Fakta',
+  personer: 'Personer, steder og ting',
+  love: 'Verdens love',
+  relationer: 'Relationer',
+  plottraade: 'Plottråde',
 };
 
 
@@ -49,8 +84,9 @@ export function Alternatives({
         <div>
           <h2>Alternativer</h2>
           <p className="lede">
-            Prøv en anden læserækkefølge uden at ændre originalen. Hver gren har sin egen prosa,
-            sine egne scener og afsløringer; verdens fakta og kronologi er fælles.
+            Prøv en anden vej uden at ændre originalen. Hver gren har sin egen prosa,
+            fortællerækkefølge, kronologi og historieviden. En enkelt forskel kan overføres;
+            programmet fletter aldrig resten med i stilhed.
           </p>
         </div>
         <div className="branch-create">
@@ -236,18 +272,36 @@ export function Alternatives({
               {others.map((item) => <option key={item.id} value={item.id}>{item.name}{item.archivedAt ? ' (arkiveret)' : ''}</option>)}
             </select>
           </div>
-          {compareId && <Comparison branchId={compareId} nonce={nonce} />}
+          {compareId && (
+            <Comparison
+              branchId={compareId} nonce={nonce} notify={notify} onChanged={onChanged}
+            />
+          )}
         </>
       )}
     </div>
   );
 }
 
-function Comparison({ branchId, nonce }: { branchId: string; nonce: number }) {
-  const { data, loading, error } = useQuery('branch.compare', { otherBranchId: branchId }, [nonce, branchId]);
+function Comparison({
+  branchId, nonce, notify, onChanged,
+}: {
+  branchId: string;
+  nonce: number;
+  notify: (n: Notice) => void;
+  onChanged: () => void;
+}) {
+  const { data, loading, error, reload } = useQuery(
+    'branch.compare', { otherBranchId: branchId }, [nonce, branchId],
+  );
+  const [transferring, setTransferring] = useState('');
   if (loading && !data) return <p className="empty">Sammenligner …</p>;
   if (error) return <div className="banner bad"><p>{error}</p></div>;
   if (!data) return null;
+  const grouped = data.differences.reduce<Record<string, typeof data.differences>>((all, item) => {
+    (all[item.section] ??= []).push(item);
+    return all;
+  }, {});
   return (
     <div className="branch-comparison">
       <div className="comparison-summary">
@@ -260,15 +314,63 @@ function Comparison({ branchId, nonce }: { branchId: string; nonce: number }) {
       {data.differences.length === 0 ? (
         <div className="banner"><p>De to grene er stadig ens.</p></div>
       ) : (
-        <div className="difference-list">
-          {data.differences.map((item, index) => (
-            <div className="difference" key={`${item.kind}-${item.label}-${index}`}>
-              <span className="chip quiet">{differenceName[item.kind] ?? item.kind}</span>
-              <strong>{item.label}</strong>
-              <span>{item.left ?? '—'}</span>
-              <span className="difference-arrow">→</span>
-              <span>{item.right ?? '—'}</span>
-            </div>
+        <div className="difference-sections">
+          {Object.entries(grouped).map(([section, items]) => (
+            <section className="difference-section" key={section}>
+              <h4>{sectionName[section] ?? section}</h4>
+              <div className="difference-list">
+                {items.map((item) => (
+                  <div className={`difference${item.conflict ? ' conflict' : ''}`} key={item.id}>
+                    <span className="chip quiet">{differenceName[item.kind] ?? item.kind}</span>
+                    <strong>{item.label}</strong>
+                    <span className="difference-value">{item.left ?? '—'}</span>
+                    <span className="difference-arrow">→</span>
+                    <span className="difference-value">{item.right ?? '—'}</span>
+                    {item.detail && (
+                      <div className="prose-difference" aria-label="Konkret forskel i prosaen">
+                        <span>{item.detail.before}</span>
+                        {item.detail.removed && <del>{item.detail.removed}</del>}
+                        {item.detail.added && <ins>{item.detail.added}</ins>}
+                        <span>{item.detail.after}</span>
+                      </div>
+                    )}
+                    <div className="difference-transfer">
+                      {item.conflict && <span className="chip alert">konflikt</span>}
+                      {item.transferNote && <span className="small">{item.transferNote}</span>}
+                      {item.canTransfer ? (
+                        <button
+                          className={`btn${item.conflict ? ' danger' : ''}`}
+                          disabled={!!transferring}
+                          onClick={async () => {
+                            setTransferring(item.id);
+                            try {
+                              await call('branch.transfer', {
+                                otherBranchId: branchId, differenceId: item.id,
+                              });
+                              notify({ text: `«${item.label}» er overført som én handling.` });
+                              reload();
+                              onChanged();
+                            } catch (transferError) {
+                              notify({
+                                text: transferError instanceof Error
+                                  ? transferError.message : String(transferError),
+                                bad: true,
+                              });
+                            } finally {
+                              setTransferring('');
+                            }
+                          }}
+                        >{transferring === item.id
+                            ? 'Overfører …'
+                            : item.conflict ? 'Overfør og erstat' : 'Overfør hertil'}</button>
+                      ) : (
+                        <span className="small">Kan ikke overføres alene</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
           ))}
         </div>
       )}

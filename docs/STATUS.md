@@ -1,16 +1,47 @@
 # Arbejdsstatus
 
-Sidst opdateret: 23. september 2026
+Sidst opdateret: 25. september 2026
 
 ## Aktiv fase
 
-**Ingen. Fase 13 — eksport, backup og genoprettelse — er færdig** og
-browserprøvet 5. september 2026. Bogen kan forlade programmet som læseudgave,
-hele databasen kan pakkes med sine filer, og en backup kan hentes hel tilbage i
-en tom database.
+**Ingen. Fase 14 — alternativer uden blinde vinkler — er færdig** og
+browserprøvet 25. september 2026. To grene kan sammenlignes på hele den
+aftalte historiemodel, og én valgt forskel kan overføres som én fortrydelig
+handling uden en skjult sammenfletning.
 
-Fase 0–13 er færdige. Næste er fase 14, alternativer uden blinde vinkler. Den
-aftalte plan ligger i `docs/ROADMAP.md`.
+Fase 0–14 er færdige. Næste er fase 15, hele modellen i interfacet. Den aftalte
+plan ligger i `docs/ROADMAP.md`.
+
+## Færdigt i fase 14
+
+- `compareBranches` dækker nu fortællerækkefølge, afsløringer, konkret prosa,
+  personer/steder/ting, events, eventtid, tidsbånd, fakta, love, relationer og
+  plottråde. Sammenligningen grupperes med de samme ord i API, UI og MCP.
+- **En rigtig trevejssammenligning.** Grenenes fælles forfader og
+  forgreningspunkt genskabes fra ændringsloggen. «Konflikt» betyder, at den
+  aktive gren også har ændret samme felt siden det fælles punkt — ikke bare at
+  de to nutidige værdier er forskellige.
+- Prosaforskellen viser den fælles sammenhæng samt præcis slettet og tilføjet
+  tekst. En overført tekst går gennem `saveSceneText`, så den bliver en ny
+  udgave, og den nuværende bevares som tidligere udgave.
+- `transferBranchDifference` tager altid én synlig forskel fra den anden gren
+  ind i den aktive. Flytning af kapitler, scener og afsløringer bruger de
+  eksisterende domæneoperationer; modelrækker får alle greninterne henvisninger
+  peget om. Handlingen er én tur i ændringsloggen og dermed ét Fortryd væk.
+- En sammensat tilføjelse udgiver sig ikke for at være sikker: en hel scene,
+  person, event, faktum eller plottråd med børn står synligt som «kan ikke
+  overføres alene». Opdateringer og selvstændige poster kan overføres.
+- MCP har fået `overfoer_forskel`. `sammenlign_grene` giver et stabilt
+  forskel-id og viser både konflikt og konkret prosa. Skal prosa overføres via
+  MCP, spørges forfatteren om lov gennem den samme elicitation som ved anden
+  prosaskrivning.
+- Mementos «Teddy afsløres tidligere» er udvidet i både fixture og den lokale
+  `fabula.db`: den har nu synlige eksempler i samtlige ni afsnit. Det
+  idempotente bro-script er `scripts/enrich-phase14.ts`.
+- 313/313 prøver, typecheck og build er grønne. Browserprøven er kørt på den
+  rigtige database: ni afsnit vises, klokkeslættet 03.10 → 03.05 kan læses,
+  Teddy-beskrivelsen blev overført og derefter taget tilbage med ét Fortryd,
+  og browserkonsollen er tom.
 
 ## Aktuelt efterslæt — omtalerne skal kunne findes
 
@@ -22,7 +53,7 @@ aftalte plan ligger i `docs/ROADMAP.md`.
   eksempelvis `@G2` eller `@P6`.
 - Memento-eksemplerne ligger i «Han skriver på bagsiden», «Natten, i glimt»,
   «Han vågner hos Natalie», «Nålen» og «Natalie kommer forbi».
-- 309/309 prøver, typecheck og build er grønne. Browserprøven er kørt mod den
+- 313/313 prøver, typecheck og build er grønne. Browserprøven er kørt mod den
   rigtige `fabula.db`: alle fem mærker står i scenelisten, og `@G2` åbner
   «Polaroid af Teddy» med det korrekte uddrag under **Ankre**.
 
@@ -457,7 +488,7 @@ intet at se og intet at klikke på.
 
 ## Verificering
 
-- 309/309 prøver er grønne.
+- 313/313 prøver er grønne.
 - Typecheck og produktionsbuild er rene. Vite gentager den kendte advarsel om
   en JavaScript-chunk over 500 kB; det er ikke en buildfejl.
 - Migration 0007 er prøvet mod en kopi af den eksisterende database. Prøven
@@ -523,14 +554,14 @@ intet at se og intet at klikke på.
 
 ## Næste konkrete handling
 
-Fase 14 — alternativer uden blinde vinkler. `sammenlign_grene` og
-Alternativ-skærmen ser i dag kun scenernes og afsløringernes plads. De skal også
-dække events, fakta, personer, love, relationer, plottråde og tid, og vise
-konkrete prosaforskelle frem for «scenen er ændret». Dertil overførsel af én
-valgt ændring mellem grene med synlige konflikter — aldrig en tavs automatisk
-fletning; hver overførsel er én tur og dermed ét fortryd væk. Start med at læse
-`sammenlign_grene` i `src/mcp/tools/branches.ts` og sammenligningen, den kalder,
-og se hvor langt den nuværende model rækker, før der skrives noget nyt.
+Fase 15 — hele modellen kan betjenes i UI'et. Start med en dækningsmatrix mellem
+de gren-delte tabeller, MCP-værktøjerne og de formularer, der faktisk findes.
+Prioritér de manglende centrale data frem for at omskrive de korte formularer,
+der allerede virker: viden, udsagn, besiddelser, tilstande, rejseforbindelser,
+tidsbånd, deltagere, afsløringer og plotbeats. Før en sletning vises alle
+afhængigheder med menneskenavne. Udvid samtidig tekstankeret med brugsmåden
+«vist i rummet» eller «nævnt», før regler får lov at udlede tilstedeværelse,
+besiddelse eller genstandstilstand af prosaen.
 
 ## Åbne risici
 

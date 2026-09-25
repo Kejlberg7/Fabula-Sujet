@@ -27,7 +27,7 @@ database.
 
 ```bash
 npm install
-npm test                              # 309 prøver
+npm test                              # 313 prøver
 npm run fixtures -- ./fabula.db       # læg de fire prøvecases ind
 npm run build && npm run dev          # interfacet på http://localhost:4173
 npm run ask -- ./fabula.db hent_kontekst
@@ -263,7 +263,7 @@ src/core/
   services/        skrivning, som UI og MCP begge kalder
   queries/         hvem vidste hvad, hvem var hvor, hvad ved læseren
   solve.ts         løseren kørt på databasen
-src/mcp/           87 værktøjer, danske navne
+src/mcp/           88 værktøjer, danske navne
 src/server/        API'et interfacet taler med, og HTTP-serveren
 src/fixtures/      de fire prøvecases
 web/               interfacet: React, egen CSS, ingen komponentbibliotek
@@ -278,17 +278,23 @@ hvilket som helst trin, og så bliver hele fortællingen som den så ud dér kop
 til et nyt spor med sine egne id'er. Originalen røres ikke.
 
 På **Alternativer** flytter du scener og kapitler op og ned og afsløringer fra
-scene til scene, og **Sammenlign** viser præcis hvad der har rykket sig:
+scene til scene, og **Sammenlign** viser præcis hvad der har rykket sig. Det er
+ikke længere kun fortællerækkefølgen: prosa, personer, events, tid, fakta, love,
+relationer og plottråde står i hvert sit afsnit:
 
 ```
 SCENE FLYTTET      Teddy siger det hele          nr. 1  →  nr. 3
 AFSLØRING FLYTTET  Teddy hedder John Edward G.   Nogen har ringet → Teddy siger det hele
 AFSLØRING ÆNDRET   Teddy hedder John Edward G.   hinted → confirmed
+PROSA ÆNDRET       Nogen har ringet               [slettet tekst] → [ny tekst]
+TID ÆNDRET         Teddy fortæller sandheden      03.10 → 03.05
 ```
 
-Grene flettes aldrig. Du vælger et hovedspor eller arkiverer en variant, og
-begge dele kan gøres om. Alt sammen går gennem den samme ændringslog som resten,
-så en flytning er ét fortryd væk.
+Sammenligningen finder det sidste punkt, grenene var enige ved. Har den aktive
+gren også ændret den samme oplysning siden da, står der **konflikt** — den bliver
+ikke løst i stilhed. Du kan overføre præcis én vist forskel fra den anden gren;
+det er én handling og ét Fortryd væk. Prosa bliver en ny udgave, så den gamle
+tekst stadig kan læses. Hele grene flettes aldrig.
 
 Prøvecasen for Memento har en variant med i forvejen — «Teddy afsløres tidligere»
 — så der er noget at sammenligne fra første kørsel.
@@ -648,15 +654,12 @@ tur på historikken.
 
 ## Næste skridt
 
-**Fase 13 er færdig.** Bogen kan forlade programmet som læseudgave i Markdown
-eller Word uden arbejds-id'er og ankermærker, med et valgfrit appendiks, og hele
-databasen kan pakkes versionsmærket med sine filer og hentes hel tilbage i en tom
-database.
+**Fase 14 er færdig.** Alternativer kan sammenlignes på hele den aftalte
+historiemodel, konkrete prosaforskelle kan læses, og én valgt ændring kan
+overføres med synlige konflikter som én fortrydelig handling.
 
-**Fase 14 er den næste:** alternativer uden blinde vinkler — sammenligningen skal
-også dække events, fakta, personer, love, relationer, plottråde og tid, vise
-konkrete prosaforskelle, og kunne overføre én valgt ændring mellem grene med
-synlige konflikter.
+**Fase 15 er den næste:** hele modellen skal kunne betjenes i interfacet, med
+dækkende formularer og en forståelig afhængighedsvisning før sletning.
 
 **Fra fase 10, bevidst udskudt:** tilstedeværelse, besiddelse og
 genstandstilstand kan ikke udledes af en omtale, og det kræver et anker, der

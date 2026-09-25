@@ -3,7 +3,7 @@ import { describe, it } from 'node:test';
 import { and, eq } from 'drizzle-orm';
 import { openStore, type Store } from '../db/client';
 import {
-  beat, chapter, entity, entityLeg, event, identity, sceneEvent, scene, sceneText,
+  beat, branch, chapter, entity, entityLeg, event, identity, sceneEvent, scene, sceneText,
   storyReference, textAnchor, thread,
 } from '../db/schema';
 import { whoKnewWhat } from '../core/queries/knowledge';
@@ -15,6 +15,7 @@ import { Workbench } from '../core/workbench';
 import { loadHavnen, loadInception, loadMemento, loadPredestination } from '../fixtures';
 import { realm } from '../db/schema';
 import { createApi } from '../server/api';
+import { compareBranches } from '../core/branches';
 
 /**
  * The fixtures are the point of the fixtures: each film presses on a different
@@ -117,6 +118,17 @@ describe('Memento — fortællerorden mod kronologi', () => {
     assert.ok(withMentions.some((item) =>
       item.title === 'Han skriver på bagsiden' && item.referenceCodes.length > 0));
     assert.ok(withMentions.every((item) => item.referenceCodes.length > 0));
+  });
+
+  it('har et synligt fase 14-alternativ med prosa, bibel og kronologi', () => {
+    const alternative = store.db.select().from(branch)
+      .where(eq(branch.name, 'Teddy afsløres tidligere')).get()!;
+    const compared = compareBranches(store, {
+      leftBranchId: ctx.branchId, rightBranchId: alternative.id, workId,
+    });
+    for (const section of ['fortaelling', 'prosa', 'personer', 'events', 'tid', 'fakta', 'love', 'relationer', 'plottraade']) {
+      assert.ok(compared.differences.some((item) => item.section === section), `mangler ${section}`);
+    }
   });
 });
 
