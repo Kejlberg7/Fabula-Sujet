@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
+import { call } from '../client';
 import { useQuery } from '../store';
 import { formatInstant, LINK_DA, MODE_DA, ROLE_DA } from '../format';
 import { Editable } from './Editable';
 import type { Notice } from '../main';
 import { ReferenceLinks } from './ReferenceLinks';
+import { DeleteRow } from './DeleteRow';
 
 export function Events({
   nonce, notify, onChanged,
@@ -12,9 +14,28 @@ export function Events({
   const [selected, setSelected] = useState<string | null>(requested);
   const { data, loading } = useQuery('list.events', undefined, [nonce]);
   const { data: references } = useQuery('reference.list', undefined, [nonce]);
+  const { data: context } = useQuery('context.get', undefined, [nonce]);
+  const { data: people } = useQuery('list.entities', { kind: 'person' }, [nonce]);
+  const { data: facts } = useQuery('list.facts', undefined, [nonce]);
 
   const unplaced = data?.filter((e) => !e.placed).length ?? 0;
   const vague = data?.filter((e) => e.placed && !e.certain).length ?? 0;
+
+  const createEvent = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    const title = String(form.get('title'));
+    const rawTime = String(form.get('time') ?? '');
+    try {
+      const made = await call('event.create', {
+        title, realmId: String(form.get('realm')),
+        summary: String(form.get('summary') ?? '') || undefined,
+        ...(rawTime ? { earliest: Math.floor(new Date(rawTime).getTime() / 1000), latest: Math.floor(new Date(rawTime).getTime() / 1000) } : {}),
+      });
+      formElement.reset(); setSelected(made.id); notify({ text: `Eventet «${title}» er oprettet.` }); onChanged();
+    } catch (error) { notify({ text: error instanceof Error ? error.message : String(error), bad: true }); }
+  };
 
   return (
     <div className="page">
@@ -23,6 +44,14 @@ export function Events({
         Hvad der skete, i den rækkefølge det skete. Et event har et spænd, ikke et tidspunkt —
         det er meningen, og løseren strammer det, efterhånden som du binder events sammen.
       </p>
+      <form className="creation-card creation-inline" onSubmit={createEvent}>
+        <h3>Nyt event</h3>
+        <label>Hvad sker der?<input name="title" required /></label>
+        <label>Fortællingslag<select name="realm" required>{context?.realms.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}</select></label>
+        <label>Tidspunkt, hvis kendt<input name="time" type="datetime-local" /></label>
+        <label>Notat<input name="summary" /></label>
+        <button className="btn primary">Opret event</button>
+      </form>
 
       {data && data.length > 0 && (unplaced > 0 || vague > 0) && (
         <div className="banner">
@@ -73,6 +102,7 @@ export function Events({
           {selected && (
             <EventPanel
               id={selected} nonce={nonce}
+              events={data ?? []} people={people ?? []} facts={facts ?? []}
               onSaved={(text) => { notify({ text }); onChanged(); }}
               onError={(text) => notify({ text, bad: true })}
             />
@@ -84,8 +114,8 @@ export function Events({
 }
 
 function EventPanel({
-  id, nonce, onSaved, onError,
-}: { id: string; nonce: number; onSaved: (m: string) => void; onError: (m: string) => void }) {
+  id, nonce, events, people, facts, onSaved, onError,
+}: { id: string; nonce: number; events: { id: string; title: string }[]; people: { id: string; name: string }[]; facts: { id: string; summary: string }[]; onSaved: (m: string) => void; onError: (m: string) => void }) {
   const { data, error } = useQuery('event.get', { id }, [nonce]);
   if (error) return <div className="panel">{error}</div>;
   if (!data) return <div className="panel">Henter …</div>;
@@ -102,6 +132,8 @@ function EventPanel({
         placeholder="Hvad skete der …" onSaved={onSaved} onError={onError} />
 
       <ReferenceLinks targetKind="event" targetId={data.id} nonce={nonce} />
+      <DeleteRow table="event" id={data.id} label={data.title}
+        onDeleted={() => { onSaved(`Eventet «${data.title}» er slettet.`); window.location.hash = 'events'; }} onError={onError} />
 
       <dl>
         <dt>Tid</dt>
@@ -132,18 +164,51 @@ function EventPanel({
                 {p.absorbs === false && (
                   <span className="chip alert" style={{ marginLeft: 4 }}>opfatter ikke</span>
                 )}
+                <DeleteRow table="participation" id={p.id} label={`${p.name} som ${ROLE_DA[p.role] ?? p.role}`}
+                  onDeleted={() => onSaved('Deltagelsen er slettet.')} onError={onError} />
               </li>
             ))}
           </ul>
         </>
       )}
+      <form className="event-mini-form" onSubmit={async (event) => {
+        event.preventDefault(); const formElement = event.currentTarget; const form = new FormData(formElement);
+        try {
+          await call('participation.create', {
+            eventId: data.id, entityId: String(form.get('person')),
+            role: String(form.get('role')) as 'actor' | 'witness' | 'victim' | 'present_unaware' | 'mentioned',
+          });
+          formElement.reset(); onSaved('Deltageren er knyttet til eventet.');
+        } catch (error) { onError(error instanceof Error ? error.message : String(error)); }
+      }}>
+        <label>Tilføj deltager<select name="person" required>{people.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
+        <label>Rolle<select name="role"><option value="actor">handler</option><option value="witness">vidne</option><option value="victim">offer</option><option value="present_unaware">til stede, uvidende</option><option value="mentioned">omtalt</option></select></label>
+        <button className="btn small">Knyt</button>
+      </form>
 
       {data.exposes.length > 0 && (
         <>
           <h4>Lægger på bordet</h4>
-          <ul>{data.exposes.map((e) => <li key={e.id}>{e.summary}</li>)}</ul>
+          <ul>{data.exposes.map((e) => <li key={e.id}>{e.summary}
+            <DeleteRow table="event_fact" id={e.id} label={`knytningen til ${e.summary}`}
+              onDeleted={() => onSaved('Faktumtilknytningen er slettet.')} onError={onError} />
+          </li>)}</ul>
         </>
       )}
+      <form className="event-mini-form" onSubmit={async (event) => {
+        event.preventDefault(); const formElement = event.currentTarget; const form = new FormData(formElement);
+        try {
+          await call('event.fact.create', {
+            eventId: data.id, factId: String(form.get('fact')),
+            exposes: String(form.get('exposes')) as 'establishes' | 'reveals' | 'evidences',
+          });
+          formElement.reset(); onSaved('Faktummet er knyttet til eventet.');
+        } catch (error) { onError(error instanceof Error ? error.message : String(error)); }
+      }}>
+        <label>Eventet afslører<select name="fact" required>{facts.map((fact) => <option key={fact.id} value={fact.id}>{fact.summary}</option>)}</select></label>
+        <label>Hvordan?<select name="exposes"><option value="reveals">afslører</option><option value="evidences">giver tegn på</option><option value="establishes">slår fast som sandt</option></select></label>
+        <button className="btn small">Knyt faktum</button>
+      </form>
 
       {data.links.length > 0 && (
         <>
@@ -158,11 +223,33 @@ function EventPanel({
                 {l.axis === 'personal' && (
                   <span className="chip story" style={{ marginLeft: 6 }}>personlig tid</span>
                 )}
+                <DeleteRow table="temporal_link" id={l.id} label={`tidsbånd til ${l.otherTitle}`}
+                  onDeleted={() => onSaved('Tidsbåndet er slettet.')} onError={onError} />
               </li>
             ))}
           </ul>
         </>
       )}
+      <form className="event-mini-form" onSubmit={async (event) => {
+        event.preventDefault(); const formElement = event.currentTarget; const form = new FormData(formElement);
+        try {
+          await call('temporal.create', {
+            fromEventId: data.id, toEventId: String(form.get('other')),
+            kind: String(form.get('kind')) as 'before' | 'after' | 'same_time' | 'offset' | 'during',
+            axis: String(form.get('axis')) as 'world' | 'personal',
+            offsetMin: Number(form.get('offsetMin') || 0) * 86400,
+            offsetMax: Number(form.get('offsetMax') || 0) * 86400,
+          });
+          formElement.reset(); onSaved('Tidsbåndet er oprettet.');
+        } catch (error) { onError(error instanceof Error ? error.message : String(error)); }
+      }}>
+        <label>Tidsbånd til<select name="other" required>{events.filter((e) => e.id !== data.id).map((e) => <option key={e.id} value={e.id}>{e.title}</option>)}</select></label>
+        <label>Forhold<select name="kind"><option value="before">før</option><option value="after">efter</option><option value="same_time">samtidig</option><option value="during">under</option><option value="offset">forskudt</option></select></label>
+        <label>Tidsakse<select name="axis"><option value="world">verdens tid</option><option value="personal">personlig tid</option></select></label>
+        <label>Forskydning mindst (dage)<input name="offsetMin" type="number" step="any" /></label>
+        <label>Forskydning højst (dage)<input name="offsetMax" type="number" step="any" /></label>
+        <button className="btn small">Opret tidsbånd</button>
+      </form>
 
       {data.scenes.length > 0 && (
         <>

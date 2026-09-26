@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { REVEAL_DA } from '../format';
 import { useQuery } from '../store';
+import { DeleteRow } from './DeleteRow';
 
 const MARK: Record<string, string> = { staerk: '✓', se_efter: '?', tynd: '!' };
 const VERDICT_DA: Record<string, string> = {
@@ -16,8 +17,10 @@ const VERDICT_DA: Record<string, string> = {
  * it came from can be both.
  */
 export function Twists({ nonce }: { nonce: number }) {
-  const { data, loading } = useQuery('twist.list', {}, [nonce]);
-  const { data: workspace } = useQuery('branch.workspace', undefined, [nonce]);
+  const [own, setOwn] = useState(0);
+  const [notice, setNotice] = useState('');
+  const { data, loading } = useQuery('twist.list', {}, [nonce, own]);
+  const { data: workspace } = useQuery('branch.workspace', undefined, [nonce, own]);
   const [against, setAgainst] = useState('');
 
   const others = (workspace?.branches ?? [])
@@ -44,6 +47,7 @@ export function Twists({ nonce }: { nonce: number }) {
         hver aflæsning peger på de scener, den kommer af — for det er dem, du kan gøre noget ved.
         En akse tier, når der ikke er noget at regne på.
       </p>
+      {notice && <p className="notice" role="status">{notice}</p>}
 
       {data.map((twist) => (
         <article key={twist.factId} className="twist">
@@ -68,6 +72,8 @@ export function Twists({ nonce }: { nonce: number }) {
                 <i className="num">{b.order}</i>
                 {REVEAL_DA[b.strength] ?? b.strength}
                 {b.slotName && ` · ${b.slotName}`}
+                <DeleteRow table="reveal" id={b.id} label={`afsløringen «${twist.summary}»`}
+                  onDeleted={() => setOwn((n) => n + 1)} onError={setNotice} />
               </span>
             ))}
           </div>

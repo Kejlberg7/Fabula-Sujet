@@ -1,0 +1,1 @@
+ALTER TABLE `text_anchor` ADD `use` text DEFAULT 'mentioned' NOT NULL;

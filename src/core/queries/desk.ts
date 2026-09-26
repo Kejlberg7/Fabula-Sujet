@@ -93,6 +93,10 @@ export interface DeskResult {
     markId: string;
     targetKind: string;
     targetId: string;
+    use: 'depicted' | 'mentioned' | 'held' | 'state';
+    relatedEntityId: string | null;
+    stateCategory: string | null;
+    stateValue: string | null;
     code: string | null;
     targetLabel: string;
     href: string | null;
@@ -375,6 +379,10 @@ export function sceneDesk(store: Store, ctx: Context, query: { sceneId: string }
       const fallback = labelFor(a.targetKind, a.targetId);
       return {
         id: a.id, markId: a.markId, targetKind: a.targetKind, targetId: a.targetId,
+        use: a.use,
+        relatedEntityId: a.relatedEntityId,
+        stateCategory: a.stateCategory,
+        stateValue: a.stateValue,
         code: addressed?.code ?? null,
         targetLabel: addressed?.label ?? fallback,
         href: addressed?.href ?? null,

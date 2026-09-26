@@ -1,16 +1,37 @@
 # Arbejdsstatus
 
-Sidst opdateret: 25. september 2026
+Sidst opdateret: 26. september 2026
 
 ## Aktiv fase
 
-**Ingen. Fase 14 — alternativer uden blinde vinkler — er færdig** og
-browserprøvet 25. september 2026. To grene kan sammenlignes på hele den
-aftalte historiemodel, og én valgt forskel kan overføres som én fortrydelig
-handling uden en skjult sammenfletning.
+**Ingen. Fase 15 — hele modellen i interfacet — er færdig** og browserprøvet
+26. september 2026. Fase 0–15 er færdige. Næste er fase 16: de sidste overblik
+og robusthedsprøver. Den samlede plan ligger i `docs/ROADMAP.md`.
 
-Fase 0–14 er færdige. Næste er fase 15, hele modellen i interfacet. Den aftalte
-plan ligger i `docs/ROADMAP.md`.
+## Færdigt i fase 15
+
+- Interfacet kan oprette personer, steder, ting, events, fakta, overbevisninger,
+  udsagn, viden på genstande, afsløringer, love, relationer, identiteter,
+  besiddelser, tilstande, ophold, rejseforbindelser, deltagere, eventfakta,
+  tidsbånd, plottråde, plotslag og researchkilder. Retning sker inline eller via
+  samme ændringslogførte API; sletning er individuel og fortrydelig.
+- Sletningsforhåndsvisning finder direkte fremmednøgler og polymorfiske
+  henvisninger (tekstankre, kildehenvisninger og bindinger) og viser forståelige
+  navne uden UUID'er. Afhængige poster skal ryddes først.
+- Tekstankre skelner mellem blot nævnt, vist, holdt og markeret tilstand.
+  Gamle rækker migreres sikkert til «blot nævnt». Gennemgangen kontrollerer
+  kun præcise og eksplicitte påstande: person et andet sted, forkert holder
+  eller uforenelig genstandstilstand. Uskarp tid tier.
+- 317/317 prøver, typecheck og build er grønne. Browserprøven oprettede et
+  prøvefaktum, viste det og fjernede det med appens Fortryd; kontinuitetsformen
+  blev gennemgået mod Memento.
+
+## Næste konkrete handling
+
+Fase 16 — tid × sted-matrix, relationskort, afsløringstavle, backlinks fra alle
+kort, navigation fra fund til scene, ydelsesprøve med mindst 2.000 events,
+tilgængelighed, integritets- og migrationsprøver samt onboarding til tom
+database. Se `docs/ROADMAP.md`.
 
 ## Færdigt i fase 14
 
@@ -552,16 +573,10 @@ intet at se og intet at klikke på.
   gennem interfacet i en tom database ender med forsiden på «Havnen / Du
   arbejder på Saltet» og den oprindelige historik. Ingen fejl i konsollen.
 
-## Næste konkrete handling
+## Historisk: planen for fase 15
 
-Fase 15 — hele modellen kan betjenes i UI'et. Start med en dækningsmatrix mellem
-de gren-delte tabeller, MCP-værktøjerne og de formularer, der faktisk findes.
-Prioritér de manglende centrale data frem for at omskrive de korte formularer,
-der allerede virker: viden, udsagn, besiddelser, tilstande, rejseforbindelser,
-tidsbånd, deltagere, afsløringer og plotbeats. Før en sletning vises alle
-afhængigheder med menneskenavne. Udvid samtidig tekstankeret med brugsmåden
-«vist i rummet» eller «nævnt», før regler får lov at udlede tilstedeværelse,
-besiddelse eller genstandstilstand af prosaen.
+Fase 15 er afsluttet ovenfor. Dens oprindelige dækning og beslutninger står i
+`docs/ROADMAP.md`; fase 16 er næste konkrete arbejde.
 
 ## Åbne risici
 

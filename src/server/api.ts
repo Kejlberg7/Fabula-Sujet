@@ -1,9 +1,9 @@
 import { and, desc, eq, sql } from 'drizzle-orm';
 import type { Store } from '../db/client';
 import {
-  beat, belief, branch, change, chapter, disappearance, entity, entityLeg, entityState,
+  beat, belief, branch, carrier, change, chapter, disappearance, entity, entityLeg, entityState,
   event, eventFact, fact, identity, law, memoryPolicy, participation, possession, presence,
-  realm, relationship, scene, sceneEvent, sceneText, series, temporalLink,
+  placeLink, realm, relationship, scene, sceneEvent, sceneText, series, statement, temporalLink,
   textAnchor, thread, work, world,
 } from '../db/schema';
 import {
@@ -28,14 +28,16 @@ import { referenceBacklinks, referenceCatalog } from '../core/queries/references
 import { find } from '../core/queries/search';
 import { deleteRow, updateRow } from '../core/services/generic';
 import {
-  createEntity, createRelationship, recordDisappearance, recordEntityState,
+  createEntity, createIdentity, createRelationship, recordDisappearance, recordEntityState,
+  recordPossession, recordPresence, createPlaceLink,
 } from '../core/services/entities';
-import { createEvent } from '../core/services/events';
+import { addParticipation, addTemporalLink, createEvent, linkEventFact } from '../core/services/events';
 import {
   createBeat, createChapter, createReveal, createScene, createTextAnchor, createThread,
   linkSceneToEvent, saveSceneText,
 } from '../core/services/narrative';
-import { createSource, linkSource } from '../core/services/laws';
+import { createLaw, createSource, linkSource } from '../core/services/laws';
+import { attachFactToCarrier, createFact, recordBelief, recordStatement } from '../core/services/knowledge';
 import { openFindings, review } from '../core/review';
 import { RULES } from '../core/rules';
 import { dismissFinding, revokeDismissal } from '../core/services/findings';
@@ -229,6 +231,16 @@ export function createApi(store: Store) {
           realmName: db.select().from(realm).where(eq(realm.id, f.realmId)).get()?.name ?? '',
           binds: readBindings(store, 'truth', f.id),
           believers: db.select().from(belief).where(eq(belief.factId, f.id)).all().length,
+          beliefs: db.select().from(belief).where(eq(belief.factId, f.id)).all().map((b) => ({
+            id: b.id, person: nameOf(b.entityId) ?? '(ukendt)', strength: b.strength, note: b.note,
+          })),
+          statements: db.select().from(statement).where(eq(statement.factId, f.id)).all().map((s) => ({
+            id: s.id, speaker: nameOf(s.speakerEntityId) ?? '(ukendt)', truthful: s.truthful,
+            audience: nameOf(s.audienceEntityId), note: s.note,
+          })),
+          carriers: db.select().from(carrier).where(eq(carrier.factId, f.id)).all().map((c) => ({
+            id: c.id, object: nameOf(c.objectEntityId) ?? '(ukendt genstand)', accurate: c.accurate, note: c.note,
+          })),
         }))
         .sort((a, b) => a.summary.localeCompare(b.summary, 'da'));
     },
@@ -307,6 +319,19 @@ export function createApi(store: Store) {
           fromName: entityNames.get(row.fromEntityId) ?? '(ukendt)',
           toName: entityNames.get(row.toEntityId) ?? '(ukendt)',
           when: when(row.fromTime, row.toTime),
+        })),
+        presences: db.select().from(presence).where(eq(presence.branchId, c.branchId)).all().map((row) => ({
+          ...row,
+          personName: entityNames.get(row.entityId) ?? '(ukendt person)',
+          placeName: entityNames.get(row.placeId) ?? '(ukendt sted)',
+          realmName: db.select().from(realm).where(eq(realm.id, row.realmId)).get()?.name ?? '(ukendt lag)',
+          when: when(row.fromTime, row.toTime),
+        })),
+        placeLinks: db.select().from(placeLink).where(eq(placeLink.branchId, c.branchId)).all().map((row) => ({
+          ...row,
+          fromName: entityNames.get(row.fromPlaceId) ?? '(ukendt sted)',
+          toName: entityNames.get(row.toPlaceId) ?? '(ukendt sted)',
+          realmName: db.select().from(realm).where(eq(realm.id, row.realmId)).get()?.name ?? '(ukendt lag)',
         })),
         identities: identities.map((row) => ({
           ...row, entityName: entityNames.get(row.entityId) ?? '(ukendt)',
@@ -665,6 +690,145 @@ export function createApi(store: Store) {
         return { deleted: true };
       }),
 
+    'row.delete.preview': (input: { table: string; id: string }) => {
+      const target = store.sqlite.prepare('select name from sqlite_master where type = ? and name = ?')
+        .get('table', input.table) as { name: string } | undefined;
+      if (!target || input.table === 'sqlite_sequence') throw new Error('Posten findes ikke.');
+      const parent = store.sqlite.prepare(`select * from "${target.name}" where id = ?`)
+        .get(input.id) as Record<string, unknown> | undefined;
+      if (!parent) throw new Error('Posten findes ikke længere.');
+      const dependencies: { kind: string; label: string; relation: string }[] = [];
+      const tables = store.sqlite.prepare("select name from sqlite_master where type = 'table'").all() as { name: string }[];
+      const tableLabels: Record<string, string> = {
+        entity: 'person, sted eller ting', event: 'event', fact: 'faktum', scene: 'scene',
+        chapter: 'kapitel', work: 'bog', realm: 'fortællingslag', law: 'lov',
+        thread: 'plottråd', source: 'kilde', identity: 'identitet',
+        participation: 'deltagelse i event', presence: 'ophold', possession: 'besiddelse',
+        relationship: 'relation', belief: 'overbevisning', statement: 'udsagn',
+        carrier: 'viden på genstand', reveal: 'afsløring', beat: 'plotslag',
+        scene_event: 'scene, der fortæller eventet', temporal_link: 'tidsbånd',
+        source_link: 'kildehenvisning', text_anchor: 'omtale i prosa',
+        story_reference: 'arbejdsreference', event_fact: 'faktum knyttet til event',
+      };
+      const seen = new Set<string>();
+      const addDependency = (childTable: string, row: Record<string, unknown>, relation: string) => {
+        const preferred = ['name', 'title', 'summary', 'statement', 'value', 'kind', 'predicate', 'code', 'note', 'quote'];
+        const title = preferred.map((field) => row[field]).find((value) =>
+          typeof value === 'string' && value.trim().length > 0) as string | undefined;
+        const key = `${childTable}:${String(row['id'] ?? title ?? '')}:${relation}`;
+        if (seen.has(key)) return;
+        seen.add(key);
+        dependencies.push({
+          kind: tableLabels[childTable] ?? childTable.replaceAll('_', ' '),
+          label: title ?? 'post uden titel', relation,
+        });
+      };
+      for (const child of tables) {
+        if (child.name.startsWith('sqlite_') || child.name === input.table) continue;
+        const foreignKeys = store.sqlite.prepare(`pragma foreign_key_list("${child.name}")`).all() as
+          { table: string; from: string; to: string }[];
+        for (const key of foreignKeys.filter((item) => item.table === input.table && item.to === 'id')) {
+          const rows = store.sqlite.prepare(`select * from "${child.name}" where "${key.from}" = ?`)
+            .all(input.id) as Record<string, unknown>[];
+          for (const row of rows) {
+            addDependency(child.name, row, key.from.replaceAll('_', ' '));
+          }
+        }
+        const columns = new Set((store.sqlite.prepare(`pragma table_info("${child.name}")`).all() as { name: string }[]).map((column) => column.name));
+        if (columns.has('target_id') && columns.has('target_kind')) {
+          const rows = store.sqlite.prepare(`select * from "${child.name}" where target_id = ? and target_kind = ?`)
+            .all(input.id, input.table) as Record<string, unknown>[];
+          for (const row of rows) addDependency(child.name, row, 'polymorfisk reference');
+        }
+        if (columns.has('owner_id') && columns.has('owner_kind')) {
+          const ownerKind = input.table === 'fact' ? 'truth' : input.table;
+          const rows = store.sqlite.prepare(`select * from "${child.name}" where owner_id = ? and owner_kind = ?`)
+            .all(input.id, ownerKind) as Record<string, unknown>[];
+          for (const row of rows) addDependency(child.name, row, 'indhold knyttet til posten');
+        }
+        if (child.name === 'event_fact' && input.table === 'fact') {
+          const rows = store.sqlite.prepare('select * from event_fact where fact_id = ?').all(input.id) as Record<string, unknown>[];
+          for (const row of rows) addDependency(child.name, row, 'event, der bruger faktummet');
+        }
+      }
+      return { dependencies, canDelete: dependencies.length === 0 };
+    },
+
+    'fact.create': (input: {
+      predicate: string; summary: string; realmId: string;
+      truth?: 'true' | 'false' | 'disputed' | 'undecided';
+      slots: { name: string; valueKind: 'entity' | 'time' | 'place' | 'text' | 'number' }[];
+    }) => bench.run({ actor, summary: `Faktum: ${input.summary}` }, (session, c) =>
+      createFact(session, c, input)),
+
+    'belief.create': (input: {
+      entityId: string; factId: string;
+      strength: 'knows' | 'convinced' | 'suspects' | 'mistaken' | 'denies' | 'unaware';
+      note?: string;
+    }) => bench.run({ actor, summary: 'Registrer viden eller tro' }, (session, c) =>
+      ({ id: recordBelief(session, c, input) })),
+
+    'statement.create': (input: {
+      speakerEntityId: string; factId: string; truthful?: boolean;
+      audienceEntityId?: string; eventId?: string; note?: string;
+    }) => bench.run({ actor, summary: 'Registrer udsagn' }, (session, c) =>
+      ({ id: recordStatement(session, c, input) })),
+
+    'carrier.create': (input: {
+      objectEntityId: string; factId: string; accurate?: boolean; note?: string;
+    }) => bench.run({ actor, summary: 'Lad en genstand bære et faktum' }, (session, c) =>
+      ({ id: attachFactToCarrier(session, c, input) })),
+
+    'law.create': (input: {
+      kind: 'ability' | 'prohibition'; hardness: 'hard' | 'soft'; statement: string;
+      ruleCode?: string; scopeKind?: 'world' | 'series' | 'work' | 'realm'; scopeId?: string;
+      subjectKind?: 'everyone' | 'entity' | 'entity_kind' | 'carrier_holder';
+      subjectEntityId?: string; subjectExpression?: string;
+    }) => bench.run({ actor, summary: `Lov: ${input.statement}` }, (session, c) =>
+      ({ id: createLaw(session, c, input) })),
+
+    'identity.create': (input: {
+      entityId: string; name: string; note?: string; validFrom?: number; validTo?: number;
+    }) => bench.run({ actor, summary: `Identitet: ${input.name}` }, (session, c) =>
+      ({ id: createIdentity(session, c, input) })),
+
+    'possession.create': (input: {
+      holderEntityId: string; objectEntityId: string; note?: string;
+      fromTime?: number; toTime?: number;
+    }) => bench.run({ actor, summary: 'Registrer besiddelse' }, (session, c) =>
+      ({ id: recordPossession(session, c, input) })),
+
+    'presence.create': (input: {
+      entityId: string; placeId: string; realmId: string;
+      fromTime?: number; toTime?: number; note?: string;
+    }) => bench.run({ actor, summary: 'Registrer tilstedeværelse' }, (session, c) =>
+      ({ id: recordPresence(session, c, input) })),
+
+    'place-link.create': (input: {
+      realmId: string; fromPlaceId: string; toPlaceId: string; mode: string;
+      travelMin?: number; travelMax?: number; bidirectional?: boolean; note?: string;
+    }) => bench.run({ actor, summary: 'Rejseforbindelse' }, (session, c) =>
+      ({ id: createPlaceLink(session, c, input) })),
+
+    'participation.create': (input: {
+      eventId: string; entityId: string;
+      role: 'actor' | 'witness' | 'victim' | 'present_unaware' | 'mentioned'; note?: string;
+    }) => bench.run({ actor, summary: 'Knyt person til event' }, (session, c) =>
+      ({ id: addParticipation(session, c, input) })),
+
+    'event.fact.create': (input: {
+      eventId: string; factId: string;
+      exposes?: 'establishes' | 'reveals' | 'evidences'; note?: string;
+    }) => bench.run({ actor, summary: 'Knyt faktum til event' }, (session, c) =>
+      ({ id: linkEventFact(session, c, input) })),
+
+    'temporal.create': (input: {
+      fromEventId: string; toEventId: string;
+      kind: 'before' | 'after' | 'same_time' | 'offset' | 'during';
+      axis?: 'world' | 'personal'; offsetMin?: number; offsetMax?: number; note?: string;
+    }) => bench.run({ actor, summary: 'Knyt tidsbånd' }, (session, c) =>
+      ({ id: addTemporalLink(session, c, input) })),
+
     'entity.create': (input: {
       name: string;
       kind: 'person' | 'place' | 'object' | 'organisation' | 'concept';
@@ -955,6 +1119,8 @@ export function createApi(store: Store) {
         | 'identity' | 'scene' | 'thread';
       targetId: string;
       excerpt?: string;
+      use?: 'depicted' | 'mentioned' | 'held' | 'state';
+      relatedEntityId?: string; stateCategory?: string; stateValue?: string;
     }) => bench.run({ actor, summary: 'Sæt tekstanker' }, (session, c) =>
       ({ id: createTextAnchor(session, c, input) })),
 

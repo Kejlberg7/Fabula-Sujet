@@ -129,6 +129,15 @@ export function Desk({
     }).catch(() => { /* An anchor left behind is harmless; a crash is not. */ });
   }, [sceneId, reload, onChanged]);
 
+  const updateAnchor = useCallback(async (id: string, patch: Record<string, unknown>, done: string) => {
+    try {
+      await call('row.update', { table: 'text_anchor', id, patch });
+      notify({ text: done }); reload(); onChanged();
+    } catch (error) {
+      notify({ text: error instanceof Error ? error.message : String(error), bad: true });
+    }
+  }, [notify, reload, onChanged]);
+
   const openAnchor = useCallback((markId: string) => {
     const tied = desk?.anchors.find((item) => item.markId === markId);
     if (!tied) return;
@@ -407,6 +416,52 @@ export function Desk({
                   {a.broken && <span className="chip alert">brudt reference</span>}
                 </div>
                 {a.excerpt && <div className="excerpt">«{a.excerpt}»</div>}
+                {a.targetKind === 'entity' && !a.broken && (
+                  <label className="anchor-use">
+                    <span>Påstanden fra teksten</span>
+                    <select aria-label={`Brug af ${a.targetLabel} i scenen`}
+                      value={a.use} onChange={async (event) => {
+                        const use = event.target.value as 'depicted' | 'mentioned' | 'held' | 'state';
+                        void updateAnchor(a.id, {
+                          use,
+                          relatedEntityId: use === 'held' ? a.relatedEntityId : null,
+                          stateCategory: use === 'state' ? a.stateCategory : null,
+                          stateValue: use === 'state' ? a.stateValue : null,
+                        }, 'Tekstpåstanden er opdateret.');
+                      }}>
+                    <option value="depicted">Vist i rummet</option>
+                    <option value="mentioned">Blot nævnt</option>
+                    {references?.find((item) => item.targetKind === 'entity' && item.targetId === a.targetId)?.entityKind === 'object' && <>
+                      <option value="held">Holdes af en person</option>
+                      <option value="state">Har en bestemt tilstand</option>
+                    </>}
+                    </select>
+                  </label>
+                )}
+                {a.use === 'held' && (
+                  <label className="anchor-use"><span>Holdes af</span>
+                    <select aria-label={`Hvem holder ${a.targetLabel}`} value={a.relatedEntityId ?? ''}
+                      onChange={(event) => void updateAnchor(a.id, { relatedEntityId: event.target.value || null }, 'Besiddelsen i teksten er gemt.')}>
+                      <option value="">Vælg person …</option>
+                      {references?.filter((item) => item.entityKind === 'person' && item.exists)
+                        .map((person) => <option key={person.targetId} value={person.targetId}>{person.label}</option>)}
+                    </select>
+                  </label>
+                )}
+                {a.use === 'state' && (
+                  <div className="anchor-state">
+                    <label>Tilstand<input aria-label={`Tilstandskategori for ${a.targetLabel}`} defaultValue={a.stateCategory ?? ''} placeholder="fx stand" /></label>
+                    <label>Værdi<input aria-label={`Tilstand for ${a.targetLabel}`} defaultValue={a.stateValue ?? ''} placeholder="fx revnet" /></label>
+                    <button className="btn small" onClick={(event) => {
+                      const box = event.currentTarget.parentElement;
+                      const inputs = box?.querySelectorAll('input');
+                      void updateAnchor(a.id, {
+                        stateCategory: inputs?.[0]?.value.trim() || null,
+                        stateValue: inputs?.[1]?.value.trim() || null,
+                      }, 'Genstandens tilstand i teksten er gemt.');
+                    }}>Gem påstand</button>
+                  </div>
+                )}
                 {a.href && <a className="small" href={`#${a.href}`}>Åbn kortet →</a>}
               </div>
             ))}

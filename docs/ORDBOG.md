@@ -50,6 +50,7 @@ navn i en tabel eller et felt er også en fejl.
 | Scene ↔ event | `scene_event` | Hvilke events en scene fortæller, og hvordan |
 | Afsløring | `reveal` | Hvornår **læseren** får noget at vide |
 | Tekstanker | `text_anchor` | Et stykke prosa bundet til det, det udtrykker |
+| Tekstankerets brug | `text_anchor.use` | `mentioned`, `depicted`, `held` eller `state`; omtale udleder aldrig tilstedeværelse |
 | Arbejdsreference | `story_reference` | Stabil, kort adresse som P1, G1 eller E4 til et mål i biblen |
 | Tråd | `thread` | Plotlinje. Begynder i én bog og når så langt, rækkevidden siger |
 | Rækkevidde | `thread.scope` | Hvor langt en tråd når: `bog`, `serie` eller `verden` |
@@ -110,6 +111,8 @@ der ikke noget galt — så har forfatteren bare ikke besluttet sig endnu.
 | `mention_ahead_of_time` | Omtale før sin tid — bunden narration peger på noget, der ikke er sket | 10 ✓ |
 | `mention_name_not_yet` | Navn uden for sin tid — prosaen bruger en identitet uden for dens gyldighed | 10 ✓ |
 | `mention_reader_ahead` | Omtale før læseren ved det — prosaen peger på et faktum, læseren ikke har fået | 10 ✓ |
+| `depicted_person_elsewhere` | Person vist et andet sted — kun ved præcis tid og sikker livslinje | 15 ✓ |
+| `prose_object_claim` | Genstandspåstand i prosaen — udtrykkeligt markeret holder eller tilstand modsiger bibelen | 15 ✓ |
 | `unanchored_realm` | Ufæstnet lag — et lag uden noget, der binder det til verdens tid | 3 ✓ |
 | `attachment_missing` | Fil væk fra arkivet — kilden peger på en fil, der mangler eller har skiftet størrelse | 12 ✓ |
 

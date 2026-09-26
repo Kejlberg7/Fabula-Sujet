@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
+import { call } from '../client';
 import { useQuery } from '../store';
 import { formatInstant, KIND_DA, ROLE_DA, SOURCE_DA, STRENGTH_DA } from '../format';
 import { Editable } from './Editable';
 import { Scrubber } from './Scrubber';
 import type { Notice } from '../main';
 import { ReferenceLinks } from './ReferenceLinks';
+import { DeleteRow } from './DeleteRow';
 
 const TITLES: Record<string, { heading: string; lede: string }> = {
   person: {
@@ -33,10 +35,33 @@ export function Entities({
   const saved = (text: string) => { notify({ text }); onChanged(); };
   const failed = (text: string) => notify({ text, bad: true });
 
+  const createEntity = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    try {
+      const made = await call('entity.create', {
+        name: String(form.get('name')), kind: kind as 'person' | 'place' | 'object',
+        summary: String(form.get('summary') ?? '') || undefined,
+      });
+      const createdName = String(form.get('name'));
+      formElement.reset();
+      setSelected(made.id);
+      saved(`${createdName} er oprettet.`);
+    } catch (error) { failed(error instanceof Error ? error.message : String(error)); }
+  };
+
   return (
     <div className="page">
       <h2>{meta.heading}</h2>
       <p className="lede">{meta.lede}</p>
+
+      <form className="creation-card creation-inline" onSubmit={createEntity}>
+        <h3>Opret {meta.heading.toLowerCase().replace(/er$/, '')}</h3>
+        <label>Navn<input name="name" required /></label>
+        <label>Beskrivelse<input name="summary" placeholder="Det, du vil huske om den" /></label>
+        <button className="btn primary">Opret</button>
+      </form>
 
       {loading && !data && <p className="empty">Henter …</p>}
       {data?.length === 0 && <p className="empty">Ingen {meta.heading.toLowerCase()} endnu.</p>}
@@ -76,7 +101,7 @@ export function Entities({
           </table>
 
           {selected && (
-            <EntityPanel id={selected} nonce={nonce} onSaved={saved} onError={failed} />
+            <EntityPanel id={selected} kind={kind} nonce={nonce} onSaved={saved} onError={failed} />
           )}
         </div>
       )}
@@ -85,8 +110,8 @@ export function Entities({
 }
 
 function EntityPanel({
-  id, nonce, onSaved, onError,
-}: { id: string; nonce: number; onSaved: (m: string) => void; onError: (m: string) => void }) {
+  id, kind, nonce, onSaved, onError,
+}: { id: string; kind: string; nonce: number; onSaved: (m: string) => void; onError: (m: string) => void }) {
   const { data, error } = useQuery('entity.get', { id }, [nonce]);
   if (error) return <div className="panel">{error}</div>;
   if (!data) return <div className="panel">Henter …</div>;
@@ -102,6 +127,9 @@ function EntityPanel({
         placeholder="Kort beskrivelse …" onSaved={onSaved} onError={onError} />
 
       <ReferenceLinks targetKind="entity" targetId={data.id} nonce={nonce} />
+      <DeleteRow table="entity" id={data.id} label={data.name}
+        onDeleted={() => { onSaved(`${data.name} er slettet.`); window.location.hash = kind === 'person' ? 'personer' : kind === 'place' ? 'steder' : 'ting'; }}
+        onError={onError} />
 
       {data.kind === 'person' && (
         <>

@@ -145,11 +145,19 @@ export function createTextAnchor(
       | 'identity' | 'scene' | 'thread';
     targetId: string;
     excerpt?: string;
+    use?: 'depicted' | 'mentioned' | 'held' | 'state';
+    relatedEntityId?: string;
+    stateCategory?: string;
+    stateValue?: string;
   },
 ): string {
   return session.insert(textAnchor, {
     branchId: ctx.branchId, sceneId: input.sceneId, markId: input.markId,
     targetKind: input.targetKind, targetId: input.targetId,
+    use: input.use ?? 'mentioned',
+    relatedEntityId: input.relatedEntityId ?? null,
+    stateCategory: input.stateCategory ?? null,
+    stateValue: input.stateValue ?? null,
     excerpt: input.excerpt ?? null,
   })['id'] as string;
 }

@@ -183,6 +183,11 @@ export const textAnchor = sqliteTable('text_anchor', {
     enum: ['event', 'fact', 'reveal', 'belief', 'beat', 'entity', 'identity', 'scene', 'thread'],
   }).notNull(),
   targetId: text('target_id').notNull(),
+  /** A reference can name someone without placing them in the scene. */
+  use: text('use', { enum: ['depicted', 'mentioned', 'held', 'state'] }).notNull().default('mentioned'),
+  relatedEntityId: text('related_entity_id').references(() => entity.id),
+  stateCategory: text('state_category'),
+  stateValue: text('state_value'),
   /** Cached copy of the anchored text, for lists. Not the source of truth. */
   excerpt: text('excerpt'),
 }, (t) => ({

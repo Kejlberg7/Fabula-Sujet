@@ -139,14 +139,30 @@ udgiver sig ikke for at være én række og kan derfor ikke overføres alene.
 
 ## Fase 15 — Hele modellen kan betjenes i UI'et
 
-- Opret, ret og slet alle centrale datatyper uden Claude.
-- Dækkende formularer til fakta, love, relationer, identiteter, viden, udsagn,
-  besiddelser, tilstande, rejseforbindelser, tidsbånd, deltagere, afsløringer og
-  plotbeats.
-- Før en sletning vises alle afhængigheder med navne, aldrig interne UUID'er.
-- Et anker kan sige, hvordan passagen bruger sit mål: vist i rummet eller blot
-  nævnt. Først da kan tilstedeværelse, besiddelse og genstandstilstand prøves
-  mod prosaen — se undtagelsen i fase 10.
+**Status: færdig.** Implementeret og browserprøvet 26. september 2026.
+
+- ~~Opret, ret og slet historiens centrale poster uden Claude.~~ Formularer er
+  lagt dér, hvor data hører til: personer/steder/ting, events, fakta og viden,
+  love, kontinuitet, scener/afsløringer og research. Eksisterende værdier kan
+  rettes inline; individuelle poster kan slettes gennem ændringsloggen.
+- ~~Formularer til fakta, overbevisninger, udsagn, viden på genstande,
+  afsløringer, relationer, identiteter, besiddelser, genstandstilstande,
+  tilstedeværelse, rejseforbindelser, events, deltagere, eventfakta, tidsbånd,
+  plottråde, plotslag og kilder.~~
+- ~~Før sletning vises afhængigheder med navne — ikke interne UUID'er.~~ Direkte
+  fremmednøgler og modellens polymorfiske henvisninger medregnes; en post med
+  afhængigheder slettes ikke i stilhed.
+- ~~Et anker siger, hvordan teksten bruger en entitet: blot nævnt, vist i
+  scenen, holdt af en person eller med en bestemt tilstand.~~ Kun den sidste
+  slags påstande giver grundlag for tilsvarende kontrol; en omtale udleder
+  aldrig fysisk tilstedeværelse.
+- ~~Kontinuitetskontrol mod prosaen.~~ Vist person mod beviseligt andet sted,
+  genstandens udtrykkeligt markerede holder mod besiddelse, og markeret
+  tilstand mod registreret tilstand. Kontrollerne tier ved uskarp tid, ukendt
+  holder eller ufuldstændig påstand.
+- 317/317 prøver, typecheck, build og browserprøve bestod. Den eksisterende
+  database migreres ved opstart; ældre ankermærker bliver forsigtigt «blot
+  nævnt».
 
 ## Fase 16 — De sidste overblik og robusthed
 

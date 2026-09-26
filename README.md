@@ -6,7 +6,7 @@ og hvornår de **fortælles**.
 
 ## Status
 
-**Fase 0 til 13 er færdige.** Datamodellen, tidsløseren, ændringsloggen og
+**Fase 0 til 15 er færdige.** Datamodellen, tidsløseren, ændringsloggen og
 MCP-serveren står; oven på dem et interface med værkvælger, tidslinje, lister og
 historik, et skrivebord hvor prosaen bliver til med bibelen åben ved siden af —
 og en motor, der siger fra, når noget ikke kan lade sig gøre. Fortællelaget
@@ -27,7 +27,7 @@ database.
 
 ```bash
 npm install
-npm test                              # 313 prøver
+npm test                              # 317 prøver
 npm run fixtures -- ./fabula.db       # læg de fire prøvecases ind
 npm run build && npm run dev          # interfacet på http://localhost:4173
 npm run ask -- ./fabula.db hent_kontekst
@@ -47,8 +47,8 @@ lander i den samme log, som Claude skriver til.
 | **Tidslinje** | Kronologien i baner. Starter på historiens tætteste område; skift til hele tiden, zoom, panorér eller hop i oversigtsbåndet |
 | **Personer · Steder · Ting** | Listerne, med et panel der viser ben, tilstedeværelse og hvad personen ved |
 | **Events** | Hvad der skete, og hvor fast tiden på det er |
-| **Fakta · Love** | Påstande med pladser, og hvad der kan lade sig gøre i verdenen |
-| **Kontinuitet** | Genstandstilstande og besiddelser, relationer, identiteter, forsvindinger, setups/payoffs og researchkilder |
+| **Fakta · Love** | Opret og ret fakta, overbevisninger, udsagn, viden på genstande og verdensregler |
+| **Kontinuitet** | Opret relationer, identiteter, ophold, rejser, besiddelser, tilstande, plottråde og kilder; se og slet dem individuelt |
 | **Serien** | Serien som én fortælling: bindene, de gennemgående personer, trådene og de uløste setups |
 | **Kapitler** | Bogen i læserækkefølge, med hvert events kronologiske plads ved siden af |
 | **Båndet** | De to akser mod hinanden, en tråd for hver gang bogen fortæller noget |
@@ -143,12 +143,13 @@ opdaget.
 
 ### Gennemgangen
 
-Nitten regler kører. Ud over **bilokation**, **rejsetid**, **liv og alder**, **vidensbrud**,
+Enogtyve regler kører. Ud over **bilokation**, **rejsetid**, **liv og alder**, **vidensbrud**,
 **bæreren mangler**, **umulig kronologi**, **POV-lækage**, **lagbrud**,
 **selvmøde-lækage** og **afsløringsrækkefølge** følger
 **genstandskontinuitet**, **relationstilstande**, **hængende setups**,
 **navne og identiteter**, **forsvindinger** og **kildemodstrid** — og fra prosaen
-**omtale før sin tid**, **navn uden for sin tid** og **omtale før læseren ved det**,
+**omtale før sin tid**, **navn uden for sin tid**, **omtale før læseren ved det**,
+**person vist et andet sted** og **genstandspåstand i prosaen**,
 samt **fil væk fra arkivet**. De har alle den samme disciplin:
 
 > Meld kun det, der ikke kan arrangeres anderledes.
@@ -484,7 +485,7 @@ omtalen. Et mærke i manuskriptet er stadig kun forfatterens klik.
 
 ### Omtalen som påstand
 
-Alle de andre regler læser modellen. Tre regler læser manuskriptet: en omtale er
+Alle de andre regler læser modellen. Fem regler læser manuskriptet: en omtale er
 forfatteren, der peger på noget, mens hun skriver, og det kan holdes op mod, hvad
 bibelen siger var sandt i det øjeblik.
 
@@ -517,15 +518,13 @@ om det ikke fandtes endnu. En scene, der dramatiserer ingenting, har ingen nutid
 og så tier reglerne.
 
 **Hvad en omtale ikke siger.** Den sætter ingen i rummet. «Han tænkte på
-Valdemar» nævner Valdemar og placerer ham ingen steder, så tilstedeværelse,
-besiddelse og genstandstilstand kan ikke udledes af et mærke — en regel, der
-troede noget andet, ville melde den mest almindelige sætning i bogen. Skal
-prosaen kunne bære den påstand, skal et anker kunne sige *hvordan* passagen
-bruger sit mål: vist i rummet eller blot nævnt, sådan som `scene_event.mode`
-allerede gør for events. Det står i `docs/ROADMAP.md` som en modelændring til
-fase 15, ikke som noget, der er glemt.
+Valdemar» nævner Valdemar og placerer ham ingen steder. Forfatteren kan derfor
+markere et anker som blot nævnt, vist i scenen, holdt af en bestemt person eller
+med en bestemt tilstand. Kun de sidste, udtrykkelige påstande sammenholdes med
+besiddelser og tilstande; personers fysiske tilstedeværelse kontrolleres kun,
+når tid og livslinje er sikre. Uskarphed bliver stående som uskarphed.
 
-Alle fire prøvecases er tavse under de tre regler, og der er en vægtprøve pr. bog
+Alle fire prøvecases er tavse under prosareglerne, og der er en vægtprøve pr. bog
 på netop den tavshed.
 
 ### Serien som én fortælling
@@ -654,13 +653,10 @@ tur på historikken.
 
 ## Næste skridt
 
-**Fase 14 er færdig.** Alternativer kan sammenlignes på hele den aftalte
-historiemodel, konkrete prosaforskelle kan læses, og én valgt ændring kan
-overføres med synlige konflikter som én fortrydelig handling.
+**Fase 15 er færdig.** Formularer og ændringslogført redigering dækker den
+centrale historiemodel; før sletning vises navngivne afhængigheder. Tekstankre
+kan udtrykke fysisk tilstedeværelse, holder eller tilstand, og kun præcise,
+udtrykkelige påstande kontrolleres mod bibelen.
 
-**Fase 15 er den næste:** hele modellen skal kunne betjenes i interfacet, med
-dækkende formularer og en forståelig afhængighedsvisning før sletning.
-
-**Fra fase 10, bevidst udskudt:** tilstedeværelse, besiddelse og
-genstandstilstand kan ikke udledes af en omtale, og det kræver et anker, der
-siger, hvordan passagen bruger sit mål. Det ligger i fase 15.
+**Fase 16 er den næste:** de sidste visuelle overblik, navigation fra fund,
+tilgængelighed, ydelse, integritet og onboarding til en tom database.

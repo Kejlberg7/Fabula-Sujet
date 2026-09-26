@@ -1,11 +1,11 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import { call } from '../client';
-import { SOURCE_KIND_DA } from '../format';
+import { formatSpan, SOURCE_KIND_DA } from '../format';
 import { useQuery } from '../store';
 import type { Notice } from '../main';
 import { Editable } from './Editable';
 
-type Tab = 'objects' | 'relationships' | 'identities' | 'threads' | 'sources';
+type Tab = 'objects' | 'relationships' | 'travel' | 'identities' | 'threads' | 'sources';
 
 const RELATION_DA: Record<string, string> = {
   supports: 'understøtter', context: 'kontekst', conflicts: 'mulig modstrid',
@@ -118,6 +118,8 @@ export function Continuity({
   const [own, setOwn] = useState(0);
   const [tab, setTab] = useState<Tab>('objects');
   const { data, loading } = useQuery('continuity.get', undefined, [nonce, own]);
+  const { data: entities } = useQuery('list.entities', {}, [nonce, own]);
+  const { data: works } = useQuery('context.get', undefined, [nonce, own]);
 
   const saved = (text: string) => {
     notify({ text });
@@ -126,8 +128,17 @@ export function Continuity({
   };
   const failed = (text: string) => notify({ text, bad: true });
   const remove = async (table: string, id: string, label: string) => {
-    if (!window.confirm(`Slet ${label}? Du kan hente det tilbage med Fortryd.`)) return;
     try {
+      const preview = await call('row.delete.preview', { table, id });
+      const warning = preview.dependencies.length
+        ? `\n\nDette bruger posten stadig:\n${preview.dependencies.map((item) => `• ${item.kind}: ${item.label}`).join('\n')}\n\nSlet de afhængige poster først.`
+        : '';
+      if (preview.dependencies.length) {
+        failed(`Kan ikke slette endnu. ${preview.dependencies.length} afhængige ${preview.dependencies.length === 1 ? 'post' : 'poster'} er vist i bekræftelsen.`);
+        window.alert(`${label} har afhængigheder:${warning}`);
+        return;
+      }
+      if (!window.confirm(`Slet ${label}? Du kan hente det tilbage med Fortryd.${warning}`)) return;
       await call('row.delete', { table, id });
       saved('Slettet. Fortryd henter det tilbage.');
     } catch (error) {
@@ -162,10 +173,22 @@ export function Continuity({
     <Editable table={table} id={id} field={field} value={value} multiline={multiline}
       onSaved={saved} onError={failed} />
   );
+  const create = (route: string, summary: string, toInput: (form: FormData) => object) =>
+    async (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      const formElement = event.currentTarget;
+      const form = new FormData(formElement);
+      try {
+        await call(route as never, toInput(form) as never);
+        formElement.reset();
+        saved(summary);
+      } catch (error) { failed(error instanceof Error ? error.message : String(error)); }
+    };
 
   const tabs: { id: Tab; label: string; count?: number }[] = [
     { id: 'objects', label: 'Genstande', count: data?.objects.length },
     { id: 'relationships', label: 'Relationer', count: data?.relationships.length },
+    { id: 'travel', label: 'Steder og rejser', count: (data?.presences.length ?? 0) + (data?.placeLinks.length ?? 0) },
     { id: 'identities', label: 'Identiteter og huller', count: (data?.identities.length ?? 0) + (data?.disappearances.length ?? 0) },
     { id: 'threads', label: 'Setups og payoffs', count: data?.threads.length },
     { id: 'sources', label: 'Kilder', count: data?.sources.length },
@@ -189,6 +212,107 @@ export function Continuity({
           <span><strong>{data.stats.sources}</strong> kilder</span>
         </div>
       )}
+
+      <details className="creation-drawer">
+        <summary>Opret oplysninger i historien</summary>
+        <div className="creation-grid">
+          <form className="creation-card" onSubmit={create('continuity.relationship.create', 'Relationen er oprettet.', (f) => ({
+            fromEntityId: String(f.get('from')), toEntityId: String(f.get('to')), kind: String(f.get('kind')),
+            category: String(f.get('category') ?? '') || undefined, symmetric: f.get('symmetric') === 'on',
+            note: String(f.get('note') ?? '') || undefined,
+          }))}>
+            <h3>Relation</h3>
+            <label>Fra<select name="from" required>{entities?.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}</select></label>
+            <label>Til<select name="to" required>{entities?.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}</select></label>
+            <label>Relationen<input name="kind" required placeholder="stoler på" /></label>
+            <label>Kategori<input name="category" placeholder="familie, konflikt …" /></label>
+            <label className="check-label"><input type="checkbox" name="symmetric" /> Gensidig</label>
+            <button className="btn primary">Opret relation</button>
+          </form>
+
+          <form className="creation-card" onSubmit={create('continuity.state.create', 'Tilstanden er oprettet.', (f) => ({
+            entityId: String(f.get('entity')), category: String(f.get('category')), value: String(f.get('value')),
+            note: String(f.get('note') ?? '') || undefined,
+          }))}>
+            <h3>Tilstand for en ting</h3>
+            <label>Ting<select name="entity" required>{entities?.filter((e) => e.kind === 'object').map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}</select></label>
+            <label>Aspekt<input name="category" required placeholder="fx stand" /></label>
+            <label>Værdi<input name="value" required placeholder="revnet" /></label>
+            <label>Note<input name="note" /></label>
+            <button className="btn primary">Registrer tilstand</button>
+          </form>
+
+          <form className="creation-card" onSubmit={create('possession.create', 'Besiddelsen er registreret.', (f) => ({
+            holderEntityId: String(f.get('holder')), objectEntityId: String(f.get('object')),
+            note: String(f.get('note') ?? '') || undefined,
+          }))}>
+            <h3>Hvem har genstanden?</h3>
+            <label>Person<select name="holder" required>{entities?.filter((e) => e.kind === 'person').map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}</select></label>
+            <label>Genstand<select name="object" required>{entities?.filter((e) => e.kind === 'object').map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}</select></label>
+            <label>Note<input name="note" /></label>
+            <button className="btn primary">Registrer besiddelse</button>
+          </form>
+
+          <form className="creation-card" onSubmit={create('presence.create', 'Tilstedeværelsen er registreret.', (f) => ({
+            entityId: String(f.get('person')), placeId: String(f.get('place')), realmId: String(f.get('realm')),
+            fromTime: String(f.get('from') ?? '') ? Math.floor(new Date(String(f.get('from'))).getTime() / 1000) : undefined,
+            toTime: String(f.get('to') ?? '') ? Math.floor(new Date(String(f.get('to'))).getTime() / 1000) : undefined,
+            note: String(f.get('note') ?? '') || undefined,
+          }))}>
+            <h3>Hvor er personen?</h3>
+            <label>Person<select name="person" required>{entities?.filter((e) => e.kind === 'person').map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}</select></label>
+            <label>Sted<select name="place" required>{entities?.filter((e) => e.kind === 'place').map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}</select></label>
+            <label>Fortællingslag<select name="realm" required>{works?.realms.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}</select></label>
+            <label>Fra tidspunkt<input name="from" type="datetime-local" /></label>
+            <label>Til tidspunkt<input name="to" type="datetime-local" /></label>
+            <button className="btn primary">Registrer ophold</button>
+          </form>
+
+          <form className="creation-card" onSubmit={create('place-link.create', 'Rejseforbindelsen er oprettet.', (f) => ({
+            realmId: String(f.get('realm')), fromPlaceId: String(f.get('from')), toPlaceId: String(f.get('to')),
+            mode: String(f.get('mode')), travelMin: Number(f.get('min') || 0) * 86400,
+            travelMax: Number(f.get('max') || 0) * 86400,
+            bidirectional: f.get('both') === 'on',
+          }))}>
+            <h3>Rejsetid mellem steder</h3>
+            <label>Fra<select name="from" required>{entities?.filter((e) => e.kind === 'place').map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}</select></label>
+            <label>Til<select name="to" required>{entities?.filter((e) => e.kind === 'place').map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}</select></label>
+            <label>Fortællingslag<select name="realm" required>{works?.realms.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}</select></label>
+            <label>Transport<input name="mode" required placeholder="til fods, bil, portal …" /></label>
+            <label>Mindst (dage)<input name="min" type="number" min="0" step="any" /></label>
+            <label>Højst (dage)<input name="max" type="number" min="0" step="any" /></label>
+            <label className="check-label"><input type="checkbox" name="both" defaultChecked /> Gælder begge veje</label>
+            <button className="btn primary">Opret rejseforbindelse</button>
+          </form>
+
+          <form className="creation-card" onSubmit={create('identity.create', 'Identiteten er oprettet.', (f) => ({
+            entityId: String(f.get('entity')), name: String(f.get('name')), note: String(f.get('note') ?? '') || undefined,
+          }))}>
+            <h3>Et navn eller en identitet</h3>
+            <label>Person eller entitet<select name="entity" required>{entities?.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}</select></label>
+            <label>Navn/skikkelse<input name="name" required /></label>
+            <label>Note<input name="note" /></label>
+            <button className="btn primary">Opret identitet</button>
+          </form>
+
+          <form className="creation-card" onSubmit={create('continuity.thread.create', 'Plottråden er oprettet.', (f) => ({
+            name: String(f.get('name')), summary: String(f.get('summary') ?? '') || undefined,
+            scope: String(f.get('scope') ?? 'work'),
+          }))}>
+            <h3>Ny plottråd</h3>
+            <label>Navn<input name="name" required /></label>
+            <label>Hvad lover fortællingen?<input name="summary" /></label>
+            <label>Rækkevidde<select name="scope"><option value="work">Denne bog</option><option value="series">Hele serien</option><option value="world">Hele verden</option></select></label>
+            <button className="btn primary">Opret plottråd</button>
+          </form>
+
+          <div className="creation-card">
+            <h3>Næste: plotslag</h3>
+            <p className="dim small">Vælg først en eksisterende plottråd nedenfor; dens kort får formularen til setup, komplikation og payoff.</p>
+            <span className="dim small">Aktiv bog: {works?.active?.workTitle ?? 'ingen valgt'}</span>
+          </div>
+        </div>
+      </details>
 
       <div className="continuity-tabs" role="tablist" aria-label="Kontinuitetens områder">
         {tabs.map((item) => (
@@ -252,6 +376,32 @@ export function Continuity({
         </div>
       )}
 
+      {data && tab === 'travel' && (
+        <div className="continuity-columns">
+          <section>
+            <h3>Ophold</h3>
+            {data.presences.map((row) => <article className="continuity-card" key={row.id}>
+              <strong>{row.personName}</strong> · {row.placeName}
+              <p className="dim small">{row.realmName} · {row.when}</p>
+              {row.note && <p>{row.note}</p>}
+              <button className="btn small" onClick={() => void remove('presence', row.id, `${row.personName}s ophold i ${row.placeName}`)}>Slet</button>
+            </article>)}
+            {data.presences.length === 0 && <p className="empty">Ingen ophold registreret endnu.</p>}
+          </section>
+          <section>
+            <h3>Rejsetid</h3>
+            {data.placeLinks.map((row) => <article className="continuity-card" key={row.id}>
+              <strong>{row.fromName}</strong> → <strong>{row.toName}</strong>
+              <p>{row.mode} · {row.realmName}{row.bidirectional ? ' · begge veje' : ''}</p>
+              <p className="dim small">{row.travelMin == null && row.travelMax == null ? 'Rejsetid ikke angivet' : `${row.travelMin == null ? '?' : formatSpan(row.travelMin)}–${row.travelMax == null ? '?' : formatSpan(row.travelMax)}`}</p>
+              {row.note && <p>{row.note}</p>}
+              <button className="btn small" onClick={() => void remove('place_link', row.id, `forbindelsen mellem ${row.fromName} og ${row.toName}`)}>Slet</button>
+            </article>)}
+            {data.placeLinks.length === 0 && <p className="empty">Ingen rejseforbindelser registreret endnu.</p>}
+          </section>
+        </div>
+      )}
+
       {data && tab === 'identities' && (
         <div className="continuity-columns">
           <section>
@@ -306,6 +456,13 @@ export function Continuity({
                   </div>
                 ))}
               </div>
+              <form className="beat-create" onSubmit={create('continuity.beat.create', 'Plotslaget er oprettet.', (f) => ({
+                threadId: line.id, kind: String(f.get('kind')), summary: String(f.get('summary') ?? '') || undefined,
+              }))}>
+                <select name="kind" aria-label="Plotslagstype"><option value="setup">Setup</option><option value="complication">Komplikation</option><option value="payoff">Payoff</option></select>
+                <input name="summary" aria-label="Beskrivelse af plotslaget" placeholder="Hvad sker der?" required />
+                <button className="btn small">Tilføj plotslag</button>
+              </form>
               <button className="btn" onClick={() => void remove('thread', line.id, `plottråden «${line.name}»`)}>Slet tråd</button>
             </article>
           ))}
@@ -315,6 +472,18 @@ export function Continuity({
 
       {data && tab === 'sources' && (
         <>
+          <form className="creation-card creation-inline" onSubmit={create('source.create', 'Kilden er oprettet.', (f) => ({
+            title: String(f.get('title')), kind: String(f.get('kind')),
+            url: String(f.get('url') ?? '') || undefined,
+            note: String(f.get('note') ?? '') || undefined,
+          }))}>
+            <h3>Ny researchkilde</h3>
+            <label>Titel<input name="title" required /></label>
+            <label>Slags<select name="kind"><option value="note">Note</option><option value="link">Link</option><option value="article">Artikel</option><option value="pdf">PDF</option><option value="image">Billede</option><option value="file">Fil</option></select></label>
+            <label>Link, hvis relevant<input name="url" type="url" /></label>
+            <label>Note<input name="note" /></label>
+            <button className="btn primary">Opret kilde</button>
+          </form>
           <p className="lede small">
             Kilden gemmes og vises — den bliver aldrig læst maskinelt. Hylden er sorteret efter de
             to spørgsmål, den er til for: hvad har du markeret som en mulig modstrid, og hvad blev

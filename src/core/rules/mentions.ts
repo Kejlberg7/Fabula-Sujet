@@ -1,9 +1,9 @@
 import { eq } from 'drizzle-orm';
 import {
-  chapter, identity, reveal, scene, sceneEvent, textAnchor,
+  chapter, entityState, identity, possession, reveal, scene, sceneEvent, textAnchor,
 } from '../../db/schema';
 import { whatReaderKnows } from '../queries/reader';
-import { fingerprint, type Finding, type Rule, type Snapshot } from './kit';
+import { fingerprint, sameLife, type Finding, type Rule, type Snapshot } from './kit';
 
 /**
  * The prose, taken as evidence.
@@ -13,13 +13,11 @@ import { fingerprint, type Finding, type Rule, type Snapshot } from './kit';
  * against what the bible says was true at that moment.
  *
  * What a mention does *not* say is that anybody is in the room. «Han tænkte på
- * Valdemar» names Valdemar and puts him nowhere, so presence, possession and
- * object state cannot be derived from a mark -- and a rule that pretended
- * otherwise would fire on the most ordinary sentence in the book. Only three
- * things follow from a mention with certainty, and they are what is checked
- * here: a passage cannot point forward past what the viewpoint has lived, a
- * name cannot be in use before it exists, and the reader cannot be told
- * something the reading order has not handed over yet.
+ * Valdemar» names Valdemar and puts him nowhere. Presence, possession and
+ * object state are checked only when the writer explicitly marks those claims;
+ * a rule that inferred them from a mention would fire on the most ordinary
+ * sentence in the book. A plain mention can still be checked for time, identity
+ * and reader order.
  */
 
 /** Naming a viewpoint binds the narration to it; only omniscience unbinds it. */
@@ -45,6 +43,7 @@ interface SceneView {
   anchors: typeof textAnchor.$inferSelect[];
   reveals: typeof reveal.$inferSelect[];
   linkedEvents: Set<string>;
+  dramatisedEvents: string[];
 }
 
 /** One pass over the branch, shared by the three rules in this file. */
@@ -93,6 +92,7 @@ function scenesOf(snap: Snapshot): SceneView[] {
         anchors: anchorsByScene.get(row.id) ?? [],
         reveals: revealsByScene.get(row.id) ?? [],
         linkedEvents: new Set(links.map((l) => l.eventId)),
+        dramatisedEvents: links.filter((link) => link.mode === 'dramatised').map((link) => link.eventId),
       }];
     });
   views.set(snap, built);
@@ -275,6 +275,126 @@ export const mentionReaderAhead: Rule = {
   },
 };
 
+/** A person explicitly shown in a scene cannot be elsewhere at that same instant. */
+export const depictedPersonElsewhere: Rule = {
+  code: 'depicted_person_elsewhere',
+  title: 'Person vist et andet sted',
+  run: (snap) => {
+    const findings: Finding[] = [];
+    const seen = new Set<string>();
+    for (const view of scenesOf(snap)) {
+      if (view.dramatisedEvents.length === 0) continue;
+      const pictured = view.anchors.filter((anchor) =>
+        anchor.use === 'depicted' && anchor.targetKind === 'entity'
+        && snap.entities.get(anchor.targetId)?.kind === 'person');
+      for (const anchor of pictured) {
+        for (const sceneEventId of view.dramatisedEvents) {
+          const sceneEvent = snap.events.get(sceneEventId);
+          const start = sceneEvent?.solvedEarliest ?? sceneEvent?.earliest;
+          const latest = sceneEvent?.solvedLatest ?? sceneEvent?.latest ?? start;
+          if (!sceneEvent?.placeId || start == null || latest !== start) continue;
+          const sceneEnd = start + (sceneEvent.durationMin ?? 0);
+          for (const occupation of snap.occupations) {
+            if (occupation.entityId !== anchor.targetId || occupation.placeId === sceneEvent.placeId
+              || !occupation.exclusive || occupation.sourceKind !== 'event'
+              || view.dramatisedEvents.includes(occupation.eventId ?? '')
+              || occupation.latest !== occupation.earliest
+              || !sameLife(snap, occupation, {
+                entityId: anchor.targetId, legId: occupation.legId,
+                placeId: sceneEvent.placeId, realmId: sceneEvent.realmId, earliest: start, latest: start,
+                duration: sceneEvent.durationMin ?? 0, label: '', exclusive: true,
+                sourceKind: 'event', sourceId: sceneEventId,
+              })) continue;
+            const otherEnd = occupation.earliest + occupation.duration;
+            const overlaps = sceneEnd === start
+              ? occupation.earliest <= start && otherEnd >= start
+              : Math.max(start, occupation.earliest) < Math.min(sceneEnd, otherEnd)
+                || (occupation.duration === 0 && occupation.earliest >= start && occupation.earliest <= sceneEnd);
+            if (!overlaps) continue;
+            const key = fingerprint('depicted_person_elsewhere', view.row.id, anchor.id, occupation.sourceId);
+            if (seen.has(key)) continue;
+            seen.add(key);
+            const lifted = snap.lifted({
+              ruleCode: 'depicted_person_elsewhere', entityId: anchor.targetId,
+              realmId: sceneEvent.realmId, at: start,
+            });
+            findings.push({
+              ruleCode: 'depicted_person_elsewhere', severity: 'error',
+              message: `${snap.name(anchor.targetId)} er vist i «${view.row.title ?? view.chapterTitle}» ved ${snap.name(sceneEvent.placeId)}, men ${occupation.label} placerer personen samtidig ved ${snap.name(occupation.placeId)}.`,
+              subjects: {
+                rows: [view.row.id, anchor.id, occupation.sourceId],
+                entities: [anchor.targetId], places: [sceneEvent.placeId, occupation.placeId],
+                events: [sceneEventId, occupation.eventId].filter((id): id is string => !!id),
+              },
+              fingerprint: key,
+              ...(lifted ? { lifted } : {}),
+            });
+          }
+        }
+      }
+    }
+    return findings;
+  },
+};
+
+/** An explicit textual claim about who holds an object, or what state it is in. */
+export const depictedObjectClaimConflict: Rule = {
+  code: 'prose_object_claim',
+  title: 'Genstandspåstand i prosaen',
+  run: (snap) => {
+    const findings: Finding[] = [];
+    const states = snap.store.db.select().from(entityState)
+      .where(eq(entityState.branchId, snap.ctx.branchId)).all();
+    for (const view of scenesOf(snap)) {
+      const anchors = view.anchors.filter((anchor) =>
+        anchor.targetKind === 'entity' && (anchor.use === 'held' || anchor.use === 'state'));
+      for (const anchor of anchors) {
+        for (const eventId of view.dramatisedEvents) {
+          const happening = snap.events.get(eventId);
+          const at = happening?.solvedEarliest ?? happening?.earliest;
+          const latest = happening?.solvedLatest ?? happening?.latest ?? at;
+          if (at == null || latest !== at) continue;
+
+          if (anchor.use === 'held' && anchor.relatedEntityId) {
+            for (const claim of snap.possessions) {
+              if (claim.objectEntityId !== anchor.targetId || claim.holderEntityId === anchor.relatedEntityId) continue;
+              if (claim.fromTime != null && claim.fromTime > at) continue;
+              if (claim.toTime != null && claim.toTime <= at) continue;
+              const key = fingerprint('prose_object_claim', 'held', view.row.id, anchor.id, claim.id);
+              const lifted = snap.lifted({ ruleCode: 'prose_object_claim', entityId: anchor.targetId, at });
+              findings.push({
+                ruleCode: 'prose_object_claim', severity: 'warning',
+                message: `I «${view.row.title ?? view.chapterTitle}» står der, at ${snap.name(anchor.relatedEntityId)} holder ${snap.name(anchor.targetId)}, men bibelen placerer genstanden hos ${snap.name(claim.holderEntityId)} på samme præcise tidspunkt.`,
+                subjects: { rows: [view.row.id, anchor.id, claim.id], entities: [anchor.targetId, anchor.relatedEntityId, claim.holderEntityId], events: [eventId] },
+                fingerprint: key, ...(lifted ? { lifted } : {}),
+              });
+            }
+          }
+
+          if (anchor.use === 'state' && anchor.stateCategory && anchor.stateValue) {
+            for (const state of states) {
+              if (state.entityId !== anchor.targetId || state.category !== anchor.stateCategory
+                || state.value === anchor.stateValue) continue;
+              if (state.fromTime != null && state.fromTime > at) continue;
+              if (state.toTime != null && state.toTime <= at) continue;
+              const key = fingerprint('prose_object_claim', 'state', view.row.id, anchor.id, state.id);
+              const lifted = snap.lifted({ ruleCode: 'prose_object_claim', entityId: anchor.targetId, at });
+              findings.push({
+                ruleCode: 'prose_object_claim', severity: 'warning',
+                message: `I «${view.row.title ?? view.chapterTitle}» beskrives ${snap.name(anchor.targetId)} som «${anchor.stateValue}», men bibelen siger «${state.value}» i tilstanden ${state.category} på samme præcise tidspunkt.`,
+                subjects: { rows: [view.row.id, anchor.id, state.id], entities: [anchor.targetId], events: [eventId] },
+                fingerprint: key, ...(lifted ? { lifted } : {}),
+              });
+            }
+          }
+        }
+      }
+    }
+    return findings;
+  },
+};
+
 export const mentionRules: Rule[] = [
   mentionAheadOfTime, mentionNameNotYet, mentionReaderAhead,
+  depictedPersonElsewhere, depictedObjectClaimConflict,
 ];
