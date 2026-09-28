@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { REVEAL_DA } from '../format';
 import { useQuery } from '../store';
 import { DeleteRow } from './DeleteRow';
+import { ReferenceLinks } from './ReferenceLinks';
 
 const MARK: Record<string, string> = { staerk: '✓', se_efter: '?', tynd: '!' };
 const VERDICT_DA: Record<string, string> = {
@@ -67,7 +68,7 @@ export function Twists({ nonce }: { nonce: number }) {
           </header>
 
           <div className="beats">
-            {twist.beats.map((b) => (
+          {twist.beats.map((b) => (
               <span key={b.id + b.strength} className="beat" title={`${b.chapterTitle} · ${b.title}`}>
                 <i className="num">{b.order}</i>
                 {REVEAL_DA[b.strength] ?? b.strength}
@@ -101,6 +102,7 @@ export function Twists({ nonce }: { nonce: number }) {
               )}
             </div>
           ))}
+          <ReferenceLinks targetKind="fact" targetId={twist.factId} nonce={nonce} />
         </article>
       ))}
 

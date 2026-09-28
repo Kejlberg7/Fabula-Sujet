@@ -3,6 +3,7 @@ import { call } from '../client';
 import { plural } from '../format';
 import { useQuery } from '../store';
 import type { Notice } from '../main';
+import { findingTargets } from '../finding-targets';
 
 const SEVERITY_DA: Record<string, string> = {
   error: 'fejl', warning: 'advarsel', note: 'bemærkning',
@@ -36,6 +37,10 @@ export function Findings({
   const { data: standing } = useQuery('review.list', undefined, [nonce, own]);
   const { data: runs } = useQuery('review.runs', {}, [nonce, own]);
   const { data: rules } = useQuery('review.rules', undefined, []);
+  const { data: entities } = useQuery('list.entities', {}, [nonce]);
+  const { data: events } = useQuery('list.events', undefined, [nonce]);
+  const { data: facts } = useQuery('list.facts', undefined, [nonce]);
+  const { data: chapters } = useQuery('list.chapters', {}, [nonce]);
   const findings = report?.findings ?? standing ?? [];
   const titleOf = (code: string) =>
     rules?.find((r) => r.code === code)?.title
@@ -160,6 +165,10 @@ export function Findings({
             )}
           </header>
           <p>{f.message}</p>
+          {findingTargets(f.subjects, entities ?? [], events ?? [], facts ?? [], chapters ?? []).length > 0 && <div className="finding-targets" aria-label="Gå til berørt indhold">
+            <span className="dim small">Berører:</span>
+            {findingTargets(f.subjects, entities ?? [], events ?? [], facts ?? [], chapters ?? []).map((target) => <a key={target.href} href={`#${target.href}`}>{target.label} ↗</a>)}
+          </div>}
 
           {asideFor === f.fingerprint && (
             <div className="aside-form">

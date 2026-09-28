@@ -4,6 +4,7 @@ import { formatSpan, SOURCE_KIND_DA } from '../format';
 import { useQuery } from '../store';
 import type { Notice } from '../main';
 import { Editable } from './Editable';
+import { ReferenceLinks } from './ReferenceLinks';
 
 type Tab = 'objects' | 'relationships' | 'travel' | 'identities' | 'threads' | 'sources';
 
@@ -463,6 +464,7 @@ export function Continuity({
                 <input name="summary" aria-label="Beskrivelse af plotslaget" placeholder="Hvad sker der?" required />
                 <button className="btn small">Tilføj plotslag</button>
               </form>
+              <ReferenceLinks targetKind="thread" targetId={line.id} nonce={nonce} />
               <button className="btn" onClick={() => void remove('thread', line.id, `plottråden «${line.name}»`)}>Slet tråd</button>
             </article>
           ))}

@@ -6,10 +6,11 @@ og hvornår de **fortælles**.
 
 ## Status
 
-**Fase 0 til 15 er færdige.** Datamodellen, tidsløseren, ændringsloggen og
+**Fase 0 til 16 er færdige.** Datamodellen, tidsløseren, ændringsloggen og
 MCP-serveren står; oven på dem et interface med værkvælger, tidslinje, lister og
 historik, et skrivebord hvor prosaen bliver til med bibelen åben ved siden af —
-og en motor, der siger fra, når noget ikke kan lade sig gøre. Fortællelaget
+tid × sted-matrix og relationskort — og en motor, der siger fra, når noget ikke
+kan lade sig gøre. Fortællelaget
 kontrollerer desuden POV, lag, selvmøder og afsløringsrækkefølge, mens en AI kan
 lægge manuskriptforslag i margenen uden at røre prosaen. Kontinuitetslaget følger
 desuden genstande, relationer, identiteter, forsvindinger, setups og researchkilder,
@@ -27,7 +28,7 @@ database.
 
 ```bash
 npm install
-npm test                              # 317 prøver
+npm test                              # 325 prøver
 npm run fixtures -- ./fabula.db       # læg de fire prøvecases ind
 npm run build && npm run dev          # interfacet på http://localhost:4173
 npm run ask -- ./fabula.db hent_kontekst
@@ -653,10 +654,6 @@ tur på historikken.
 
 ## Næste skridt
 
-**Fase 15 er færdig.** Formularer og ændringslogført redigering dækker den
-centrale historiemodel; før sletning vises navngivne afhængigheder. Tekstankre
-kan udtrykke fysisk tilstedeværelse, holder eller tilstand, og kun præcise,
-udtrykkelige påstande kontrolleres mod bibelen.
-
-**Fase 16 er den næste:** de sidste visuelle overblik, navigation fra fund,
-tilgængelighed, ydelse, integritet og onboarding til en tom database.
+Den oprindelige personlige appvision er implementeret. Fase 17 i
+`docs/ROADMAP.md` er bevidst udskudt: alternative kalendere, relativistisk tid,
+samtidige brugere og offentlig drift.

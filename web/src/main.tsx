@@ -19,10 +19,13 @@ import { Continuity } from './views/Continuity';
 import { Alternatives } from './views/Alternatives';
 import { Twists } from './views/Twists';
 import { Export } from './views/Export';
+import { PlaceTime } from './views/PlaceTime';
+import { Relations } from './views/Relations';
 
 export type View =
   | 'overblik' | 'tidslinje' | 'serien' | 'personer' | 'steder' | 'ting'
-  | 'events' | 'fakta' | 'love' | 'kontinuitet' | 'kapitler' | 'baand' | 'skrivebord'
+  | 'events' | 'fakta' | 'love' | 'kontinuitet' | 'tid-sted' | 'relationer'
+  | 'kapitler' | 'baand' | 'skrivebord'
   | 'alternativer' | 'grebet' | 'gennemgang' | 'historik' | 'eksport';
 
 export interface Notice { text: string; bad?: boolean }
@@ -212,6 +215,7 @@ function App() {
 
   return (
     <div className="app">
+      <a className="skip-link" href="#main-content">Spring til indhold</a>
       <TopBar nonce={dataNonce} notify={notify} onChanged={bump} />
       <div className="body">
         <nav className="nav">
@@ -227,6 +231,8 @@ function App() {
           {item('fakta', 'Fakta')}
           {item('love', 'Love')}
           {item('kontinuitet', 'Kontinuitet')}
+          {item('tid-sted', 'Tid × sted')}
+          {item('relationer', 'Relationskort')}
           <h3>Fortælling</h3>
           {item('kapitler', 'Kapitler')}
           {item('baand', 'Båndet')}
@@ -239,7 +245,7 @@ function App() {
           {item('historik', 'Historik')}
           {item('eksport', 'Eksport')}
         </nav>
-        <main>
+        <main id="main-content" tabIndex={-1}>
           {view === 'overblik' && <Overview nonce={dataNonce} onGo={setView} />}
           {view === 'tidslinje' && <Timeline nonce={dataNonce} />}
           {view === 'serien' && <Series nonce={dataNonce} />}
@@ -252,6 +258,8 @@ function App() {
           {view === 'kontinuitet' && (
             <Continuity nonce={dataNonce} notify={notify} onChanged={bump} />
           )}
+          {view === 'tid-sted' && <PlaceTime nonce={dataNonce} />}
+          {view === 'relationer' && <Relations nonce={dataNonce} />}
           {view === 'kapitler' && <Chapters nonce={dataNonce} />}
           {view === 'baand' && <Band nonce={dataNonce} />}
           {view === 'skrivebord' && (

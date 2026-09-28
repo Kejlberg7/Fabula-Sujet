@@ -1,9 +1,10 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { call } from '../client';
 import { TRUTH_DA } from '../format';
 import { useQuery } from '../store';
 import { Editable } from './Editable';
 import { DeleteRow } from './DeleteRow';
+import { ReferenceLinks } from './ReferenceLinks';
 
 const STRENGTHS = [
   ['knows', 'ved'], ['convinced', 'overbevist'], ['suspects', 'mistænker'],
@@ -13,6 +14,7 @@ const STRENGTHS = [
 export function Facts({ nonce }: { nonce: number }) {
   const [own, setOwn] = useState(0);
   const [notice, setNotice] = useState('');
+  const requestedId = new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('id');
   const { data, loading } = useQuery('list.facts', undefined, [nonce, own]);
   const { data: references } = useQuery('reference.list', undefined, [nonce, own]);
   const { data: people } = useQuery('list.entities', { kind: 'person' }, [nonce, own]);
@@ -20,6 +22,12 @@ export function Facts({ nonce }: { nonce: number }) {
   const { data: scenes } = useQuery('scene.list', {}, [nonce, own]);
   const { data: objects } = useQuery('list.entities', { kind: 'object' }, [nonce, own]);
   const { data: context } = useQuery('context.get', undefined, [nonce, own]);
+
+  useEffect(() => {
+    if (requestedId && data?.some((row) => row.id === requestedId)) {
+      document.getElementById(`fact-${requestedId}`)?.scrollIntoView({ block: 'center' });
+    }
+  }, [data, requestedId]);
 
   const submit = (route: 'fact.create' | 'belief.create' | 'statement.create' | 'carrier.create' | 'reveal.create', build: (form: FormData) => object) =>
     async (event: FormEvent<HTMLFormElement>) => {
@@ -117,7 +125,7 @@ export function Facts({ nonce }: { nonce: number }) {
       {loading && !data && <p className="empty">Henter …</p>}
       {data?.length === 0 && <p className="empty">Ingen fakta endnu.</p>}
       {data && data.length > 0 && <table className="table"><thead><tr><th>Faktum</th><th>Pladser</th><th>Sandhed</th><th>Tror det</th><th></th></tr></thead><tbody>
-        {data.map((row) => <tr key={row.id}>
+        {data.map((row) => <tr key={row.id} id={`fact-${row.id}`}>
           <td>{references?.filter((r) => r.targetKind === 'fact' && r.targetId === row.id).map((r) => <span className="reference-code" key={r.id}>{r.code}</span>)}
             <Editable table="fact" id={row.id} field="summary" value={row.summary} onSaved={() => setOwn((n) => n + 1)} onError={setNotice} />
             <div className="fact-edit-row"><span className="mono dim">Prædikat</span><Editable table="fact" id={row.id} field="predicate" value={row.predicate} onSaved={() => setOwn((n) => n + 1)} onError={setNotice} /></div>
@@ -146,7 +154,8 @@ export function Facts({ nonce }: { nonce: number }) {
             try { await call('row.update', { table: 'fact', id: row.id, patch: { truth: event.target.value } }); setOwn((n) => n + 1); }
             catch (error) { setNotice(error instanceof Error ? error.message : String(error)); }
           }}>{Object.entries(TRUTH_DA).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></td><td>{row.believers}</td>
-          <td><DeleteRow table="fact" id={row.id} label={row.summary}
+          <td><details className="fact-backlinks"><summary>Omtaler</summary><ReferenceLinks targetKind="fact" targetId={row.id} nonce={nonce} /></details>
+            <DeleteRow table="fact" id={row.id} label={row.summary}
             onDeleted={() => { setOwn((n) => n + 1); setNotice('Faktummet er slettet. Fortryd henter det tilbage.'); }} onError={setNotice} /></td>
         </tr>)}
       </tbody></table>}

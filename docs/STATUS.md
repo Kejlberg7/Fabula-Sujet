@@ -1,12 +1,28 @@
 # Arbejdsstatus
 
-Sidst opdateret: 26. september 2026
+Sidst opdateret: 28. september 2026
 
 ## Aktiv fase
 
-**Ingen. Fase 15 — hele modellen i interfacet — er færdig** og browserprøvet
-26. september 2026. Fase 0–15 er færdige. Næste er fase 16: de sidste overblik
-og robusthedsprøver. Den samlede plan ligger i `docs/ROADMAP.md`.
+**Ingen aktiv fase. Fase 0–16 er færdige.** Fase 16 blev browserprøvet,
+testet og bygget 28. september 2026. Den oprindelige personlige appvision er
+implementeret; fase 17 er bevidst udskudt.
+Den samlede plan ligger i `docs/ROADMAP.md`.
+
+## Færdigt i fase 16
+
+- Nye «Tid × sted» og «Relationskort»-visninger; matrixen placerer kun
+  udtrykkeligt registrerede ophold, og relationskortet har en tekstlig,
+  tastaturvenlig pendant.
+- Fund har genveje til berørte personer, steder, ting, events, fakta og scener.
+  Faktakort, plottråde og afsløringer linker nu tilbage til deres prosaomtaler.
+- Tidslinjen grupperer deltagere og navne før gennemløbet i stedet for at
+  lave ekstra opslag pr. event.
+- Nye automatiske prøver: tom database, foreign-key-integritet, genopgradering
+  fra det gamle ankerskema, mindst 2.000 events, 100.000 ord fordelt på 250
+  scener, fundnavigation og synkronisering af ordbogens MCP-liste. 325/325
+  prøver, typecheck og build bestod. Browseren bekræftede matrixen,
+  relationskortet, tastaturspring, eventkort og ingen konsolfejl.
 
 ## Færdigt i fase 15
 
@@ -28,10 +44,9 @@ og robusthedsprøver. Den samlede plan ligger i `docs/ROADMAP.md`.
 
 ## Næste konkrete handling
 
-Fase 16 — tid × sted-matrix, relationskort, afsløringstavle, backlinks fra alle
-kort, navigation fra fund til scene, ydelsesprøve med mindst 2.000 events,
-tilgængelighed, integritets- og migrationsprøver samt onboarding til tom
-database. Se `docs/ROADMAP.md`.
+Ingen. Den eksisterende `fabula.db` blev åbnet uden migrationer at anvende og
+havde 0 foreign-key-brud; legacy-opgraderingen er testet på en isoleret
+database i hukommelsen. Senere udvidelser står i fase 17 i `docs/ROADMAP.md`.
 
 ## Færdigt i fase 14
 
@@ -576,7 +591,7 @@ intet at se og intet at klikke på.
 ## Historisk: planen for fase 15
 
 Fase 15 er afsluttet ovenfor. Dens oprindelige dækning og beslutninger står i
-`docs/ROADMAP.md`; fase 16 er næste konkrete arbejde.
+`docs/ROADMAP.md`; fase 16 er også afsluttet ovenfor.
 
 ## Åbne risici
 
@@ -594,5 +609,5 @@ Fase 15 er afsluttet ovenfor. Dens oprindelige dækning og beslutninger står i
 - Ældre ProseMirror-mærker uden kode kan stadig findes i en database, der er
   ældre end omtale-turen. Det er bagudkompatibelt: `text_anchor` leverer målet
   i sidepanelet, og ankret kan fortsat åbnes derfra.
-- Identiteter åbner ejerens personkort, mens afsløringer åbner
-  alternativvisningen. Egne detailkort til de to typer hører til fase 16.
+- Identiteter åbner ejerens personkort, og afsløringer findes fra Grebet og
+  Alternativer; de har ikke selvstændige detaljesider endnu.

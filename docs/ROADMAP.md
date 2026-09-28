@@ -166,12 +166,26 @@ udgiver sig ikke for at være én række og kan derfor ikke overføres alene.
 
 ## Fase 16 — De sidste overblik og robusthed
 
-- Tid × sted-matrix, relationskort, afsløringstavle og backlinks fra alle kort.
-- Bog- og serieoversigt samt navigation fra fund til den konkrete scene.
-- Ydelsestest med mindst 2.000 events og et stort manuskript.
-- Tastaturnavigation, tilgængelighed, integritetskontrol, migrationsprøver og
-  onboarding til en tom verden.
-- Dokumentation og MCP-værktøjsliste holdes automatisk synkroniseret.
+**Status: færdig.** Browserprøvet 28. september 2026.
+
+- [x] Tid × sted-matrix og relationskort. Afsløringernes styrkevurdering,
+  serielæsning og sceneoversigt genbruger de eksisterende `Grebet`, `Serien` og
+  `Kapitler`-visninger.
+- [x] Fund viser genveje til de berørte poster og scener; faktakort, plottråde
+  og afsløringer linker tilbage til prosaomtaler. Entitets- og eventkort havde
+  allerede backlinks.
+- [x] Benchmark-prøver med 2.000 events og et manuskript på 100.000 ord i 250
+  scener; tidslinjens deltager- og navneopslag samles før gennemløbet.
+- [x] Tom database, fremmednøgler, sikker standardværdi og genopgradering fra
+  det gamle ankerskema har automatiske prøver. Appen har særskilt onboarding,
+  når ingen verden er valgt.
+- [x] MCP-værktøjstallet og hvert værktøjsnavn i ordbogen afstemmes automatisk
+  af en prøve.
+- [x] Fundmålene har automatiske tests for person, event, faktum og scene;
+  eventkortets dybe link er verificeret i browseren. Skærmlæsertekst og
+  tastaturadgang er kontrolleret på relationskortet og hovedindholdet.
+- [x] Browserens konsol er ren; README, status, plan og værktøjsliste er
+  afstemt. Den eksisterende database har 0 foreign-key-brud.
 
 Når fase 16 er færdig, er den oprindelige personlige appvision færdig.
 

@@ -498,8 +498,16 @@ export function createApi(store: Store) {
       const by = input.by ?? 'person';
       const events = db.select().from(event).where(eq(event.branchId, c.branchId)).all()
         .filter((e) => !input.realmId || e.realmId === input.realmId);
-      const realmName = (id: string) =>
-        db.select().from(realm).where(eq(realm.id, id)).get()?.name ?? '';
+      const participantsByEvent = new Map<string, typeof participation.$inferSelect[]>();
+      const namesById = new Map(db.select().from(entity).where(eq(entity.branchId, c.branchId)).all()
+        .map((row) => [row.id, row.name] as const));
+      const realmNames = new Map(db.select().from(realm).all().map((row) => [row.id, row.name] as const));
+      for (const part of db.select().from(participation).where(eq(participation.branchId, c.branchId)).all()) {
+        const rows = participantsByEvent.get(part.eventId) ?? [];
+        rows.push(part);
+        participantsByEvent.set(part.eventId, rows);
+      }
+      const realmName = (id: string) => realmNames.get(id) ?? '';
 
       const lanes = new Map<string, TimelineLane>();
       const items: TimelineItem[] = [];
@@ -519,9 +527,8 @@ export function createApi(store: Store) {
           realmId: e.realmId, realmName: realmName(e.realmId),
         };
         if (by === 'person') {
-          const parts = db.select().from(participation).where(eq(participation.eventId, e.id)).all();
-          for (const p of parts) {
-            const name = nameOf(p.entityId);
+          for (const p of participantsByEvent.get(e.id) ?? []) {
+            const name = namesById.get(p.entityId) ?? null;
             if (!name) continue;
             addLane(p.entityId, name, 'person');
             items.push({ ...base, id: `${e.id}:${p.id}`, laneId: p.entityId, detail: p.role });

@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { after, before, describe, it } from 'node:test';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { ElicitRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { openStore, type Store } from '../db/client';
-import { createServer } from '../mcp/server';
+import { allTools, createServer } from '../mcp/server';
 
 /**
  * The MCP surface, driven the way it will actually be driven: a conversation
@@ -64,6 +65,15 @@ describe('MCP-fladen', () => {
       assert.ok(names.includes(expected), `mangler værktøjet ${expected}`);
     }
     assert.ok(names.every((n) => /^[a-z_]+$/.test(n)), 'værktøjsnavne skal være danske og små');
+  });
+
+  it('holder ordbogens MCP-liste synkroniseret med serveren', () => {
+    const glossary = readFileSync(new URL('../../docs/ORDBOG.md', import.meta.url), 'utf8');
+    const listedCount = Number(glossary.match(/(\d+) værktøjer/)?.[1]);
+    assert.equal(listedCount, allTools.length, 'opdatér værktøjstallet i docs/ORDBOG.md');
+    for (const tool of allTools) {
+      assert.ok(glossary.includes(`\`${tool.name}\``), `mangler ${tool.name} i docs/ORDBOG.md`);
+    }
   });
 
   it('siger pænt til, når der ikke er valgt noget endnu', async () => {

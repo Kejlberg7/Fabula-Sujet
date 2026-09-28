@@ -46,6 +46,13 @@
 
 * { box-sizing: border-box; }
 
+:focus-visible { outline: 3px solid var(--story); outline-offset: 3px; }
+.skip-link {
+  position: fixed; z-index: 100; left: 12px; top: 8px; transform: translateY(-160%);
+  padding: 8px 12px; background: var(--surface); color: var(--ink); border: 2px solid var(--story);
+}
+.skip-link:focus { transform: translateY(0); }
+
 body {
   margin: 0;
   background: var(--bg);
@@ -60,6 +67,27 @@ button, input, select, textarea { font: inherit; color: inherit; }
 a { color: var(--story); }
 
 .app { display: grid; grid-template-rows: auto 1fr; height: 100vh; }
+.matrix-scroll { overflow: auto; max-width: 100%; border: 1px solid var(--line); background: var(--surface); }
+.place-time { min-width: max-content; margin: 0; }
+.place-time th { position: sticky; top: 0; z-index: 1; background: var(--surface-2); }
+.place-time th:first-child { left: 0; z-index: 2; }
+.place-time tbody th { left: 0; position: sticky; text-align: left; }
+.place-time td { min-width: 130px; max-width: 220px; vertical-align: top; }
+.matrix-presence { margin: 2px 0; padding: 3px 6px; color: var(--story); background: var(--story-wash); border-radius: 3px; }
+.matrix-presence small { display: block; color: var(--muted); }
+.matrix-event { margin: 2px 0; padding: 3px 6px; color: var(--disc); background: var(--disc-wash); border-radius: 3px; }
+.matrix-event a { color: inherit; text-decoration: none; }
+.relation-graph { max-width: 900px; margin: 18px auto; overflow: auto; background: var(--surface); border: 1px solid var(--line); }
+.relation-graph svg { display: block; width: 100%; min-width: 540px; height: auto; }
+.relation-edge { stroke: var(--line-2); stroke-width: 2; }
+.relation-edge-label { fill: var(--muted); text-anchor: middle; font: 12px var(--sans); paint-order: stroke; stroke: var(--surface); stroke-width: 5px; stroke-linejoin: round; }
+.relation-node { fill: var(--story-wash); stroke: var(--story); stroke-width: 2; }
+.relation-node-label { fill: var(--ink); text-anchor: middle; font: 12px var(--sans); }
+.relation-accessible { max-width: 900px; margin: 0 auto; }
+.finding-targets { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; margin: 10px 0; }
+.finding-targets a { padding: 2px 7px; border: 1px solid var(--line); border-radius: 3px; text-decoration: none; }
+.fact-backlinks { margin-bottom: 6px; }
+.fact-backlinks summary { cursor: pointer; color: var(--story); }
 
 /* ---------- top bar ---------- */
 .topbar {
