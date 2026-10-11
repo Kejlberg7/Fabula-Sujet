@@ -68,11 +68,11 @@ describe('MCP-fladen', () => {
   });
 
   it('holder ordbogens MCP-liste synkroniseret med serveren', () => {
-    const glossary = readFileSync(new URL('../../docs/ORDBOG.md', import.meta.url), 'utf8');
-    const listedCount = Number(glossary.match(/(\d+) værktøjer/)?.[1]);
-    assert.equal(listedCount, allTools.length, 'opdatér værktøjstallet i docs/ORDBOG.md');
+    const glossary = readFileSync(new URL('../../docs/GLOSSARY.md', import.meta.url), 'utf8');
+    const listedCount = Number(glossary.match(/(\d+) tools/)?.[1]);
+    assert.equal(listedCount, allTools.length, 'update the tool count in docs/GLOSSARY.md');
     for (const tool of allTools) {
-      assert.ok(glossary.includes(`\`${tool.name}\``), `mangler ${tool.name} i docs/ORDBOG.md`);
+      assert.ok(glossary.includes(`\`${tool.name}\``), `missing ${tool.name} in docs/GLOSSARY.md`);
     }
   });
 

@@ -140,8 +140,8 @@ describe('Fase 16 — overblik og robusthed', () => {
   it('holder ordbogens antal og navne i takt med MCP-serverens faktiske værktøjer', async () => {
     const { readFileSync } = await import('node:fs');
     const { allTools } = await import('../mcp/server');
-    const glossary = readFileSync(new URL('../../docs/ORDBOG.md', import.meta.url), 'utf8');
-    assert.equal(Number(glossary.match(/(\d+) værktøjer/)?.[1]), allTools.length);
+    const glossary = readFileSync(new URL('../../docs/GLOSSARY.md', import.meta.url), 'utf8');
+    assert.equal(Number(glossary.match(/(\d+) tools/)?.[1]), allTools.length);
     for (const tool of allTools) assert.ok(glossary.includes(`\`${tool.name}\``), tool.name);
   });
 

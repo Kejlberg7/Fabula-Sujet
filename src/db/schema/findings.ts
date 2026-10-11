@@ -4,7 +4,7 @@ import { branchId, createdAt, pk } from './_shared';
 /**
  * Something the consistency engine believes is wrong.
  *
- * `rule_code` matches the codes in docs/ORDBOG.md and the ones a `law` may lift.
+ * `rule_code` matches the codes in docs/GLOSSARY.md and the ones a `law` may lift.
  * A finding is produced only after the law layer has been asked whether an
  * exception applies -- the engine never reports something an ability allows.
  */

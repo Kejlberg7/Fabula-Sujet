@@ -1,7 +1,7 @@
 # Fabula & Sujet
 
 Story bible and manuscript workbench. See `README.md` for what it is and
-`docs/ORDBOG.md` for the Danish ↔ English mapping.
+`docs/GLOSSARY.md` for the Danish ↔ English mapping.
 
 ## Start here
 
@@ -10,7 +10,7 @@ Before changing anything, read these files in order:
 1. `docs/STATUS.md` -- the current hand-off, including the exact next action.
 2. `docs/ROADMAP.md` -- the agreed continuation after phase 8.
 3. `README.md` -- what the finished phases do.
-4. `docs/ORDBOG.md` -- the only Danish ↔ English vocabulary.
+4. `docs/GLOSSARY.md` -- the only Danish ↔ English vocabulary.
 
 Update `docs/STATUS.md` while a phase is in progress, not only when it is done.
 It must be possible for another AI to continue safely from the working tree and
@@ -21,7 +21,7 @@ decisions, verification already run, and the next concrete action.
 
 - **Identifiers are English, the surface is Danish.** UI labels, MCP tool names
   and MCP arguments are Danish; tables, columns and functions are English. The
-  mapping lives in `docs/ORDBOG.md` and nowhere else — add there before using a
+  mapping lives in `docs/GLOSSARY.md` and nowhere else — add there before using a
   new word.
 - **Nothing writes except the change log.** Every insert, update and delete goes
   through `Session` in `src/core/changelog.ts`, so it can be undone. Five
@@ -66,21 +66,20 @@ decisions, verification already run, and the next concrete action.
   first; an `ability` naming its rule code switches it off. A warning the writer
   has already written an exception for is noise, and noise gets the tool
   switched off within a week.
-- **En serie læses i rækkefølge.** Læseren af bind to har læst bind et, så
-  `whatReaderKnows` tæller tidligere bøger i den samme serie med. En anden serie
-  i den samme verden arver ingenting -- og det gælder også serieoversigten,
-  `seriesOverview` i `src/core/queries/series.ts`, som samler fra seriens bind
-  og ingen andre. Rækkefølgen selv -- serie → bog → kapitel
-  → scene -- kommer ét sted fra, `readingOrder` i `src/core/queries/order.ts`.
-  Kapitler tæller fra et i hver bog, så det, der regner ordenen selv, lægger før
-  eller siden bind to's første kapitel før bind et's andet.
-- **En tråd begynder ét sted og når et andet.** `thread.work_id` er den bog,
-  plottråden begynder i; `thread.scope` er, hvor langt den når -- bogen, serien
-  eller verden. Alt, der spørger hvad en tråd dækker, spørger rækkevidden.
-- **Vurderinger får aldrig et tal.** Gennemgangen siger, om noget er muligt;
-  Grebet siger, om det er noget værd — og en karakter kan hverken diskuteres
-  eller handles på. En aflæsning nævner altid de scener, den kommer af, og tier,
-  når der ikke er noget at regne på. Se `src/core/queries/dramaturgy.ts`.
+- **A series is read in order.** The reader of book two has read book one, so
+  `whatReaderKnows` includes earlier books in that series. The same applies to
+  `seriesOverview` in `src/core/queries/series.ts`; it aggregates only that
+  series' books. Reading order -- series → book → chapter → scene -- has one
+  source: `readingOrder` in `src/core/queries/order.ts`. Chapters restart at one
+  in each book, so any code that computes order independently will eventually
+  put book two's first chapter before book one's second.
+- **A thread begins in one place and reaches another.** `thread.work_id` is the
+  book where the plot thread begins; `thread.scope` is how far it reaches --
+  book, series, or world. Any query about a thread's coverage must use its scope.
+- **Evaluations are never numeric scores.** Review reports whether something is
+  possible; Dramaturgy asks whether it works -- and a score cannot be debated
+  or acted on. Every reading cites the scenes it derives from and stays silent
+  when there is not enough evidence. See `src/core/queries/dramaturgy.ts`.
 - **A read-through is bound to the version it read.** `review_run` records the
   exact `scene_text` of every scene in its scope, and every margin note carries
   the version it was written about. A note whose scene has been saved since is
@@ -103,8 +102,8 @@ Node 20 (`.nvmrc`). The shell may default to an older nvm version — check
 `node -v` before running anything.
 
 ```bash
-npm test                            # 325 prøver
-npm run fixtures -- ./fabula.db     # Memento, Predestination, Inception, Havnen
+npm test                            # 325 tests
+npm run fixtures -- ./fabula.db     # Memento, Predestination, Inception, Harbor
 npm run build && npm run dev        # interface on :4173
 npm run ask -- ./fabula.db hent_kontekst
 ```

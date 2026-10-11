@@ -15,7 +15,7 @@ export const historyTools: ToolDef[] = [
     name: 'opdater',
     title: 'Opdater',
     description:
-      'Ret felter på en hvilken som helst række. Tabelnavnene er engelske og står i docs/ORDBOG.md '
+      'Ret felter på en hvilken som helst række. Tabelnavnene er engelske og står i docs/GLOSSARY.md '
       + '— fx "entity", "event", "fact", "belief", "scene". Rettelsen går gennem loggen og kan fortrydes.',
     inputSchema: {
       tabel: z.string(),

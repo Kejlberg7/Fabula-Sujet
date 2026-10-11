@@ -5,7 +5,7 @@ import { integer, text } from 'drizzle-orm/sqlite-core';
  *
  * Naming rule for this codebase: identifiers are English, the user-facing
  * surface (UI labels, MCP tool names and arguments) is Danish. The mapping
- * between the two lives in docs/ORDBOG.md and is the single source of truth
+ * between the two lives in docs/GLOSSARY.md and is the single source of truth
  * for it -- never invent a translation at the call site.
  */
 

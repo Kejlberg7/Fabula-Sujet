@@ -7,7 +7,7 @@
  * on one screen and `implied` on the next, which is worse than English would
  * have been. So the words live here, once, and both surfaces read from them.
  *
- * The decisions themselves are written down in `docs/ORDBOG.md`; this file is
+ * The decisions themselves are written down in `docs/GLOSSARY.md`; this file is
  * where they are spelled. Adding a value means adding it in both places.
  *
  * Deliberately free of imports: the interface bundles this straight into the

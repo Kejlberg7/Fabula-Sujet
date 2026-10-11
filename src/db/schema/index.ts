@@ -2,7 +2,7 @@
  * Fabula & Sujet -- phase 0 schema.
  *
  * Identifiers here are English. Everything the writer sees -- UI labels, MCP
- * tool names, MCP arguments -- is Danish, and docs/ORDBOG.md is the only place
+ * tool names, MCP arguments -- is Danish, and docs/GLOSSARY.md is the only place
  * the mapping is defined.
  *
  * Read the tables in this order; each layer only depends on the ones above it:
